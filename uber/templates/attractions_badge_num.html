@@ -63,12 +63,12 @@
   document.addEventListener(\"DOMContentLoaded\", function () {
     $('.badge-num-form .confirm-row .btn-danger').on('click', function (event) {
       event.preventDefault();
-      hideBadgeNumConfirm($(this).closest('form'), false);
+      hideBadgeNumConfirm(this.closest('form'), false);
     });
 
     document.querySelectorAll('.badge-num-form').on('submit', function(event) {
       event.preventDefault();
-      var $form = $(this),
+      var $form = this,
           $badgeNum = $form.find('input[name=badge_num]'),
           badgeNum = $badgeNum.val();
 

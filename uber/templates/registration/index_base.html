@@ -41,13 +41,13 @@
         });
       {% endif %}
       document.querySelectorAll('.badge_count').each(function () {
-        text = $(this).text()
+        text = this.text()
         num_badges_left = parseInt(text.substr(0,text.indexOf(' ')));
-        if ($(this).data('danger-threshold') && num_badges_left <= $(this).data('danger-threshold')) {
-          $(this).removeClass('btn').addClass('btn-danger');
+        if (this.data('danger-threshold') && num_badges_left <= this.data('danger-threshold')) {
+          this.removeClass('btn').addClass('btn-danger');
         }
-        else if ($(this).data('warning-threshold') && num_badges_left <= $(this).data('warning-threshold')) {
-          $(this).removeClass('btn').addClass('btn-warning');
+        else if (this.data('warning-threshold') && num_badges_left <= this.data('warning-threshold')) {
+          this.removeClass('btn').addClass('btn-warning');
         }
       });
     });

@@ -59,7 +59,7 @@
   document.addEventListener(\"DOMContentLoaded\", function () {
     $(document.body).on('click', '.btn-inherent_role', function(event) {
       event.preventDefault();
-      var $btn = $(this),
+      var $btn = this,
           hasRole = !$btn.hasClass('btn-outline-secondary'),
           role = $btn.data('role'),
           $btnGroup = $btn.closest('.btn-group'),

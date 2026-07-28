@@ -28,7 +28,7 @@ document.addEventListener(\"DOMContentLoaded\", function () {
   $("form[action*='/security_admin/']").submit(function (event) {
     event.preventDefault();
     var old_hash = window.location.hash;
-    $.post($(this).attr('action'), $(this).serializeArray())
+    $.post(this.attr('action'), this.serializeArray())
     .success(function (json) {
         if(window.loadForm !== undefined) {
           document.getElementById('attendee-modal-alert').addClass("alert-info").show().children('span').html(json.message);

@@ -255,8 +255,8 @@
             {% if bootstrap5 %}
             
             loadDataTables = function() {document.querySelectorAll('.datatable').each(function() {
-                if (! DataTable.isDataTable($(this))) {
-                    var table = new DataTable($(this), {
+                if (! DataTable.isDataTable(this)) {
+                    var table = new DataTable(this, {
                         aLengthMenu: [
                             [25, 50, 100, 200, -1],
                             [25, 50, 100, 200, 'All']
@@ -280,7 +280,7 @@
                             .on( 'change', function () {
                                 table
                                     .column( colIdx )
-                                    .search( $(this).val() )
+                                    .search( this.val() )
                                     .draw();
                             } );
 
@@ -299,8 +299,8 @@
             });}
             {% else %}
             loadDataTables = function() {document.querySelectorAll('.datatable').each(function() {
-                if (! $.fn.DataTable.isDataTable($(this))) {
-                    var table = $(this).DataTable({
+                if (! $.fn.DataTable.isDataTable(this)) {
+                    var table = this.DataTable({
                         aLengthMenu: [
                             [25, 50, 100, 200, -1],
                             [25, 50, 100, 200, 'All']
@@ -324,7 +324,7 @@
                             .on( 'change', function () {
                                 table
                                     .column( colIdx )
-                                    .search( $(this).val() )
+                                    .search( this.val() )
                                     .draw();
                             } );
 
@@ -521,8 +521,8 @@
       <script type="text/javascript">
           $(window).on("runJavaScript", function() {
             document.querySelectorAll('.form-control-static').each(function(index) {
-                if($( this ).text().trim() == '' && $(this).is(":visible")) {
-                    $(this).parents('.form-group').hide();
+                if($( this ).text().trim() == '' && this.is(":visible")) {
+                    this.parents('.form-group').hide();
                 }
             })
             $(':input').on('change', resetServerValidation);

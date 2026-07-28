@@ -194,7 +194,7 @@
     });
 
     $notificationPref.on('change', function(event) {
-      var notificationPref = $(this).val();
+      var notificationPref = this.val();
 
       var callback = function(response) {
         if(response && response['error']) {
@@ -256,12 +256,12 @@
     });
 
     $signupModal.on('show.bs.modal', function (event) {
-      resetBadgeNum($(this));
-      $(this).find('input[name=badge_num]').val('');
+      resetBadgeNum(this);
+      this.find('input[name=badge_num]').val('');
     });
 
     $signupModal.on('shown.bs.modal', function (event) {
-      focusBadgeNum($(this));
+      focusBadgeNum(this);
     });
 
     $signupModal.find('.confirm-row .btn-success').on('click', function (event) {
@@ -287,7 +287,7 @@
 
     $container.on('click', '.btn-success', function(event) {
       event.preventDefault();
-      var $signup = $(this).closest('.hover-btn'),
+      var $signup = this.closest('.hover-btn'),
           signupId = $signup.data('signupId'),
           eventId = $signup.data('eventId'),
           eventLabel = $signup.data('eventLabel'),
@@ -308,7 +308,7 @@
 
     $container.on('click', '.btn-danger', function(event) {
       event.preventDefault();
-      var $signup = $(this).closest('.hover-btn'),
+      var $signup = this.closest('.hover-btn'),
           signupId = $signup.data('signupId'),
           eventLabel = $signup.data('eventLabel');
 

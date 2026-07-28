@@ -1291,7 +1291,7 @@ class panelLogic {
             // Click to exit assignment.
             this.manual_assignee = false;
             // Unbold everyone in the unassigned list.
-            $(unassigned_dom).children("ul").children("li").each(function() { $(this).children("span").css("font-weight","")});
+            $(unassigned_dom).children("ul").children("li").each(function() { this.children("span").css("font-weight","")});
             //$(single_button).hide();
             //$(assign_button).show();
             //document.querySelectorAll('.face_selector').hide();
@@ -1300,7 +1300,7 @@ class panelLogic {
             this.manual_assignee = artist_id;
             $(single_button).html(this.getManualAssigneeLabel(artist_id));
             // Unbold everyone in the unassigned list.
-            $(unassigned_dom).children("ul").children("li").each(function() { $(this).children("span").css("font-weight","")});
+            $(unassigned_dom).children("ul").children("li").each(function() { this.children("span").css("font-weight","")});
             
             //$(single_button).show();
             //$(assign_button).hide();
@@ -1935,8 +1935,8 @@ class panHandler {
             }
         }
         document.querySelectorAll('.node_ring').each(function() {
-            if(match_nodes.has($(this).attr("node_id"))!==true) {
-                $(this).hide();
+            if(match_nodes.has(this.attr("node_id"))!==true) {
+                this.hide();
             }
         });
         if(compare===true) {

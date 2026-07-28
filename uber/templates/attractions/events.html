@@ -31,7 +31,7 @@
 
     document.getElementById('events').on('click', '.event', function(event) {
       event.preventDefault();
-      var $event = $(this),
+      var $event = this,
           eventId = $event.data('eventId'),
           isSoldout = $event.hasClass('soldout');
 
@@ -154,19 +154,19 @@
     });
 
     $modals.on('hidden.bs.modal', function (event) {
-      resetInputs($(this));
+      resetInputs(this);
     });
 
     $modals.on('show.bs.modal', function (event) {
-      resetBadgeNum($(this));
+      resetBadgeNum(this);
     });
 
     $modals.on('shown.bs.modal', function (event) {
-      focusBadgeNum($(this));
+      focusBadgeNum(this);
     });
 
     $doneModal.on('show.bs.modal', function () {
-      $(this).find('input[name=badge_num]').val('');
+      this.find('input[name=badge_num]').val('');
       var $notificationPref = $doneModal.find('.notification_pref'),
           attendeeData = $doneModal.data('attendee');
       if (attendeeData && attendeeData.hasOwnProperty('notification_pref')) {

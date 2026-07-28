@@ -4,14 +4,14 @@
     var onModeChange = function(obj, suffix='') {
       if (obj == undefined) { return false; }
       if (suffix == '') { suffix = '_' + obj[0].name.split('_')[1]; }
-      if (suffix != '_' && suffix != '_text' && $.field('mode' + suffix)) {
-        setVisible($.field('mode_text' + suffix), $.val('mode' + suffix) == {{ c.OTHER }});
-        if ($.val('mode' + suffix) == {{ c.CAR }} || $.val('mode' + suffix) == {{ c.TAXI }}) {
-          $.field('arrival_details' + suffix).attr('required', false).parents('.form-group').hide();
-          $.field('departure_details' + suffix).attr('required', false).parents('.form-group').hide();
+      if (suffix != '_' && suffix != '_text' && getField('mode' + suffix)) {
+        setVisible(getField('mode_text' + suffix), getVal('mode' + suffix) == {{ c.OTHER }});
+        if (getVal('mode' + suffix) == {{ c.CAR }} || getVal('mode' + suffix) == {{ c.TAXI }}) {
+          getField('arrival_details' + suffix).attr('required', false).parents('.form-group').hide();
+          getField('departure_details' + suffix).attr('required', false).parents('.form-group').hide();
         } else {
-          $.field('arrival_details' + suffix).attr('required', true).parents('.form-group').show();
-          $.field('departure_details' + suffix).attr('required', true).parents('.form-group').show();
+          getField('arrival_details' + suffix).attr('required', true).parents('.form-group').show();
+          getField('departure_details' + suffix).attr('required', true).parents('.form-group').show();
         }
       }
     };
@@ -28,11 +28,11 @@
                 var suffix = '_' + i;
                 var $opPanel = $template.clone();
                 $opPanel.find('h2').text($opPanel.find('h2').text() + i);
-                $opPanel.find('input').attr('name', function() { return $(this).attr('name') + suffix } );
-                $opPanel.find('input').attr('id', function() { return $(this).attr('id') + suffix } );
-                $opPanel.find('select').attr('name', function() { return $(this).attr('name') + suffix } );
-                $opPanel.find('textarea').attr('name', function() { return $(this).attr('name') + suffix } );
-                $opPanel.find('select[name*="mode"]').on('change', function() {onModeChange($(this));});
+                $opPanel.find('input').attr('name', function() { return this.attr('name') + suffix } );
+                $opPanel.find('input').attr('id', function() { return this.attr('id') + suffix } );
+                $opPanel.find('select').attr('name', function() { return this.attr('name') + suffix } );
+                $opPanel.find('textarea').attr('name', function() { return this.attr('name') + suffix } );
+                $opPanel.find('select[name*="mode"]').on('change', function() {onModeChange(this);});
                 $opPanel.appendTo('#travels_container');
                 onModeChange($opPanel.find('select[name*="mode"]'));
                 $('#arrival-time' + suffix).flatpickr({

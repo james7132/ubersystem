@@ -251,7 +251,7 @@
     var updateAll = function() {
         let bigData = ''
         $('[id^=update-form]').each(function() {
-            let serializedData = new URLSearchParams($(this).serialize());
+            let serializedData = new URLSearchParams(this.serialize());
 
             if (bigData == '') {
                 bigData = 'csrf_token=' + serializedData.get('csrf_token')
@@ -288,8 +288,8 @@
     $("form[action='mark_as_paid']").submit(function (e) {
         e.preventDefault();
 
-        var data = $(this).serialize();
-        var currentForm = $(this);
+        var data = this.serialize();
+        var currentForm = this;
 
         $.ajax({
             method: 'POST',

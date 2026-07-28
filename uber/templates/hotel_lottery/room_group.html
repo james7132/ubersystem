@@ -25,7 +25,7 @@
               method: 'POST',
               url: 'room_group_search',
               dataType: 'json',
-              data: $(this).serialize(),
+              data: this.serialize(),
               success: function (json) {
                 if (json.success) {
                     (document.getElementById('group-found') ? document.getElementById('group-found').style.display = '' : null);

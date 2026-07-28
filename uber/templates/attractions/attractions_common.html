@@ -192,7 +192,7 @@
 
   var clickNextButton = function(event) {
     event.preventDefault();
-    var $next = $(this).find('a.btn-next');
+    var $next = this.find('a.btn-next');
     if ($next.attr('href')) {
       window.location = $next.attr('href');
     }

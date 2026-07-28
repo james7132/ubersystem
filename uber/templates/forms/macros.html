@@ -232,9 +232,9 @@
           document.getElementById('{{ field_id }}').dispatchEvent(new Event('input')); // make alpine happy
         {% endif %}
         $(".{{ target_field.name }}_card").each(function(){
-            var header = $(this).children('.card-header');
-            var body = $(this).children('.card-body');
-            var footer = $(this).children('.card-footer');
+            var header = this.children('.card-header');
+            var body = this.children('.card-body');
+            var footer = this.children('.card-footer');
 
             if(body.find('a').length && body.find('a').data('value') == value) {
                 header.addClass('text-white bg-primary');
@@ -353,8 +353,8 @@
       success: function (response) {
         $("#form-validations-{{ form_id }}").hide().removeClass().addClass("alert").children('span').html("");
         document.querySelectorAll('.is-invalid').each(function() {
-          var field_id = $(this).attr('id');
-          $(this).removeClass('is-invalid');
+          var field_id = this.attr('id');
+          this.removeClass('is-invalid');
           $("#" + field_id + "-validation").hide();
         });
         if (response.warning) {
@@ -436,7 +436,7 @@ $("#{{ form_id }}").submit(function (event) {
 
   if(!serverValidationPassed) {
     event.preventDefault();
-    runServerValidations_{{ form_id|replace('-','_') }}($(this), submit_button_name, submit_button_val);
+    runServerValidations_{{ form_id|replace('-','_') }}(this, submit_button_name, submit_button_val);
     return false;
   }
   {% if include_disclaimers_modal %}

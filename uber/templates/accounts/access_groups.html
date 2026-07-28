@@ -22,7 +22,7 @@
       };
 
       var updateColor = function() {
-          $(this).removeClass('btn-outline-secondary btn-warning btn-info btn-primary').addClass(accessLevelToColor[$(this).val()]);
+          this.removeClass('btn-outline-secondary btn-warning btn-info btn-primary').addClass(accessLevelToColor[this.val()]);
       };
 
       var getAccessGroup = function(groupId, callback) {
@@ -102,8 +102,8 @@
           enableOrDisabledDelete();
 
           getField('id').on('change', function () {
-              if($(this).val() != "None") {
-                  getAccessGroup($(this).val());
+              if(this.val() != "None") {
+                  getAccessGroup(this.val());
                   getField('name').val($('select[name=id] option:selected').text())
               } else {
                   document.querySelectorAll('.select_access').val("0");

@@ -113,7 +113,7 @@
         hideMessageBox("upgrade-message-alert");
         document.getElementById('upgrade-purchase').prop('disabled', true);
         $("form[action='purchase_upgrades']").submit(function(event){
-        var $form = $(this);
+        var $form = this;
         $btn = $form.find('button[type=submit]');
         event.preventDefault();
         $btn.prop('disabled', true);

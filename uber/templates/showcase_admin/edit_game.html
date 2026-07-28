@@ -449,7 +449,7 @@
     document.addEventListener(\"DOMContentLoaded\", function () {
       document.getElementById('remove-judges').on('submit', function(event) {
         event.preventDefault();
-        var $toSubmit = $(this);
+        var $toSubmit = this;
         bootbox.confirm({
           backdrop: true,
           title: 'Remove Selected Judge(s)?',

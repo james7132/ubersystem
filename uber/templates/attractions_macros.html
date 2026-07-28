@@ -318,7 +318,7 @@
 
       $advance_notices.on('click', '.glyphicon-minus-sign', function(event) {
         event.preventDefault();
-        var $notification = $(this).closest('.notification');
+        var $notification = this.closest('.notification');
         $notification.remove();
       });
 

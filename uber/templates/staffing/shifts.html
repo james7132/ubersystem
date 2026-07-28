@@ -262,7 +262,7 @@
                   document.getElementById('message-alert').addClass("alert-success").show().children('span').html(message);
                   shiftDetails.hide();
                   document.getElementById('weighted-hours').fadeOut(function() {
-                    $(this).text(json.hours)
+                    this.text(json.hours)
                   }).fadeIn();
                   fetchedEventList.length = 0;
                   ec.refetchEvents();
@@ -304,7 +304,7 @@
                   document.getElementById('message-alert').addClass("alert-success").show().children('span').html(message);
                   shiftDetails.hide();
                   document.getElementById('weighted-hours').fadeOut(function() {
-                    $(this).text(json.hours)
+                    this.text(json.hours)
                   }).fadeIn();
                   fetchedEventList.length = 0;
                   ec.refetchEvents();

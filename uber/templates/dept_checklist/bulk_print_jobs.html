@@ -122,7 +122,7 @@
 
 <script type="text/javascript">
     document.querySelectorAll('.delete-request').on('click', function (event) {
-    var $formToSubmit = $(this).closest('form');
+    var $formToSubmit = this.closest('form');
     event.preventDefault();
     hideMessageBox();
     bootbox.confirm({

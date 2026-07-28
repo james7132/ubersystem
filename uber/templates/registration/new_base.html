@@ -84,9 +84,9 @@
     var makeStripeAjax = function() {
         if($("form[action='manual_reg_charge']").length) {
             $("form[action='manual_reg_charge']").each(function(index) {
-                $(this).get(0).submit = function() {
-                    var data = $(this).serialize();
-                    var currentForm = $(this);
+                this.get(0).submit = function() {
+                    var data = this.serialize();
+                    var currentForm = this;
                     // process data and send ajax request
 
                     $.ajax({
@@ -126,12 +126,12 @@
         {% endif %}
 
         $("form[action='mark_as_paid']").each(function(index) {
-            $(this).submit(function (e) {
+            this.submit(function (e) {
                 // Prevent form submit.
                 e.preventDefault();
 
-                var data = $(this).serialize();
-                var currentForm = $(this);
+                var data = this.serialize();
+                var currentForm = this;
 
                 $.ajax({
                     method: 'POST',

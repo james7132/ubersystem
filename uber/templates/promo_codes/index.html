@@ -21,7 +21,7 @@ table form {
   var updateAll = function() {
     let bigData = ''
     $('[id^=update_promo_code_]').each(function() {
-      let serializedData = new URLSearchParams($(this).serialize());
+      let serializedData = new URLSearchParams(this.serialize());
 
       if (bigData == '') {
         bigData = 'csrf_token=' + serializedData.get('csrf_token')
@@ -59,7 +59,7 @@ table form {
 document.addEventListener(\"DOMContentLoaded\", function () {
     $('table').on('click', '.delete-button', function(event) {
         event.preventDefault();
-        var $self = $(this),
+        var $self = this,
             $formToSubmit = $self.closest('form'),
             code = $self.data('code');
         bootbox.confirm({

@@ -138,7 +138,7 @@
 
 {% if suffix %}
 <script type="text/javascript">
-  $('input[name="mode{{ suffix }}"]').on('change', function() {onModeChange($(this), "{{ suffix }}");});
+  $('input[name="mode{{ suffix }}"]').on('change', function() {onModeChange(this, "{{ suffix }}");});
   onModeChange($('input[name="mode{{ suffix }}"]'), "{{ suffix }}");
 </script>
 {% endif %}

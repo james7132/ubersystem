@@ -241,7 +241,7 @@ This is your application for the MAGFest Indie Tabletop Showcase for your produc
   <script type="text/javascript">
       document.getElementById('cancel_app').on('click', function(event) {
           event.preventDefault();
-          var formToSubmit = $(this).closest('form');
+          var formToSubmit = this.closest('form');
 
           bootbox.confirm({
               backdrop: true,

@@ -152,7 +152,7 @@
 
       $forms.on('submit', function(event) {
         event.preventDefault();
-        var $form = $(this),
+        var $form = this,
             $btn = $form.find('[type=submit]'),
             $textarea = $form.find('textarea'),
             $output = $form.parent().find('.output');

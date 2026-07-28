@@ -89,7 +89,7 @@
         var attendee_ids = [];
         var account_emails = [];
         $('[name="account-row"]:checked').each(function () { 
-            var attendee_id = $(this).val();
+            var attendee_id = this.val();
             account_emails.push($('#' + attendee_id).find('input[name="account_email"]').val());
             attendee_ids.push(attendee_id);
         });

@@ -9,7 +9,7 @@
   var updateAll = function() {
     let bigData = ''
     $('[id^=update_location_]').each(function() {
-      let serializedData = new URLSearchParams($(this).serialize());
+      let serializedData = new URLSearchParams(this.serialize());
 
       if (bigData == '') {
         bigData = 'csrf_token=' + serializedData.get('csrf_token')
@@ -48,15 +48,15 @@
 
   document.addEventListener(\"DOMContentLoaded\", function () {
     document.getElementById('assign-location-table').on('click', '.unassign-location', function() {
-      confirmUnassignLocation($(this).data('id'), $(this).data('label'))
+      confirmUnassignLocation(this.data('id'), this.data('label'))
     });
 
     $('form[action="update_location"]').on('submit', function(event) {
       event.preventDefault();
       $.ajax({
         type: 'POST',
-        url: $(this).attr("action"),
-        data: $(this).serialize(), 
+        url: this.attr("action"),
+        data: this.serialize(), 
         success: function (json) {
           hideMessageBox();
           var message = json.message;

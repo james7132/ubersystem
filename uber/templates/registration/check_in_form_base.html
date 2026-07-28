@@ -77,8 +77,8 @@ var callStripeAction = function() {
 $("form[action='mark_as_paid']").submit(function (e) {
     e.preventDefault();
 
-    var data = $(this).serialize();
-    var currentForm = $(this);
+    var data = this.serialize();
+    var currentForm = this;
 
     $.ajax({
         method: 'POST',

@@ -193,8 +193,8 @@
 
       document.addEventListener(\"DOMContentLoaded\", function () {
         document.querySelectorAll('.check-in-out-datatable').each(function() {
-          if (! $.fn.DataTable.isDataTable($(this))) {
-            var table = $(this).DataTable({
+          if (! $.fn.DataTable.isDataTable(this)) {
+            var table = this.DataTable({
               columns: [null, { width: '15%' }, { width: '10%' }, { width: '35%' }, null, null],
               autoWidth: false,
               paging: false,
@@ -207,7 +207,7 @@
 
         /*
         document.getElementById('app-modals').find('form').submit(function(e) {
-            $(this).find('button[type=submit]').prop('disabled', true);
+            this.find('button[type=submit]').prop('disabled', true);
             return true;
         });
         */
@@ -216,7 +216,7 @@
         {% include 'art_show_admin/unassign_locations.js' %}
 
         document.getElementById('app-modals').find('.unassign-location').on('click', function() {
-          confirmUnassignLocation($(this).data('id'), $(this).data('label'), 'form-validations-check-in-out-' + $(this).data('app-id'))
+          confirmUnassignLocation(this.data('id'), this.data('label'), 'form-validations-check-in-out-' + this.data('app-id'))
         });
         {% endif %}
 
@@ -227,7 +227,7 @@
             return false;
           }
           
-          let form = $(this);
+          let form = this;
           let data = form.serialize();
           let app_id = form.find('[name=id]').val();
           form.find('button[type=submit]').prop('disabled', true);

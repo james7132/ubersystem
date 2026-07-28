@@ -95,7 +95,7 @@ stripe_action_params = {id: '{{ id }}'};
 var callStripeAction = function (autoTrigger=false) {
     hideMessageBox();
     if (autoTrigger == false) {
-        var $btn = $(this);
+        var $btn = this;
         $btn.prop('disabled', true);
     }
     {% for key, val in params.items() %}

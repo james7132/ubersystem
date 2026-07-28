@@ -14,7 +14,7 @@
 <form method="get" action="feed" style="text-align:center">
   <input type="hidden" name="tracking_type" value="{{ tracking_type }}" />
     Search by who did it:
-    <select name="who" onChange="$(this).parents('form').submit()">
+    <select name="who" onChange="this.parents('form').submit()">
         <option value="">{% if who %}Show all{% else %}Choose an admin{% endif %}</option>
         {{ options(who_opts,who) }}
     </select>
@@ -25,7 +25,7 @@
 
     {% if tracking_type == 'action' %}
     Search by action:
-    <select name="action" onChange="$(this).parents('form').submit()">
+    <select name="action" onChange="this.parents('form').submit()">
         <option value="">{% if action %}Show all{% else %}Choose an action{% endif %}</option>
         {{ options(action_opts,action) }}
     </select>

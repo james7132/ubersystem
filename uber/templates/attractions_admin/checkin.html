@@ -268,7 +268,7 @@
 
     $signups.on('click', '.btn-outline-primary', function(event) {
       event.preventDefault();
-      var $signup = $(this).closest('.signup'),
+      var $signup = this.closest('.signup'),
           eventId = $signup.data('signupId'),
           attendeeId = $attendee.data('attendeeId');
       addSignup(eventId, attendeeId, function(response) {
@@ -283,7 +283,7 @@
 
     $signups.on('click', '.btn-success', function(event) {
       event.preventDefault();
-      var $signup = $(this).closest('.signup'),
+      var $signup = this.closest('.signup'),
           signupId = $signup.data('signupId');
       checkinSignup(signupId, function(response) {
         if(response && response['error']) {
@@ -300,7 +300,7 @@
 
     $signups.on('click', '.btn-primary', function(event) {
       event.preventDefault();
-      var $signup = $(this).closest('.signup'),
+      var $signup = this.closest('.signup'),
           signupId = $signup.data('signupId');
       pullFromWaitlist(signupId, function(response) {
         if(response && response['error']) {
@@ -315,7 +315,7 @@
 
     $signups.on('click', '.btn-warning', function(event) {
       event.preventDefault();
-      var $signup = $(this).closest('.signup'),
+      var $signup = this.closest('.signup'),
           signupId = $signup.data('signupId');
       undoCheckinSignup(signupId, function(response) {
         if(response && response['error']) {
@@ -329,7 +329,7 @@
 
     $signups.on('click', '.btn-danger', function(event) {
       event.preventDefault();
-      var $signup = $(this).closest('.signup'),
+      var $signup = this.closest('.signup'),
           signupId = $signup.data('signupId');
       cancelSignup(signupId, function(response) {
         if(response && response['error']) {
@@ -343,7 +343,7 @@
 
     document.querySelectorAll('.badge-num-form').on('submit', function(event) {
       event.preventDefault();
-      var $form = $(this),
+      var $form = this,
           $badgeNum = $form.find('input[name=badge_num]');
       getSignups($badgeNum.val());
     });

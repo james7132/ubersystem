@@ -180,7 +180,7 @@
       if (submit_button_name != '') {
         serializedData += '&' + submit_button_name + '=1';
       }
-      var alertId = $(this).find('.alert-dismissible').first().prop('id');
+      var alertId = this.find('.alert-dismissible').first().prop('id');
       fetch($form.prop('action'), { method: 'POST', body: new URLSearchParams(serializedData) }).then(r => r.json()).then(function(result) {
         history.replaceState({}, document.title, window.location.pathname + '?id={{ app.id }}');
         hideMessageBox(alertId);
@@ -210,21 +210,21 @@
       }
       {% if admin_area %}
         $('#art-show-piece-table form[action*=save_art_show_piece]').each(function() {
-            $(this).on('submit', function(e) { saveArtShowPiece(e, $(this), alertId) });
+            this.on('submit', function(e) { saveArtShowPiece(e, this, alertId) });
         });
       {% endif %}
 
         document.getElementById('piece_modals').find('form').submit(function(e) {
-            $(this).find('.save_piece').prop('disabled', true);
+            this.find('.save_piece').prop('disabled', true);
             return true;
         });
 
         document.getElementById('art-show-piece-table').on('click', '.remove_piece', function (event) {
             event.preventDefault();
-            var pieceRow = $(this).closest('.piece-row'),
+            var pieceRow = this.closest('.piece-row'),
                 dataTable = pieceRow.closest('table').DataTable(),
                 pieceId = pieceRow.data('piece_id');
-                pieceName = $(this).data('name');
+                pieceName = this.data('name');
             bootbox.confirm({
                 backdrop: true,
                 title: 'Delete "'+pieceName+'"?',

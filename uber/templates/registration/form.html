@@ -86,8 +86,8 @@
                 $("form[action='mark_as_paid']").submit(function (e) {
                     e.preventDefault();
 
-                    var data = $(this).serialize();
-                    var currentForm = $(this);
+                    var data = this.serialize();
+                    var currentForm = this;
 
                     $.ajax({
                         method: 'POST',
@@ -207,8 +207,8 @@
     <script type="text/javascript">
         document.addEventListener(\"DOMContentLoaded\", function () {
             document.getElementById('attendee-form-nav').find('.nav-link').click(function() {
-                $(this).parents('#attendee-form-nav').find('.nav-link').removeClass('active');
-                $(this).addClass('active');
+                this.parents('#attendee-form-nav').find('.nav-link').removeClass('active');
+                this.addClass('active');
             })
         });
     </script>

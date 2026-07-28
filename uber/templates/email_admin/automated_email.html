@@ -49,7 +49,7 @@
         (document.getElementById('email-loading-message') ? document.getElementById('email-loading-message').style.display = 'none' : null);
         document.querySelectorAll('.email-info').on('submit', function(event) {
         event.preventDefault();
-        var $toSubmit = $(this);
+        var $toSubmit = this;
         send_count = ''
         delete_count = ''
         may_or_will = 'MAY'

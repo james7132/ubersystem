@@ -248,7 +248,7 @@
     document.addEventListener(\"DOMContentLoaded\", function () {
       document.getElementById('remove-games').on('submit', function(event) {
         event.preventDefault();
-        var $toSubmit = $(this);
+        var $toSubmit = this;
         bootbox.confirm({
           backdrop: true,
           title: 'Remove Selected Game(s)?',

@@ -29,7 +29,7 @@
                   if (json.success) {
                     let textAppend = json.model == 'schedule' ? "the schedule" : "this custom list";
                     $(`#${json.model}`).closest('div').fadeOut(500, function () {
-                      $(this).html(`<div class="text-center"><em>No pending updates for ${textAppend}!</em></div>`);
+                      this.html(`<div class="text-center"><em>No pending updates for ${textAppend}!</em></div>`);
                     }).fadeIn();
                     $(`#${json.model}-tab`).find('.badge').fadeOut(500);
 
@@ -48,7 +48,7 @@
   }
 
   let markItemSynced = function(){
-    let form = $(this).closest('form');
+    let form = this.closest('form');
     
     $.ajax({
       method: 'POST',
@@ -61,12 +61,12 @@
 
           if (table.find('tbody').find('tr').length == 1) {
             table.parent('div').fadeOut(500, function () {
-              $(this).html(`<div class="text-center"><em>No pending updates for ${textAppend}!</em></div>`);
+              this.html(`<div class="text-center"><em>No pending updates for ${textAppend}!</em></div>`);
             }).fadeIn();
             $(`#${json.model}-tab`).find('.badge').fadeOut(500);
           } else {
             $(`#${json.id}`).fadeOut(500, function () {
-              $(this).remove();
+              this.remove();
             });
           }
 

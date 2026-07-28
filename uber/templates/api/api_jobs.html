@@ -76,7 +76,7 @@
     document.addEventListener(\"DOMContentLoaded\", function () {
       document.querySelectorAll('.delete-form').on('submit', function(event) {
         event.preventDefault();
-        var $toSubmit = $(this);
+        var $toSubmit = this;
         bootbox.confirm({
           backdrop: true,
           message: '<p>Are you sure you want to delete this API job?</p>',

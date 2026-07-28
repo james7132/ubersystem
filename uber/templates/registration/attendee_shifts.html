@@ -18,12 +18,12 @@
         $("form[action*='/shifts_admin/']").submit(function(event){
             event.preventDefault();
             hideMessageBox();
-            var formURL = $(this).attr('action');
+            var formURL = this.attr('action');
             var old_hash = window.location.hash;
             $.ajax({
                 method: 'POST',
                 url: formURL,
-                data: $(this).serializeArray(),
+                data: this.serializeArray(),
                 success: function (json) {
                     window.location.hash = old_hash;
                     if (json.success) {

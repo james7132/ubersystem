@@ -245,7 +245,7 @@
           return false;
         }
         
-        let form = $(this)
+        let form = this
         let data = form.serialize();
         let attendee_id = form.find('[name=attendee_id]').val();
         form.find('button[type=submit]').prop('disabled', true);

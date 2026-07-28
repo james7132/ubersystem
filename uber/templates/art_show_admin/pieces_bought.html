@@ -305,7 +305,7 @@
     document.addEventListener(\"DOMContentLoaded\", function () {
     document.querySelectorAll('.undo_payment').on('click', function (event) {
         event.preventDefault();
-        var $self = $(this),
+        var $self = this,
             desc = $self.data('desc'),
             $formToSubmit = $self.closest('form');
             if (desc.split(" ")[0] == "Refund") {

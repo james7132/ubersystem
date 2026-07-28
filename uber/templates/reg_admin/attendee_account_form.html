@@ -133,7 +133,7 @@
     document.addEventListener(\"DOMContentLoaded\", function () {
       document.getElementById('delete-account').on('submit', function(event) {
         event.preventDefault();
-        var $toSubmit = $(this);
+        var $toSubmit = this;
         bootbox.confirm({
           backdrop: true,
           title: 'Delete Account?',
@@ -154,7 +154,7 @@
     document.addEventListener(\"DOMContentLoaded\", function () {
       document.getElementById('refund-cancel').on('submit', function(event) {
         event.preventDefault();
-        var $toSubmit = $(this);
+        var $toSubmit = this;
         bootbox.confirm({
           backdrop: true,
           title: 'Refund Badges?',

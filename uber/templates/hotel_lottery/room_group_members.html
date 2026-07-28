@@ -42,7 +42,7 @@
     removeConfirm = function(event){
         var formToSubmit = this;
         event.preventDefault();
-        name = $(this).find('[name=member_name]').first().val();
+        name = this.find('[name=member_name]').first().val();
         bootbox.confirm({
             title: "Remove Group Member?",
             message: "<p>This will remove " + name + " from your {{ c.HOTEL_LOTTERY_GROUP_TERM|lower }}.</p>" + 

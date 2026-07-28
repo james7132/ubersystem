@@ -175,10 +175,10 @@ Choose an option below to give them access to their badge.{% if attendee.group a
     document.getElementById('assign-account').submit(function (event) {
       event.preventDefault();
       if (!checkAccountEmailPassed) {
-        checkAccountEmail($(this));
+        checkAccountEmail(this);
       } else {
         if (validatedEmail != (document.getElementById('account-email') ? document.getElementById('account-email').value : '')) {
-          checkAccountEmail($(this));
+          checkAccountEmail(this);
         } else {
           addToAccount(existingAccountId, validatedEmail);
         }

@@ -158,7 +158,7 @@ var $scheduleTable = document.querySelectorAll('.schedule-table'),
 
 var roomTrie = {{ c.ROOM_TRIE|jsonize }};
 document.getElementById('room_filter_text').on('keyup', function() {
-    var text = $(this).val().toLowerCase(),
+    var text = this.val().toLowerCase(),
         textLength = text.length,
         rooms = roomTrie;
 

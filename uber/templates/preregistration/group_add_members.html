@@ -138,7 +138,7 @@ OR
             method: 'POST',
             url: 'find_group_member',
             dataType: 'json',
-            data: $(this).serialize(),
+            data: this.serialize(),
             success: function (json) {
             if (json.success) {
                 window.location.href = 'group_members?id={{ group.id }}&message=' + json.message;

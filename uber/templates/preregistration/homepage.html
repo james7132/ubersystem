@@ -249,7 +249,7 @@
         document.addEventListener(\"DOMContentLoaded\", function () {
             var cancelModal = new bootstrap.Modal(document.getElementById('cancel-badges'))
             document.querySelectorAll('.abandon-btn').on('click', function(event) {
-                let attendeeId = $(this).data("attendeeid");
+                let attendeeId = this.data("attendeeid");
                 $("[name=abandon_ids][value=" + attendeeId + "]").prop('checked', true);
                 cancelModal.show();
             })
@@ -383,7 +383,7 @@
     document.addEventListener(\"DOMContentLoaded\", function () {
       document.querySelectorAll('.new-account-form').on('submit', function(event) {
         event.preventDefault();
-        var $toSubmit = $(this);
+        var $toSubmit = this;
         bootbox.confirm({
           backdrop: true,
           message: '<p>Are you sure you want to create a new account for this person?</p>' +

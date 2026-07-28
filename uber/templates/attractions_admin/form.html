@@ -323,8 +323,8 @@
 
     document.getElementById('features').on('click', '.event-spacer a', function(event) {
       event.preventDefault();
-      var eventId = $(this).data('eventId'),
-          overlap = $(this).data('overlap'),
+      var eventId = this.data('eventId'),
+          overlap = this.data('overlap'),
           sign = overlap < 0 ? 1 : -1,
           overlap = Math.abs(overlap),
           hours = Math.floor(overlap / 3600),
@@ -361,7 +361,7 @@
 
     document.querySelectorAll('.feature-title').on('click', '.delete-feature', function(event) {
       event.preventDefault();
-      var $button = $(this);
+      var $button = this;
           featureId = $button.data('featureId'),
           featureLabel = $button.data('featureLabel');
       
@@ -411,7 +411,7 @@
 
     document.querySelectorAll('.room-col').on('click', '.delete-event', function(event) {
       event.preventDefault();
-      var $button = $(this);
+      var $button = this;
           eventId = $button.data('eventId'),
           eventLabel = $button.data('eventLabel'),
           eventCascade = $button.data('eventCascade');
@@ -424,7 +424,7 @@
           var $event = $button.closest('.event');
           $event.css({'height': $event.height(), 'min-height': ''});
           $event.animate({'height': 0, 'opacity': 0}, 'fast', function() {
-            $(this).remove();
+            this.remove();
           });
         }
       };
@@ -571,7 +571,7 @@
     }
 
     $('.room-title > select').on('change', function(event) {
-      var $select = $(this);
+      var $select = this;
       try {
         var featureId = $select.data('featureId'),
             oldValue = $select.data('initialValue'),
@@ -644,7 +644,7 @@
       }
       localStorage.setItem('activeTab', tab_name);
 
-      $(this).tab('show');
+      this.tab('show');
       return false;
     });
 

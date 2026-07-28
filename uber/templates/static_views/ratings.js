@@ -57,8 +57,8 @@
                 };
                 fetch('../shifts_admin/rate', { method: 'POST', body: new URLSearchParams(params) }).then(r => r.json()).then(function(json) {
                     $container.find('img').each(function () {
-                        let r = $(this).data('rating');
-                        $(this)
+                        let r = this.data('rating');
+                        this
                             .attr('title', '')
                             .attr('src', RATINGS[r][false]);
                     });
@@ -125,8 +125,8 @@
             shift.comment = updatedShift.comment;
 
             $container.find('img').each(function () {
-                let r = $(this).data('rating');
-                $(this)
+                let r = this.data('rating');
+                this
                     .attr('title', comment)
                     .attr('src', RATINGS[r][r == rating]);
             });

@@ -152,12 +152,12 @@
     document.getElementById('account-form').submit(function (event) {
       event.preventDefault();
       if (!checkAccountEmailPassed) {
-        checkAccountEmail($(this), event.originalEvent.submitter.name);
+        checkAccountEmail(this, event.originalEvent.submitter.name);
       } else {
         if (validatedEmail != (document.getElementById('account-email') ? document.getElementById('account-email').value : '')) {
-          checkAccountEmail($(this));
+          checkAccountEmail(this);
         } else {
-          loginOrCreateAccount($(this));
+          loginOrCreateAccount(this);
         }
       }
       return false;

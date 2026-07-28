@@ -31,7 +31,7 @@
       var tag = event.target.nodeName.toUpperCase();
       if (tag != 'INPUT' && tag != 'A') {
         event.preventDefault();
-        var $checkbox = $(this).find('input');
+        var $checkbox = this.find('input');
         $checkbox.prop('checked', !$checkbox.prop('checked'));
       }
     });

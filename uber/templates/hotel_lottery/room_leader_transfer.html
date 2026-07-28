@@ -2,7 +2,7 @@
     leaderConfirm = function(event){
         var formToSubmit = this;
         event.preventDefault();
-        name = $(this).find('[name=member_name]').first().val();
+        name = this.find('[name=member_name]').first().val();
         bootbox.confirm({
             title: "Transfer Group Leadership?",
             message: "<p>This will make " + name + " the new leader for your {{ c.HOTEL_LOTTERY_GROUP_TERM|lower }}.</p>" + 

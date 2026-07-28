@@ -49,7 +49,7 @@
 
     $attendeesTable.on('click', '.btn-success', function(event) {
       event.preventDefault();
-      var $button = $(this),
+      var $button = this,
           signupId = $button.data('signupId');
       checkinSignup(signupId, function(response) {
         if(response && response['error']) {
@@ -68,7 +68,7 @@
 
     $attendeesTable.on('click', '.btn-primary', function(event) {
       event.preventDefault();
-      var $button = $(this),
+      var $button = this,
           signupId = $button.data('signupId');
       pullFromWaitlist(signupId, function(response) {
         if(response && response['error']) {
@@ -88,7 +88,7 @@
 
     $attendeesTable.on('click', '.btn-warning', function(event) {
       event.preventDefault();
-      var $button = $(this),
+      var $button = this,
           signupId = $button.data('signupId');
       undoCheckinSignup(signupId, function(response) {
         if(response && response['error']) {
@@ -107,7 +107,7 @@
 
     $attendeesTable.on('click', '.btn-danger', function(event) {
       event.preventDefault();
-      var $button = $(this),
+      var $button = this,
           signupId = $button.data('signupId'),
           attendeeName = $button.data('attendeeName');
 

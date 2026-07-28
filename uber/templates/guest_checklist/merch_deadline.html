@@ -437,7 +437,7 @@
             };
 
             var onChooseInventoryType = function() {
-              var $addInventory = $(this),
+              var $addInventory = this,
                   $inventoryItem = $('#inventory_item_' + $addInventory.val());
 
               $inventoryItem.find('.one_size').each(function() { onOneSizeChange.call(this); });
@@ -447,7 +447,7 @@
 
             var onEditInventory = function(e) {
               e.preventDefault();
-              var $inventoryRow = $(this).closest('.inventory-row'),
+              var $inventoryRow = this.closest('.inventory-row'),
                   itemId = $inventoryRow.data('item_id'),
                   $inventoryItem = $('#inventory_item_' + itemId);
 
@@ -457,7 +457,7 @@
 
             var onRemoveInventory = function(e) {
               e.preventDefault();
-              var $inventoryRow = $(this).closest('.inventory-row'),
+              var $inventoryRow = this.closest('.inventory-row'),
                   dataTable = $inventoryRow.closest('.inventory-table').DataTable(),
                   $title = $inventoryRow.find('td.inventory-item-details label'),
                   titleText = $title.text().trim() || 'item',
@@ -504,7 +504,7 @@
 
             var onRemoveFile = function(e) {
               e.preventDefault();
-              var $inventoryFile = $(this).closest('.inventory-file'),
+              var $inventoryFile = this.closest('.inventory-file'),
                   $downloadFilename = $inventoryFile.find('.download_filename'),
                   $filename = $inventoryFile.find('.filename'),
                   $contentType = $inventoryFile.find('.content_type'),
@@ -528,10 +528,10 @@
             };
 
             var onOneSizeChange = function() {
-              var $varietyColumn = $(this).closest('.col-variety'),
+              var $varietyColumn = this.closest('.col-variety'),
                   $oneSizeQuantity = $varietyColumn.find('.one_size_quantity'),
                   $sizesPanel = $varietyColumn.find('.panel-sizes'),
-                  isOneSize = $(this).prop('checked');
+                  isOneSize = this.prop('checked');
 
               $oneSizeQuantity.toggle(isOneSize);
               $oneSizeQuantity.prop('disabled', !isOneSize);
@@ -587,7 +587,7 @@
                       '<h1>Saving...</h1>' +
                     '</div>');
                   document.getElementById('overlay').fadeIn('fast');
-                  $(this).find('.save_inventory').prop('disabled', true);
+                  this.find('.save_inventory').prop('disabled', true);
                   return true;
                 });
 
