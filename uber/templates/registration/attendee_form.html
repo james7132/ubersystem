@@ -42,7 +42,7 @@
 }
 </style>
 <script type="text/javascript">
-$('#attendee_form').load(function() {$(window).trigger( 'runJavaScript' );});
+document.getElementById('attendee_form').load(function() {$(window).trigger( 'runJavaScript' );});
 $('.nav-tabs button').first().tab('show');
 var attendeeID = '{{ attendee.id }}';
 loadForm = function(kw) {

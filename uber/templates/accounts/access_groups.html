@@ -17,8 +17,8 @@
       };
 
       var updateAllColors = function() {
-          $('.select_access').each(updateColor);
-          $('.select_read_only_access').each(updateColor);
+          document.querySelectorAll('.select_access').each(updateColor);
+          document.querySelectorAll('.select_read_only_access').each(updateColor);
       };
 
       var updateColor = function() {
@@ -76,7 +76,7 @@
                             hideMessageBox();
                             var message = json.message;
                             if (json.success) {
-                                $("#message-alert").addClass("alert-info").show().children('span').html(message);
+                                document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
                                 $("select[name='id'] option[value='" + id + "']").remove();
                                 $.field('id').val("None").trigger("change");
                             } else {
@@ -93,7 +93,7 @@
       };
 
       var enableOrDisabledDelete = function() {
-          $('.delete-button').toggleClass('disabled', $.field('id').val() == "None");
+          document.querySelectorAll('.delete-button').toggleClass('disabled', $.field('id').val() == "None");
       };
 
       document.addEventListener(\"DOMContentLoaded\", function () {
@@ -106,8 +106,8 @@
                   getAccessGroup($(this).val());
                   $.field('name').val($('select[name=id] option:selected').text())
               } else {
-                  $('.select_access').val("0");
-                  $('.select_read_only_access').val("0");
+                  document.querySelectorAll('.select_access').val("0");
+                  document.querySelectorAll('.select_read_only_access').val("0");
                   $.field('name').val('');
                   updateAllColors();
                   startFlatpickr.setDate(default_start);
@@ -115,9 +115,9 @@
               }
               enableOrDisabledDelete();
           });
-          $('.select_access').on('change', updateColor);
-          $('.select_read_only_access').on('change', updateColor);
-          $('.delete-button').on('click', deleteAccessGroup);
+          document.querySelectorAll('.select_access').on('change', updateColor);
+          document.querySelectorAll('.select_read_only_access').on('change', updateColor);
+          document.querySelectorAll('.delete-button').on('click', deleteAccessGroup);
       });
   </script>
 
@@ -237,8 +237,8 @@
                     return formatted;
                 }
           });
-          $('#start_time').val('');
-          $('#end_time').val('');
+          if (document.getElementById('start_time')) document.getElementById('start_time').value = '';;
+          if (document.getElementById('end_time')) document.getElementById('end_time').value = '';;
         </script>
 
         <p><em>Access to a site section grants access to all pages and file exports in that section, plus any pages or exports that get added later.</em></p>

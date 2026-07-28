@@ -127,7 +127,7 @@ Please select a department above to view its shifts.
         <p>If you want any shifts to be restricted to certain staffers, <strong>including setup or teardown shifts</strong>, please use the "roles" function when creating shifts. Shifts with specific roles will only be visible to staff that you have assigned to ALL of those roles.</p>
 
         <p>Otherwise, you can create shifts, and when you are done, click "I Don’t Need To Do Anything Else Here."</p>
-        <p><a href="#" onClick="$('#checkoff').show(); return false;">I Don't Need To Do Anything Else Here</a></p>
+        <p><a href="#" onClick="(document.getElementById('checkoff') ? document.getElementById('checkoff').style.display = '' : null); return false;">I Don't Need To Do Anything Else Here</a></p>
         <form id="checkoff" style="display:none" method="post" action="../dept_checklist/mark_item_complete">
         {{ csrf_token() }}
         <input type="hidden" name="department_id" value="{{ department.id }}" />

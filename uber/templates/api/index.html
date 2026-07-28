@@ -14,11 +14,11 @@
       var $lengthContainer = $('#DataTables_Table_0_wrapper > .row:first-child > .col-sm-6:first-child');
       $lengthContainer.append(
         $('<div id="DataTables_Table_0_length" class="dataTables_length"></div>').append(
-          $('#btn_show_revoked')
+          document.getElementById('btn_show_revoked')
         )
       );
 
-      var $createApiTokenForm = $('#create_api_token'),
+      var $createApiTokenForm = document.getElementById('create_api_token'),
           $btn = $createApiTokenForm.find('button[type=submit]');
       $createApiTokenForm.on('submit', function(event) {
         event.preventDefault();

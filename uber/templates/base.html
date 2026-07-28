@@ -203,8 +203,8 @@
             // This nonsense is so we can have line breaks AND unescaped quotes in our messages
             var message = '{{ message|sanitize_html|tojson if message else "" }}';
             var error_message = '{{ error_message|sanitize_html|tojson if error_message else "" }}';
-            if ($("#message-alert").length) {
-                $("#message-alert").hide();
+            if (document.getElementById('message-alert').length) {
+                (document.getElementById('message-alert') ? document.getElementById('message-alert').style.display = 'none' : null);
                 if (error_message.length) {
                     error_message = error_message.slice(1,-1)
                     if (error_message.startsWith("ERROR: ")) {
@@ -216,9 +216,9 @@
                     if (message.startsWith("ERROR: ")) {
                         showErrorMessage(message.substr(7));
                     } else if (message.startsWith("SUCCESS: ")) {
-                        $("#message-alert").addClass("alert-success").show().children('span').html(message.substr(9));
+                        document.getElementById('message-alert').addClass("alert-success").show().children('span').html(message.substr(9));
                     } else {
-                        $("#message-alert").addClass("alert-info").show().children('span').html(message);
+                        document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
                     }
                 }
             }
@@ -254,7 +254,7 @@
             {% block datatable_init %}
             {% if bootstrap5 %}
             
-            loadDataTables = function() {$('.datatable').each(function() {
+            loadDataTables = function() {document.querySelectorAll('.datatable').each(function() {
                 if (! DataTable.isDataTable($(this))) {
                     var table = new DataTable($(this), {
                         aLengthMenu: [
@@ -298,7 +298,7 @@
                 }
             });}
             {% else %}
-            loadDataTables = function() {$('.datatable').each(function() {
+            loadDataTables = function() {document.querySelectorAll('.datatable').each(function() {
                 if (! $.fn.DataTable.isDataTable($(this))) {
                     var table = $(this).DataTable({
                         aLengthMenu: [
@@ -352,7 +352,7 @@
             createDateTextEntries();
         });
 
-            $('.geolocator').geocomplete({
+            document.querySelectorAll('.geolocator').geocomplete({
                 details: '.address_details',
                 detailsAttribute: 'data-geo'
             });
@@ -368,7 +368,7 @@
             }
             // prevent people from paying after prereg closes
             {% if c.PRE_CON %}
-                if ($('#stripeModal') && $('#stripeModal').length) {
+                if (document.getElementById('stripeModal') && document.getElementById('stripeModal').length) {
                     var prevHour = new Date().getHours();
                     var checkHour = function() {
                         var currHour = new Date().getHours();
@@ -520,7 +520,7 @@
         <![endif]-->
       <script type="text/javascript">
           $(window).on("runJavaScript", function() {
-            $('.form-control-static').each(function(index) {
+            document.querySelectorAll('.form-control-static').each(function(index) {
                 if($( this ).text().trim() == '' && $(this).is(":visible")) {
                     $(this).parents('.form-group').hide();
                 }

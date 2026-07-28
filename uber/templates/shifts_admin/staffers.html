@@ -17,7 +17,7 @@ Please select a department above to view its staffers.
     {% if checklist.completed %}
         You've already indicated that this list is valid, please email STOPS if this is incorrect.
     {% else %}
-        <a href="#" onClick="$('#checkoff').show(); return false;">As a head of this department, this looks good to me.</a>
+        <a href="#" onClick="(document.getElementById('checkoff') ? document.getElementById('checkoff').style.display = '' : null); return false;">As a head of this department, this looks good to me.</a>
         <form id="checkoff" style="display:none" method="post" action="../dept_checklist/mark_item_complete">
         {{ csrf_token() }}
         <input type="hidden" name="department_id" value="{{ department_id }}" />

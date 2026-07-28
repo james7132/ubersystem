@@ -66,7 +66,7 @@
       hideBadgeNumConfirm($(this).closest('form'), false);
     });
 
-    $('.badge-num-form').on('submit', function(event) {
+    document.querySelectorAll('.badge-num-form').on('submit', function(event) {
       event.preventDefault();
       var $form = $(this),
           $badgeNum = $form.find('input[name=badge_num]'),
@@ -78,7 +78,7 @@
 
       var attendeeData = $form.closest('.modal').data('attendee');
       if (attendeeData && ('' + badgeNum) === ('' + attendeeData['badge_num'])) {
-        $("#message-alert").addClass("alert-warning").show().children('span').html("Hey, that's you!", '', {timeOut: 3000});
+        document.getElementById('message-alert').addClass("alert-warning").show().children('span').html("Hey, that's you!", '', {timeOut: 3000});
         $badgeNum.focus();
         return;
       }

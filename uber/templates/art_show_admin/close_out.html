@@ -6,7 +6,7 @@
 
 <script>
   let showBidderInfo = function() {
-    $('#winning-bidder-info').show();
+    (document.getElementById('winning-bidder-info') ? document.getElementById('winning-bidder-info').style.display = '' : null);
   }
   
   document.addEventListener(\"DOMContentLoaded\", function () {
@@ -18,7 +18,7 @@
     }
     });
     {% if not bidder_num and not winning_bid %}
-    $('#winning-bidder-info').hide();
+    (document.getElementById('winning-bidder-info') ? document.getElementById('winning-bidder-info').style.display = 'none' : null);
     {% endif %}
   });
 </script>

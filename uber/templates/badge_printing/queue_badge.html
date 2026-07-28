@@ -1,7 +1,7 @@
 {% if not attendee.is_new and c.BADGE_PRINTING_ENABLED %}
 <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-        $("#print-badge-form").bind("keypress", function (e) {
+        document.getElementById('print-badge-form').bind("keypress", function (e) {
     if (e.keyCode == 13) {
         e.preventDefault();
     }
@@ -36,7 +36,7 @@
                     <label>
                         <input type="checkbox" class="form-check-input" form="print-badge-form" name="free_reprint" value="1"
                                data-bs-toggle="collapse" data-bs-target="#free-reason-div" aria-expanded="false" aria-controls="free-reason-div" 
-                               onClick="$('#print-continue-btn').text(this.checked ? 'Queue Free Reprint' : 'Continue to Payment')"/>
+                               onClick="document.getElementById('print-continue-btn').text(this.checked ? 'Queue Free Reprint' : 'Continue to Payment')"/>
                         This badge reprint should be free.
                     </label>
                     <div class="collapse flex-fill" id="free-reason-div">
@@ -81,7 +81,7 @@
             </div>
             <div class="text-nowrap">
                 <button type="submit" form="print-badge-form" class="btn btn-success">Queue for Printing</button>
-                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#print-badge-div" role="button" aria-expanded="false" aria-controls="print-badge-div" onClick="$('#print-badge-btn').show();">
+                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#print-badge-div" role="button" aria-expanded="false" aria-controls="print-badge-div" onClick="(document.getElementById('print-badge-btn') ? document.getElementById('print-badge-btn').style.display = '' : null);">
                     Nevermind
                 </button>
             </div>
@@ -111,7 +111,7 @@ printBadge = function ($form) {
                     querystring.set('message', json.message)
                     window.location.search = querystring.toString()
                 } else {
-                    $("#message-alert").addClass("alert-success").show().children('span').html(json.message);
+                    document.getElementById('message-alert').addClass("alert-success").show().children('span').html(json.message);
                 }
             } else {
             showErrorMessage(json.message);
@@ -123,7 +123,7 @@ printBadge = function ($form) {
     });
 }
 
-$('.print-badge').on('submit', function (event) {
+document.querySelectorAll('.print-badge').on('submit', function (event) {
     var $form = $(this);
     event.preventDefault();
     hideMessageBox();

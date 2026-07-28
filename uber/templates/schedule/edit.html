@@ -3,7 +3,7 @@
 {% block content %}
 <div class="d-flex mb-3 gap-3 justify-content-between align-items-end">
     <div class="d-flex gap-1 align-items-center">
-        <button type="button" class="btn btn-primary" onClick="$('.schedule-edit').toggleClass('d-none'); return false;">Edit Locations</button>
+        <button type="button" class="btn btn-primary" onClick="document.querySelectorAll('.schedule-edit').toggleClass('d-none'); return false;">Edit Locations</button>
         <a class="btn btn-success" href="location">Add Location</a>
     </div>
     <div class="d-flex gap-3">
@@ -119,20 +119,20 @@ filtered_locs = [];
 var updateiCalFilter = function(locations) {
     let locationIDs = [];
     locations.forEach(function(el) { locationIDs.push(el.id) });
-    $('#filtered_locations').val(JSON.stringify(locationIDs));
+    if (document.getElementById('filtered_locations')) document.getElementById('filtered_locations').value = JSON.stringify(locationIDs;);
 };
 
 var setCalWidth = function(roomCount) {
     width = roomCount * 148 + 90;
-    $('.ec-header').css('width', `${width}px`);
-    $('.ec-body').css('width', `${width}px`);
+    document.querySelectorAll('.ec-header').css('width', `${width}px`);
+    document.querySelectorAll('.ec-body').css('width', `${width}px`);
 }
 
 let deptLocations, searchLocations;
 let deptSelected = false, searchTextEntered = false;
 
 let setDepartment = function () {
-    let choice = $('#dept_filter').val();
+    let choice = (document.getElementById('dept_filter') ? document.getElementById('dept_filter').value : '');
     if (choice == "" || choice == "all") {
         deptSelected = false;
     } else {
@@ -152,12 +152,12 @@ let updateLocations = function () {
 }
 
 document.addEventListener(\"DOMContentLoaded\", function () {
-var $scheduleTable = $('.schedule-table'),
-    $scheduleRooms = $('.schedule-rooms');
+var $scheduleTable = document.querySelectorAll('.schedule-table'),
+    $scheduleRooms = document.querySelectorAll('.schedule-rooms');
 
 
 var roomTrie = {{ c.ROOM_TRIE|jsonize }};
-$('#room_filter_text').on('keyup', function() {
+document.getElementById('room_filter_text').on('keyup', function() {
     var text = $(this).val().toLowerCase(),
         textLength = text.length,
         rooms = roomTrie;
@@ -266,7 +266,7 @@ let updateEvent = function (info) {
         hideMessageBox();
         var message = json.message;
         if (json.success) {
-            $("#message-alert").addClass("alert-success").show().children('span').html(message);
+            document.getElementById('message-alert').addClass("alert-success").show().children('span').html(message);
         } else {
             showErrorMessage(json.message);
         }

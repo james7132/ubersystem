@@ -197,7 +197,7 @@ class showMap {
     }
     addDots() {
         let m = this.gridWidth / this.gridHeight;
-        $(".node_parent").remove();
+        document.querySelectorAll('.node_parent').remove();
         for(let x=1;x<=this.gridWidth;x++) {
             for(let y=1;y<=this.gridHeight;y++) {
                 let dot_id = x + "_" + y;
@@ -223,9 +223,9 @@ class showMap {
     }
     showDots() {
         this.dots = true;
-        $(".node_parent").show();
-        $(".panel_selector").show();
-        $(".face_selector").hide();
+        document.querySelectorAll('.node_parent').show();
+        document.querySelectorAll('.panel_selector').show();
+        document.querySelectorAll('.face_selector').hide();
         this.drawPanels();
     }
     hideDots() {
@@ -236,22 +236,22 @@ class showMap {
         this.sel_b = false;
         this.interactor.reset();
         logic.shadeByUse();
-        $(".node_parent").hide();
-        $(".face_selector").show();
-        $(".panel_selector").hide();
+        document.querySelectorAll('.node_parent').hide();
+        document.querySelectorAll('.face_selector').show();
+        document.querySelectorAll('.panel_selector').hide();
     }
     doLabels() {
         if(this.labels === false) {
             this.labels = true;
             this.logic.manual_assignee = "labels";
             this.logic.shadeByUse();
-            $(".panel_selector").hide();
-            $(".face_selector").show();
+            document.querySelectorAll('.panel_selector').hide();
+            document.querySelectorAll('.face_selector').show();
         }
         else {
             this.logic.manual_assignee = false;
-            $(".panel_selector").show();
-            $(".face_selector").hide();
+            document.querySelectorAll('.panel_selector').show();
+            document.querySelectorAll('.face_selector').hide();
             this.labels = false;
             this.drawPanels();
             this.logic.shadeByUse();
@@ -1294,7 +1294,7 @@ class panelLogic {
             $(unassigned_dom).children("ul").children("li").each(function() { $(this).children("span").css("font-weight","")});
             //$(single_button).hide();
             //$(assign_button).show();
-            //$(".face_selector").hide();
+            //document.querySelectorAll('.face_selector').hide();
         }
         else {
             this.manual_assignee = artist_id;
@@ -1304,7 +1304,7 @@ class panelLogic {
             
             //$(single_button).show();
             //$(assign_button).hide();
-            //$(".face_selector").show();
+            //document.querySelectorAll('.face_selector').show();
         }
         //console.log("set manual assignee")
         map.allocator.assignmentVisibility();
@@ -1411,7 +1411,7 @@ class panelLogic {
         return true;
     }
     async resolveLongest() {
-        $("#section_list").empty();
+        document.getElementById('section_list').empty();
         this.faces = {};
         let new_sections = structuredClone(this.sections);
         //this.sections = {};
@@ -1431,7 +1431,7 @@ class panelLogic {
             $(s_select).on("click",{arg1:new_id},function(e) {
                 logic.shadeSection(e.data.arg1);
             });
-            //$("#section_list").append(s_select);
+            //document.getElementById('section_list').append(s_select);
             //this.sections[new_id] = new_sections[k];
         }
         return true;
@@ -1739,7 +1739,7 @@ class serialize {
                     hideMessageBox();
                     var message = json.message;
                     if (json.success) {
-                    $("#message-alert").addClass("alert-info").show().children('span').html(message);
+                    document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
                     window.scrollTo(0,0); setTimeout(() => { window.scrollTo(0, 0); }, 100);
                     } else {
                     showErrorMessage(message);
@@ -1869,7 +1869,7 @@ class panHandler {
                     if(this.hasOwnProperty("start_node")) {
                         delete this.last_node;
                     }
-                    $(".node_ring").hide();
+                    document.querySelectorAll('.node_ring').hide();
                 }
             }
             else {
@@ -1897,7 +1897,7 @@ class panHandler {
             if(this.hasOwnProperty("last_node")) {
                 delete this.last_node;
             }
-            $(".node_ring").hide();
+            document.querySelectorAll('.node_ring').hide();
             this.shift = false;
         }
     }
@@ -1934,7 +1934,7 @@ class panHandler {
                 compare = true;
             }
         }
-        $(".node_ring").each(function() {
+        document.querySelectorAll('.node_ring').each(function() {
             if(match_nodes.has($(this).attr("node_id"))!==true) {
                 $(this).hide();
             }
@@ -2190,16 +2190,16 @@ class allocator {
             if(this.map.dots === true) {
                 // Dots are currently shown; need to be hidden.
                 this.map.hideDots();
-                $(".normal_key").show();
-                $(".build_key").hide();
+                document.querySelectorAll('.normal_key').show();
+                document.querySelectorAll('.build_key').hide();
                 $(this.buttons["load_save"]).show();
                 //console.log("button handler modify")
                 this.assignmentVisibility();
                 $(b_obj).text("Modify Layout");
             } else {
                 this.map.showDots();
-                $(".normal_key").hide();
-                $(".build_key").show();
+                document.querySelectorAll('.normal_key').hide();
+                document.querySelectorAll('.build_key').show();
                 $(b_obj).text("Done Modifying");
             }
         }

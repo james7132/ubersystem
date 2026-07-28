@@ -98,7 +98,7 @@
                             hideMessageBox();
                             var message = json.message;
                             if (json.success) {
-                                $("#payment-loading-message").addClass("alert-success").show().html(message);
+                                document.getElementById('payment-loading-message').addClass("alert-success").show().html(message);
                                 setTimeout(function(){
                                     window.location.reload();
                                 }, 1000);
@@ -122,7 +122,7 @@
     <iframe id="stripe_frame" name="stripe_frame" style="display:none"></iframe>
     <script type="text/javascript">
     $("form[action='manual_reg_charge']").prop('target', 'stripe_frame');
-    $('#stripe_frame').load(function() {
+    document.getElementById('stripe_frame').load(function() {
         var responseText = $(this.contentDocument.body).text().trim();
         this.contentDocument.body.innerHTML = '';
         
@@ -206,7 +206,7 @@
     </ul>
     <script type="text/javascript">
         document.addEventListener(\"DOMContentLoaded\", function () {
-            $('#attendee-form-nav').find('.nav-link').click(function() {
+            document.getElementById('attendee-form-nav').find('.nav-link').click(function() {
                 $(this).parents('#attendee-form-nav').find('.nav-link').removeClass('active');
                 $(this).addClass('active');
             })

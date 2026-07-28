@@ -142,10 +142,10 @@
 
 <script>
   document.addEventListener(\"DOMContentLoaded\", function () {
-    var $container = $('#container')
-        $signupModal = $('#signup_modal'),
-        $showCheckedInButton = $('#filter'),
-        $optout = $('#attractions_opt_out'),
+    var $container = document.getElementById('container')
+        $signupModal = document.getElementById('signup_modal'),
+        $showCheckedInButton = document.getElementById('filter'),
+        $optout = document.getElementById('attractions_opt_out'),
         $notificationPref = $('input[name="notification_pref"]');
 
     var toggleShowCheckedIn = function(isShowing) {
@@ -172,7 +172,7 @@
           var message = isOptedOut ?
             'Attraction signups disabled':
             'Attraction signups re-enabled';
-          $("#message-alert").addClass("alert-success").show().children('span').html(message, '', {timeOut: 3000});
+          document.getElementById('message-alert').addClass("alert-success").show().children('span').html(message, '', {timeOut: 3000});
         }
       };
 
@@ -202,7 +202,7 @@
           showErrorMessage(response['error']);
           setTimeout(function(){ hideMessageBox() }, 3000);
         } else {
-          $("#message-alert").addClass("alert-success").show().children('span').html('Communication prefs updated', '', {timeOut: 3000});
+          document.getElementById('message-alert').addClass("alert-success").show().children('span').html('Communication prefs updated', '', {timeOut: 3000});
         }
       };
 
@@ -277,7 +277,7 @@
           if (response['remaining_slots'] === response['old_remaining_slots']) {
             message = ' was already signed up for ';
           }
-          $("#message-alert").addClass("alert-info").show().children('span').html($attendee.html() + message + eventLabel);
+          document.getElementById('message-alert').addClass("alert-info").show().children('span').html($attendee.html() + message + eventLabel);
           hideBadgeNumConfirm($signupModal, true);
         } else {
           hideBadgeNumConfirm($signupModal, false);
@@ -300,7 +300,7 @@
       $signupModal.data('eventId', eventId);
       $signupModal.data('eventLabel', eventLabel);
       $signupModal.toggleClass('soldout', isSoldout);
-      $('.signup-event-label').html(eventLabel);
+      document.querySelectorAll('.signup-event-label').html(eventLabel);
 
       var modal = bootstrap.Modal.getOrCreateInstance($signupModal);
       modal.show();
@@ -318,7 +318,7 @@
           setTimeout(function(){ hideMessageBox() }, 3000);
         } else {
           $signup.fadeOut();
-          $("#message-alert").addClass("alert-success").show().children('span').html('Signup for ' + eventLabel + ' successfully cancelled', '', {timeOut: 3000});
+          document.getElementById('message-alert').addClass("alert-success").show().children('span').html('Signup for ' + eventLabel + ' successfully cancelled', '', {timeOut: 3000});
         }
       };
 

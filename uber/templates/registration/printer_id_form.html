@@ -36,12 +36,12 @@
             method: 'POST',
             url: '../registration/set_printer_ids',
             dataType: 'json',
-            data: $("#printer_id_form").serialize(),
+            data: document.getElementById('printer_id_form').serialize(),
             success: function (json) {
                 hideMessageBox();
                 var message = json.message;
                 if (json.success) {
-                    $("#message-alert").addClass("alert-success").show().children('span').html(message);
+                    document.getElementById('message-alert').addClass("alert-success").show().children('span').html(message);
                     reg_station = json.reg_station;
                     printer_default_id = json.printer_default_id;
                     printer_minor_id = json.printer_minor_id;

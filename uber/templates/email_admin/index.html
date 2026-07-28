@@ -3,7 +3,7 @@
 {% block content %}
 <script type="text/javascript">
     var deptIdChanged = function () {
-        window.location = "{{ c.PAGE }}?department_id=" + $("#department_id").val() + "&{{ c.query_str_for_search('department_id') }}";
+        window.location = "{{ c.PAGE }}?department_id=" + (document.getElementById('department_id') ? document.getElementById('department_id').value : '') + "&{{ c.query_str_for_search('department_id') }}";
     };
     var emailStatusChanged = function() {
             status_str = $('[name=status]').serialize()
@@ -13,7 +13,7 @@
             window.location = "{{ c.PAGE }}?" + status_str + "&{{ c.query_str_for_search('status') }}";
         };
     var emailSendAfter = function () {
-        var sendAfter = $('#send_after').prop('checked') ? 'true' : ''
+        var sendAfter = document.getElementById('send_after').prop('checked') ? 'true' : ''
         window.location = "{{ c.PAGE }}?send_after=" + sendAfter + "&{{ c.query_str_for_search('send_after') }}";
     }
 </script>

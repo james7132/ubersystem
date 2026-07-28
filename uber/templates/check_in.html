@@ -5,13 +5,13 @@
 </div>
 
 <script type="text/javascript">
-checkInModal = new bootstrap.Modal($('#checkin_modal'));
+checkInModal = new bootstrap.Modal(document.getElementById('checkin_modal'));
 printer_id = "{{ workstation_assignment.printer_id if workstation_assignment else '' }}";
 minor_printer_id = "{{ workstation_assignment.minor_or_adult_printer_id if workstation_assignment else '' }}";
 
 var createEscalationTicket = function(attendeeID, alertID="form-validations") {
     let attendeeIDs = []
-    if ($('#escalation-ticket-desc').val() == '') {
+    if ((document.getElementById('escalation-ticket-desc') ? document.getElementById('escalation-ticket-desc').value : '') == '') {
         showErrorMessage("Please enter a description for the escalation ticket.", alertID);
         return false;
     }
@@ -33,7 +33,7 @@ var createEscalationTicket = function(attendeeID, alertID="form-validations") {
       dataType: 'json',
       data: {
             attendee_ids: JSON.stringify(attendeeIDs),
-            description: $('#escalation-ticket-desc').val(),
+            description: (document.getElementById('escalation-ticket-desc') ? document.getElementById('escalation-ticket-desc').value : ''),
             csrf_token: csrf_token
         },
       success: function (json) {
@@ -41,13 +41,13 @@ var createEscalationTicket = function(attendeeID, alertID="form-validations") {
         var message = json.message;
         if (json.success) {
             if (attendeeID == undefined) {
-                $('.escalate-ticket').removeClass('show');
-                $('#escalation-ticket-desc').val('');
+                document.querySelectorAll('.escalate-ticket').removeClass('show');
+                if (document.getElementById('escalation-ticket-desc')) document.getElementById('escalation-ticket-desc').value = '';;
                 $(`#${alertID}`).addClass("alert-info").show().children('span').html(message);
                 attendeeIDs.forEach(function (id) { $(`#${id}`).hide() });
             } else {
                 checkInModal.hide();
-                $("#message-alert").addClass("alert-info").show().children('span').html(message);
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
                 $(`#cin_${attendeeID}`).html("<em>Escalated to manager</em>")
             }
         } else {
@@ -62,8 +62,8 @@ var createEscalationTicket = function(attendeeID, alertID="form-validations") {
 
 var loadCheckInFormModal = function (attendeeID) {
     $('#checkin_modal .modal-content').load('../registration/check_in_form?id=' + attendeeID, function() {
-        if ($('.check-in').length) {
-            $('#payment-loading-message').hide();
+        if (document.querySelectorAll('.check-in').length) {
+            (document.getElementById('payment-loading-message') ? document.getElementById('payment-loading-message').style.display = 'none' : null);
         } else {
             showErrorMessage("Form loading failed.");
             checkInModal.hide();
@@ -73,11 +73,11 @@ var loadCheckInFormModal = function (attendeeID) {
 
 var loadCheckInGroupModal = function (badgePickupGroupId) {
     $('#checkin_modal .modal-content').load('../registration/check_in_group_form?id=' + badgePickupGroupId, function() {
-        if ($('.check-in').length) {
-            $('#checkin_modal').on('hidden.bs.modal', function (e) {
-                $('#stripeModal').remove();
+        if (document.querySelectorAll('.check-in').length) {
+            document.getElementById('checkin_modal').on('hidden.bs.modal', function (e) {
+                document.getElementById('stripeModal').remove();
             });
-            $('#payment-loading-message').hide();
+            (document.getElementById('payment-loading-message') ? document.getElementById('payment-loading-message').style.display = 'none' : null);
             $('#checkin_modal .modal-dialog').removeClass().addClass('modal-dialog modal-xl');
             checkInModal.show();
         } else {
@@ -115,12 +115,12 @@ var checkIn = function (attendeeID) {
                 $('#cin_' + attendeeID).html(json.checked_in);
                 $('#age_' + attendeeID).parent().html(json.age_group);
                 $('#num_' + attendeeID).parent().html(json.badge);
-                $("#message-alert").addClass("alert-success").show().children('span').html(message);
+                document.getElementById('message-alert').addClass("alert-success").show().children('span').html(message);
             } else {
                 showErrorMessage(message);
             }
             if (json.increment) {
-                $('#checkin_count').html(1 + parseInt($("#checkin_count").text()));
+                document.getElementById('checkin_count').html(1 + parseInt(document.getElementById('checkin_count').text()));
             }
         },
         error: function () {

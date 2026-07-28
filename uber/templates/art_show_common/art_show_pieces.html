@@ -198,14 +198,14 @@
           }
           window.location = '?id={{ app.id }}&message=' + encodeURIComponent(result.success) + hash;
         }
-        $('#piece_modals').find('.save_piece').prop('disabled', false);
+        document.getElementById('piece_modals').find('.save_piece').prop('disabled', false);
       });
       return false;
     };
 
     document.addEventListener(\"DOMContentLoaded\", function () {
       if(window.location.hash == '#piece-modal-new') {
-            new bootstrap.Modal($('#piece-modal-new')).show();
+            new bootstrap.Modal(document.getElementById('piece-modal-new')).show();
             window.location.hash = {% if admin_area %}"#pieces"{% else %}""{% endif %};
       }
       {% if admin_area %}
@@ -214,12 +214,12 @@
         });
       {% endif %}
 
-        $('#piece_modals').find('form').submit(function(e) {
+        document.getElementById('piece_modals').find('form').submit(function(e) {
             $(this).find('.save_piece').prop('disabled', true);
             return true;
         });
 
-        $('#art-show-piece-table').on('click', '.remove_piece', function (event) {
+        document.getElementById('art-show-piece-table').on('click', '.remove_piece', function (event) {
             event.preventDefault();
             var pieceRow = $(this).closest('.piece-row'),
                 dataTable = pieceRow.closest('table').DataTable(),
@@ -248,7 +248,7 @@
                                 } else {
                                     dataTable.row(pieceRow).remove();
                                     dataTable.draw();
-                                    $("#message-alert").addClass("alert-success").show().children('span').html(pieceName + ' successfully removed!');
+                                    document.getElementById('message-alert').addClass("alert-success").show().children('span').html(pieceName + ' successfully removed!');
                                 }
                             },
                             error: function(response, status) {

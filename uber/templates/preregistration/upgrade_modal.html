@@ -36,7 +36,7 @@
 <script type="text/javascript">
     var costChangeDict = {};
     var lastAmountExtra; // I hate JavaScript
-    var upgradeModal = bootstrap.Modal.getOrCreateInstance($('#upgradeModal'))
+    var upgradeModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('upgradeModal'))
     
     var updateReceiptPreview = function(colName, val=0, updateCol='') {
         if (colName == 'amount_extra' && lastAmountExtra !== undefined && val == lastAmountExtra) {
@@ -101,18 +101,18 @@
                 upgradePreviewTotal += costChangeDict[col];
             }
             if (upgradePreviewTotal > 0) {
-                $('#upgrade-purchase').prop('disabled', false);
-                $('#upgrade-preview-total').text(' for $' + upgradePreviewTotal / 100);
+                document.getElementById('upgrade-purchase').prop('disabled', false);
+                document.getElementById('upgrade-preview-total').text(' for $' + upgradePreviewTotal / 100);
             } else {
-                $('#upgrade-purchase').prop('disabled', true);
-                $('#upgrade-preview-total').text('');
+                document.getElementById('upgrade-purchase').prop('disabled', true);
+                document.getElementById('upgrade-preview-total').text('');
             }
           }
         });
     };
     document.addEventListener(\"DOMContentLoaded\", function () {
         hideMessageBox("upgrade-message-alert");
-        $('#upgrade-purchase').prop('disabled', true);
+        document.getElementById('upgrade-purchase').prop('disabled', true);
         $("form[action='purchase_upgrades']").submit(function(event){
         var $form = $(this);
         $btn = $form.find('button[type=submit]');
@@ -131,7 +131,7 @@
         });
 
         // Always hide the button we use for the upgrade modal
-        $("#upgrade-stripe-btn").hide();
+        (document.getElementById('upgrade-stripe-btn') ? document.getElementById('upgrade-stripe-btn').style.display = 'none' : null);
     });
 </script>
 {% endif %}

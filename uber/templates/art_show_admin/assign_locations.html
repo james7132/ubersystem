@@ -32,7 +32,7 @@
         hideMessageBox();
         var message = json.message;
         if (json.success) {
-          $("#message-alert").addClass("alert-info").show().children('span').html(message);
+          document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
           window.scrollTo(0,0); setTimeout(() => { window.scrollTo(0, 0); }, 100);
         } else {
           showErrorMessage(message);
@@ -47,7 +47,7 @@
   {% include 'art_show_admin/unassign_locations.js' %}
 
   document.addEventListener(\"DOMContentLoaded\", function () {
-    $('#assign-location-table').on('click', '.unassign-location', function() {
+    document.getElementById('assign-location-table').on('click', '.unassign-location', function() {
       confirmUnassignLocation($(this).data('id'), $(this).data('label'))
     });
 
@@ -61,7 +61,7 @@
           hideMessageBox();
           var message = json.message;
           if (json.success) {
-            $("#message-alert").addClass("alert-info").show().children('span').html(message);
+            document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
             window.scrollTo(0,0); setTimeout(() => { window.scrollTo(0, 0); }, 100);
           } else {
             showErrorMessage(message);

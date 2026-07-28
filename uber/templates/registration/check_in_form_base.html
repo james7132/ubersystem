@@ -53,15 +53,15 @@ var toggleMarkButton = function (dropdown) {
     }
 };
 loadCheckInForm = function (json=null) {
-    if ($('#stripeModal').length) {
-        $('#stripeModal').remove();
+    if (document.getElementById('stripeModal').length) {
+        document.getElementById('stripeModal').remove();
     }
     
-    $('#checkin_modal').modal('show');
+    document.getElementById('checkin_modal').modal('show');
     $('#checkin_modal .modal-content').load('check_in_form?id={{ attendee.id }}', function () {
         createDateTextEntries();
-        if ($('#pending_paid_warning').length) {
-            $('#pending_paid_warning').hide();
+        if (document.getElementById('pending_paid_warning').length) {
+            (document.getElementById('pending_paid_warning') ? document.getElementById('pending_paid_warning').style.display = 'none' : null);
         }
     });
 }
@@ -69,8 +69,8 @@ var resumeStripeAction = callStripeAction;
 var callStripeAction = function() {
     $('#checkin_modal .btn-close').trigger('click');
     $('#checkin_modal .modal-content').html('');
-    $('#stripeModal').on('hidden.bs.modal', function (e) {
-        $('#stripeModal').remove();
+    document.getElementById('stripeModal').on('hidden.bs.modal', function (e) {
+        document.getElementById('stripeModal').remove();
     })
     resumeStripeAction();
 }
@@ -89,7 +89,7 @@ $("form[action='mark_as_paid']").submit(function (e) {
             hideMessageBox();
             var message = json.message;
             if (json.success) {
-                $("#payment-loading-message").addClass("alert-success").show().html(message);
+                document.getElementById('payment-loading-message').addClass("alert-success").show().html(message);
                 setTimeout(function(){
                     loadCheckInForm();
                 }, 1000);
@@ -102,7 +102,7 @@ $("form[action='mark_as_paid']").submit(function (e) {
         }
     });
 });
-$('#stripe_frame').load(function() {
+document.getElementById('stripe_frame').load(function() {
     var responseText = $(this.contentDocument.body).text().trim();
     this.contentDocument.body.innerHTML = '';
     
@@ -110,7 +110,7 @@ $('#stripe_frame').load(function() {
         hideMessageBox();
         var response = $.parseJSON(responseText);
         if (response['success'] == true) {
-            $("#message-alert").addClass("alert-success").show().children('span').html(response['message']);
+            document.getElementById('message-alert').addClass("alert-success").show().children('span').html(response['message']);
             loadCheckInForm();
         } else {
             showErrorMessage('', response['message'], {timeOut: 1000});
@@ -118,7 +118,7 @@ $('#stripe_frame').load(function() {
     }
 });
 document.addEventListener(\"DOMContentLoaded\", function () {
-    $('#stripeModal').detach().appendTo($('#checkin_modal').parent());
+    document.getElementById('stripeModal').detach().appendTo(document.getElementById('checkin_modal').parent());
     $('select[name=payment_method]').each(function (i, dropdown) {
         toggleMarkButton(dropdown);
     });
@@ -202,26 +202,26 @@ document.addEventListener(\"DOMContentLoaded\", function () {
 </div>
 <script type="text/javascript">
     var changeButtonLabel = function () {
-        if ($('#printer_id').val() != printer_id) {
-            $('#printAndOrCheckIn')[0].innerHTML = "Print to " + $.val('printer_id') + " & Check In";
-            $('#printAndOrCheckIn').removeClass('btn-success');
-            $('#printAndOrCheckIn').addClass('btn-warning');
+        if ((document.getElementById('printer_id') ? document.getElementById('printer_id').value : '') != printer_id) {
+            document.getElementById('printAndOrCheckIn')[0].innerHTML = "Print to " + $.val('printer_id') + " & Check In";
+            document.getElementById('printAndOrCheckIn').removeClass('btn-success');
+            document.getElementById('printAndOrCheckIn').addClass('btn-warning');
         } else {
-            $('#printAndOrCheckIn').removeClass('btn-warning');
+            document.getElementById('printAndOrCheckIn').removeClass('btn-warning');
             {% if print_and_checkin %}
-            $('#printAndOrCheckIn')[0].innerHTML = "Print Badge & Check In";
-            $('#printAndOrCheckIn').addClass('btn-success');
+            document.getElementById('printAndOrCheckIn')[0].innerHTML = "Print Badge & Check In";
+            document.getElementById('printAndOrCheckIn').addClass('btn-success');
             {% else %}
-            $('#printAndOrCheckIn')[0].innerHTML = "Save & Check In";
-            $('#printAndOrCheckIn').addClass('btn-primary');
+            document.getElementById('printAndOrCheckIn')[0].innerHTML = "Save & Check In";
+            document.getElementById('printAndOrCheckIn').addClass('btn-primary');
             {% endif %}
         }
     }
-    $('#printer_id').on('keyup', changeButtonLabel);
+    document.getElementById('printer_id').on('keyup', changeButtonLabel);
     loadMinorCheckForm = function (attendeeID, printerID) {
         $('#checkin_modal .modal-content').load(
             '../registration/minor_check_form?attendee_id=' + attendeeID + '&printer_id=' + printerID, function() {
-        if ($('.minor-check-id').length) {
+        if (document.querySelectorAll('.minor-check-id').length) {
         } else {
             showErrorMessage("Form loading failed.");
             loadCheckInFormModal(attendeeID);
@@ -259,9 +259,9 @@ document.addEventListener(\"DOMContentLoaded\", function () {
     age = {{ attendee.age_now_or_at_con|default(0, true) }};
     if (age < 18 && $.field('printer_id')) {
         $.field('printer_id').val(minor_printer_id);
-        if($('#printAndOrCheckIn').length) { changeButtonLabel(); }
+        if(document.getElementById('printAndOrCheckIn').length) { changeButtonLabel(); }
     } else if (age >= 18 && $.field('printer_id')) {
         $.field('printer_id').val(printer_id);
-        if($('#printAndOrCheckIn').length) { changeButtonLabel(); }
+        if(document.getElementById('printAndOrCheckIn').length) { changeButtonLabel(); }
     }
 </script>

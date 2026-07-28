@@ -88,25 +88,25 @@
 </div>
 <script type="text/javascript">
     var showOrHideSizeOpts = function() {
-        if($('#staff_shirt').length) {
-            $('#staff_shirt').toggle($('input[name="num_event_shirts"]:checked').val() < {{ c.SHIRTS_PER_STAFFER }});
+        if(document.getElementById('staff_shirt').length) {
+            document.getElementById('staff_shirt').toggle($('input[name="num_event_shirts"]:checked').val() < {{ c.SHIRTS_PER_STAFFER }});
         }
-        $('#event_shirt').toggle($('input[name="num_event_shirts"]:checked').val() > 0 || {{ (c.STAFF_SHIRT_OPTS == c.SHIRT_OPTS)|lower }});
+        document.getElementById('event_shirt').toggle($('input[name="num_event_shirts"]:checked').val() > 0 || {{ (c.STAFF_SHIRT_OPTS == c.SHIRT_OPTS)|lower }});
     }
 
     var disableSizeOpts = function() {
-        let opt_out = $('#shirt_opt_out_select').val();
-        if($('#staff_shirt').length) {
-            $('#staff_shirt_select').prop('disabled', ['{{ c.STAFF_OPT_OUT }}', '{{ c.ALL_OPT_OUT }}'].includes(opt_out));
-            $('#shirt_select').prop('disabled', ['{{ c.EVENT_OPT_OUT }}', '{{ c.ALL_OPT_OUT }}'].includes(opt_out));
+        let opt_out = (document.getElementById('shirt_opt_out_select') ? document.getElementById('shirt_opt_out_select').value : '');
+        if(document.getElementById('staff_shirt').length) {
+            document.getElementById('staff_shirt_select').prop('disabled', ['{{ c.STAFF_OPT_OUT }}', '{{ c.ALL_OPT_OUT }}'].includes(opt_out));
+            document.getElementById('shirt_select').prop('disabled', ['{{ c.EVENT_OPT_OUT }}', '{{ c.ALL_OPT_OUT }}'].includes(opt_out));
         } else {
-            $('#shirt_select').prop('disabled', opt_out != '{{ c.OPT_IN }}');
+            document.getElementById('shirt_select').prop('disabled', opt_out != '{{ c.OPT_IN }}');
         }
     }
 
     document.addEventListener(\"DOMContentLoaded\", function () {
         disableSizeOpts();
-        $('#shirt_opt_out_select').on('change', disableSizeOpts);
+        document.getElementById('shirt_opt_out_select').on('change', disableSizeOpts);
         if($.field('num_event_shirts')) {
             showOrHideSizeOpts();
             $('input[name="num_event_shirts"]').bind('change',showOrHideSizeOpts);

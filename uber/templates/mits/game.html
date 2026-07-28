@@ -182,14 +182,14 @@
 var deleteDoc = function (id) {
     $.post('delete_document', {id: id, csrf_token: csrf_token}, function(message) {
         hideMessageBox();
-        $("#message-alert").addClass("alert-info").show().children('span').html(message);
+        document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
         $('#' + id).remove();
     });
 };
 var deletePic = function (id) {
     $.post('delete_picture', {id: id, csrf_token: csrf_token}, function(message) {
         hideMessageBox();
-        $("#message-alert").addClass("alert-info").show().children('span').html(message);
+        document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
         $('#' + id).remove();
     });
 };
@@ -197,7 +197,7 @@ document.addEventListener(\"DOMContentLoaded\", function () {
     ageToDesc = {{ c.MITS_DESC_BY_AGE|tojson }};
     explanationAges = [{{ c.TEEN }}, {{ c.MATURE }}, {{ c.ADULT }}]
     showAgeDesc = function() {
-        $("#age_desc").text(ageToDesc[$.val('min_age')]);
+        document.getElementById('age_desc').text(ageToDesc[$.val('min_age')]);
     };
     showOrHideAgeExplanation = function() {
         $('[name="age_explanation"').parents('.form-group').toggle(explanationAges.indexOf($.val('min_age')) != -1)

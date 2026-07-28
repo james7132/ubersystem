@@ -10,26 +10,26 @@
   <script type="text/javascript">
     var invertShowAll = function() {
       {% if invalid %}
-      $('#search_invalid').val('');
+      if (document.getElementById('search_invalid')) document.getElementById('search_invalid').value = '';;
       {% else %}
-      $('#search_invalid').val('1');
+      if (document.getElementById('search_invalid')) document.getElementById('search_invalid').value = '1';;
       {% endif %}
-      $('#search_form').submit();
+      document.getElementById('search_form').submit();
     }
 
     document.addEventListener(\"DOMContentLoaded\", function () {
-      $('#search_bar').select();
+      document.getElementById('search_bar').select();
 
       {% if c.REG_USES_BARCODES %}
-        $('#search_bar').barcodeField({
+        document.getElementById('search_bar').barcodeField({
           detectUUID: true,
           detectBadgeNum: true,
           autoSubmitForm: '#search_form',
           shouldAutoFill: function() {
-            return !$('#checkin_badge_num').is(':visible');
+            return !document.getElementById('checkin_badge_num').is(':visible');
           },
           shouldAutoSubmit: function() {
-            return !$('#checkin_badge_num').is(':visible');
+            return !document.getElementById('checkin_badge_num').is(':visible');
           }
         });
 
@@ -40,7 +40,7 @@
           showErrorMessageWhenHidden: false
         });
       {% endif %}
-      $('.badge_count').each(function () {
+      document.querySelectorAll('.badge_count').each(function () {
         text = $(this).text()
         num_badges_left = parseInt(text.substr(0,text.indexOf(' ')));
         if ($(this).data('danger-threshold') && num_badges_left <= $(this).data('danger-threshold')) {

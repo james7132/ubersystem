@@ -12,7 +12,7 @@ Please select a department above to view its assigned placeholders.
     {% if checklist.completed %}
         You've already told us that no one on this list is essential to your department; please emails STOPS if this is in error.
     {% else %}
-        <a href="#" onClick="$('#checkoff').show(); return false;">This all looks good to me.</a>
+        <a href="#" onClick="(document.getElementById('checkoff') ? document.getElementById('checkoff').style.display = '' : null); return false;">This all looks good to me.</a>
         <form id="checkoff" style="display:none" method="post" action="mark_item_complete">
         {{ csrf_token() }}
         <input type="hidden" name="department_id" value="{{ department_id }}" />

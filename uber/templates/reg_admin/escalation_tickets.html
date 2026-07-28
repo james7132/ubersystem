@@ -23,7 +23,7 @@
                 hideMessageBox();
                 var message = json.message;
                 if (json.success) {
-                    $("#message-alert").addClass("alert-info").show().children('span').html(message);
+                    document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
                     $(`#resolved-time-${ticketID}`).html(json.resolved);
                     $(`#resolve-btn-${ticketID}`).toggle(json.resolved == '');
                     $(`#unresolve-btn-${ticketID}`).toggle(json.resolved != '');
@@ -60,7 +60,7 @@
                             hideMessageBox();
                             var message = json.message;
                             if (json.success) {
-                                $("#message-alert").addClass("alert-info").show().children('span').html(message);
+                                document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
                                 $(`#${ticketID}`).hide();
                             } else {
                             showErrorMessage(message);

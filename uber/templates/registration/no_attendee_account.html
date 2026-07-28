@@ -53,7 +53,7 @@ Choose an option below to give them access to their badge.{% if attendee.group a
 </div>
 <script type="text/javascript">
     var alertId = 'message-alert';
-    if($('#attendee-modal-alert').length != 0) { alertId = 'attendee-modal-alert'; }
+    if(document.getElementById('attendee-modal-alert').length != 0) { alertId = 'attendee-modal-alert'; }
     var addExistingCall = function(account_id, send_email) {
         $.ajax({
             method: 'POST',
@@ -66,8 +66,8 @@ Choose an option below to give them access to their badge.{% if attendee.group a
             },
             success: function(response, status) {
                 if(response.success) {
-                    $("#message-alert").addClass("alert-info").show().children('span').html(response['message']);
-                    $('.no-account').hide();
+                    document.getElementById('message-alert').addClass("alert-info").show().children('span').html(response['message']);
+                    document.querySelectorAll('.no-account').hide();
                 } else {
                     showErrorMessage(response['message'], alertId);
                 }
@@ -142,7 +142,7 @@ Choose an option below to give them access to their badge.{% if attendee.group a
                         success: function(response, status) {
                             if(response.success) {
                                 $("#" + alertId).addClass("alert-info").show().children('span').html(response['message']);
-                                $('.no-account').hide();
+                                document.querySelectorAll('.no-account').hide();
                             } else {
                                 showErrorMessage(response['message'], alertId);
                             }
@@ -161,7 +161,7 @@ Choose an option below to give them access to their badge.{% if attendee.group a
     var checkAccountEmail = function($form) {
       $.post("../registration/check_account_email", $form.serialize(), function (result) {
         if (result.success) {
-          validatedEmail = $("#account-email").val();
+          validatedEmail = (document.getElementById('account-email') ? document.getElementById('account-email').value : '');
           checkAccountEmailPassed = true;
           existingAccountId = result.account_id;
           addToAccount(existingAccountId, validatedEmail);
@@ -172,12 +172,12 @@ Choose an option below to give them access to their badge.{% if attendee.group a
         }});
         return false;
     }
-    $("#assign-account").submit(function (event) {
+    document.getElementById('assign-account').submit(function (event) {
       event.preventDefault();
       if (!checkAccountEmailPassed) {
         checkAccountEmail($(this));
       } else {
-        if (validatedEmail != $("#account-email").val()) {
+        if (validatedEmail != (document.getElementById('account-email') ? document.getElementById('account-email').value : '')) {
           checkAccountEmail($(this));
         } else {
           addToAccount(existingAccountId, validatedEmail);

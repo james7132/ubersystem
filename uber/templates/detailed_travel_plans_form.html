@@ -122,7 +122,7 @@
         $.field('detailed_travels').on('change', showOrHideDetailedTravels);
 
         // Move the template out of the <form> tag to avoid validation errors
-        $('#travel_form_template').appendTo($('body'));
+        document.getElementById('travel_form_template').appendTo($('body'));
     });
 
 </script>

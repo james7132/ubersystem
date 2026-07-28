@@ -28,13 +28,13 @@
     var changeButtonLabel = function () {
         var old_printer_id = "{{ printer_id }}";
         if ($.val('printer_id') != old_printer_id) {
-            $('#completeMinorCheckButton')[0].innerHTML = "Print to " + $.val('printer_id') + " Instead";
-            $('#completeMinorCheckButton').removeClass('btn-success');
-            $('#completeMinorCheckButton').addClass('btn-warning');
+            document.getElementById('completeMinorCheckButton')[0].innerHTML = "Print to " + $.val('printer_id') + " Instead";
+            document.getElementById('completeMinorCheckButton').removeClass('btn-success');
+            document.getElementById('completeMinorCheckButton').addClass('btn-warning');
         } else {
-            $('#completeMinorCheckButton')[0].innerHTML = "I've Loaded the Minor Badge Stock";
-            $('#completeMinorCheckButton').removeClass('btn-warning');
-            $('#completeMinorCheckButton').addClass('btn-success');
+            document.getElementById('completeMinorCheckButton')[0].innerHTML = "I've Loaded the Minor Badge Stock";
+            document.getElementById('completeMinorCheckButton').removeClass('btn-warning');
+            document.getElementById('completeMinorCheckButton').addClass('btn-success');
         }
     }
     changeButtonLabel();
@@ -65,7 +65,7 @@
                     }
                 }
                 checkInModal.hide();
-                $("#message-alert").addClass("alert-success").show().children('span').html(json.message);
+                document.getElementById('message-alert').addClass("alert-success").show().children('span').html(json.message);
                 window.scrollTo(0,0);
             } else {
                 showErrorMessage(message, "minor-check-message");

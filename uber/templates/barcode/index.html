@@ -34,15 +34,15 @@
             if (!data['attendee']) {
                 txt += '<br/>name: <a href="#attendee_form?id=' + data['attendee_id'] + '">' + data['attendee_name'] + '</a>';
             }
-            $("#result").html(txt);
-            $("#result_msg").html(data.message);
+            document.getElementById('result').html(txt);
+            document.getElementById('result_msg').html(data.message);
         })
         .fail(function() {
-            $("#result").html("failed: couldn't get badge# - server error");
+            document.getElementById('result').html("failed: couldn't get badge# - server error");
         });
     }
     document.addEventListener(\"DOMContentLoaded\", function () {
-        $("#barcode_scan").click(function () {
+        document.getElementById('barcode_scan').click(function () {
             getScan();
         });
     });

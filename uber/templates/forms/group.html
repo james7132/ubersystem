@@ -13,7 +13,7 @@
   </span>
   <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-      $('#tc-link').appendTo($("#dealer-actions"));
+      document.getElementById('tc-link').appendTo(document.getElementById('dealer-actions'));
     });
   </script>
   {% elif signnow_link %}
@@ -40,7 +40,7 @@
           {{ options(c.DEALER_STATUS_OPTS,group.status) }}
         </select>
         {% if not new_dealer and not group.is_new %}
-          <a href="#" onClick="$('#setstatus').toggle(); return false;">Waitlist or Decline (with Email)</a> <br/>
+          <a href="#" onClick="document.getElementById('setstatus').toggle(); return false;">Waitlist or Decline (with Email)</a> <br/>
           <div id="setstatus" style="display:none">
             Enter an email message to be sent along with the notification: <br/>
             (The email subject will be "Your {{ c.EVENT_NAME }} {{ c.DEALER_REG_TERM|title }} has been [waitlisted | declined]")
@@ -56,7 +56,7 @@
   <script type="text/javascript">
     var unapprove = function(action, convert) {
       if (!$.val("email_text")) {
-        $("#setstatus").prepend('<div style="color:red">You must enter an email message.</div>');
+        document.getElementById('setstatus').prepend('<div style="color:red">You must enter an email message.</div>');
       } else {
         $("button").attr("disabled", true);
         $.post("../dealer_admin/unapprove", {
@@ -69,7 +69,7 @@
           if (json.message) {
             window.location = "index?message="+ json.message + "#dealers";
           } else {
-            $("#status").text("Waitlisted");
+            document.getElementById('status').text("Waitlisted");
           }
         }, 'json');
       }
@@ -377,7 +377,7 @@
 {# Always read-only #}
 <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-        $('#bold-field-message').insertBefore($.field('name').parents('.form-group'));
+        document.getElementById('bold-field-message').insertBefore($.field('name').parents('.form-group'));
     });
 </script>
 <div id="group-explanation" class="form-group group_fields">
@@ -543,7 +543,7 @@
   </style>
   <script type="text/javascript">
   var optionalOrNotLeader = function () {
-    $('.leader_info').toggleClass('optional-field', !($.val('group_type')));
+    document.querySelectorAll('.leader_info').toggleClass('optional-field', !($.val('group_type')));
   }
   optionalOrNotLeader();
   $.field('group_type').on('change', optionalOrNotLeader);

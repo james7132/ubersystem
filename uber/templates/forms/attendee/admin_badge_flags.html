@@ -215,11 +215,11 @@ get noBadgeNumText() { return this.preassignedBadge() ? 'Use next available badg
     var setGroupLink = function () {
         var group = $('#{{ badge_flags.group_membership.id }}').val();
         if (group === '') {
-            $('#group_link').hide();
-            {% if create_new_group_link %}$('#new_group').show();{% endif %}
+            (document.getElementById('group_link') ? document.getElementById('group_link').style.display = 'none' : null);
+            {% if create_new_group_link %}(document.getElementById('new_group') ? document.getElementById('new_group').style.display = '' : null);{% endif %}
         } else {
-            {% if create_new_group_link %}$('#new_group').hide();{% endif %}
-            $('#group_link').attr("href", '../group_admin/form?id=' + group).show();
+            {% if create_new_group_link %}(document.getElementById('new_group') ? document.getElementById('new_group').style.display = 'none' : null);{% endif %}
+            document.getElementById('group_link').attr("href", '../group_admin/form?id=' + group).show();
         }
     };
     document.addEventListener(\"DOMContentLoaded\", function () {

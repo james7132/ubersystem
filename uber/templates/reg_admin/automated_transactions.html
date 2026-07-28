@@ -4,11 +4,11 @@
 <script type="text/javascript">
   var invertShowAll = function() {
     {% if closed %}
-    $('#search_closed').val('');
+    if (document.getElementById('search_closed')) document.getElementById('search_closed').value = '';;
     {% else %}
-    $('#search_closed').val('1');
+    if (document.getElementById('search_closed')) document.getElementById('search_closed').value = '1';;
     {% endif %}
-    $('#search_form').submit();
+    document.getElementById('search_form').submit();
   }
   </script>
 

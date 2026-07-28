@@ -2,14 +2,14 @@
     var disclaimersConfirmed = false;
     var confirmDisclaimers = function () {
       disclaimersConfirmed = true;
-      $("#prereg-form").submit();
+      document.getElementById('prereg-form').submit();
     }
     var openDisclaimersModal = function() {
-      var modal = bootstrap.Modal.getOrCreateInstance($('#disclaimers_modal'))
+      var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('disclaimers_modal'))
       modal.show();
-      $('#disclaimers_modal').scrollTop(0);
+      document.getElementById('disclaimers_modal').scrollTop(0);
 
-      $('#disclaimers_modal').on('hidden.bs.modal', function (event) {
+      document.getElementById('disclaimers_modal').on('hidden.bs.modal', function (event) {
         if(typeof serverValidationPassed != 'undefined') { serverValidationPassed = false; }
       })
     }

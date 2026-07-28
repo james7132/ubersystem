@@ -71,7 +71,7 @@
     var checkAccountEmail = function($form, action='') {
       $.post("../preregistration/validate_account_email", $form.serialize(), function (result) {
         if (result.success) {
-          validatedEmail = $("#account-email").val();
+          validatedEmail = (document.getElementById('account-email') ? document.getElementById('account-email').value : '');
           checkAccountEmailPassed = true;
           if (action == 'login') {
             showLoginPrompts();
@@ -81,7 +81,7 @@
             loginOrCreateAccount($form);
           }
         } else if (result.sso_email) {
-          var modal = bootstrap.Modal.getOrCreateInstance($('#sso-notice-modal'));
+          var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('sso-notice-modal'));
           modal.show();
         } else {
           if (result.message) {
@@ -92,32 +92,32 @@
     }
 
     var showLoginPrompts = function() {
-      {% if c.PREREG_CONFIRM_EMAIL_ENABLED %}$("#confirm-email").prop('required', false).parents('.mb-3').addClass('d-none');{% endif %}
-      $("#new-password").prop('required', false).parents('.mb-3').addClass('d-none');
-      $("#confirm-password").prop('required', false).parents('.mb-3').addClass('d-none');
-      $("#account-password").val($("#new-password").val()).prop('required', true).parents('.mb-3').removeClass('d-none');
-      $("#account-password").focus();
+      {% if c.PREREG_CONFIRM_EMAIL_ENABLED %}document.getElementById('confirm-email').prop('required', false).parents('.mb-3').addClass('d-none');{% endif %}
+      document.getElementById('new-password').prop('required', false).parents('.mb-3').addClass('d-none');
+      document.getElementById('confirm-password').prop('required', false).parents('.mb-3').addClass('d-none');
+      if (document.getElementById('account-password')) document.getElementById('account-password').value = (document.getElementById('new-password'; ? document.getElementById('new-password').value : '')).prop('required', true).parents('.mb-3').removeClass('d-none');
+      document.getElementById('account-password').focus();
 
-      $("#create-submit").addClass('d-none');
-      $("#login-return").addClass('d-none');
-      $("#login-submit").removeClass('d-none');
-      $("#create-return").removeClass('d-none');
+      document.getElementById('create-submit').addClass('d-none');
+      document.getElementById('login-return').addClass('d-none');
+      document.getElementById('login-submit').removeClass('d-none');
+      document.getElementById('create-return').removeClass('d-none');
       currentAction = 'login';
     }
 
     var showCreatePrompts = function() {
-      $("#new-password").val($("#account-password").val()).prop('required', true).parents('.mb-3').removeClass('d-none');
+      if (document.getElementById('new-password')) document.getElementById('new-password').value = (document.getElementById('account-password'; ? document.getElementById('account-password').value : '')).prop('required', true).parents('.mb-3').removeClass('d-none');
       {% if c.PREREG_CONFIRM_EMAIL_ENABLED %}
-      $("#confirm-email").prop('required', true).val('').parents('.mb-3').removeClass('d-none');
-      $("#confirm-email").focus();
+      document.getElementById('confirm-email').prop('required', true).val('').parents('.mb-3').removeClass('d-none');
+      document.getElementById('confirm-email').focus();
       {% endif %}
-      $("#confirm-password").prop('required', true).val('').parents('.mb-3').removeClass('d-none');
-      $("#account-password").prop('required', false).parents('.mb-3').addClass('d-none');
+      document.getElementById('confirm-password').prop('required', true).val('').parents('.mb-3').removeClass('d-none');
+      document.getElementById('account-password').prop('required', false).parents('.mb-3').addClass('d-none');
 
-      $("#login-submit").addClass('d-none');
-      $("#create-return").addClass('d-none');
-      $("#create-submit").removeClass('btn-outline-primary d-none').addClass('btn-primary');
-      $("#login-return").removeClass('d-none');
+      document.getElementById('login-submit').addClass('d-none');
+      document.getElementById('create-return').addClass('d-none');
+      document.getElementById('create-submit').removeClass('btn-outline-primary d-none').addClass('btn-primary');
+      document.getElementById('login-return').removeClass('d-none');
       currentAction = 'create';
     }
 
@@ -149,12 +149,12 @@
       }
     }
 
-    $("#account-form").submit(function (event) {
+    document.getElementById('account-form').submit(function (event) {
       event.preventDefault();
       if (!checkAccountEmailPassed) {
         checkAccountEmail($(this), event.originalEvent.submitter.name);
       } else {
-        if (validatedEmail != $("#account-email").val()) {
+        if (validatedEmail != (document.getElementById('account-email') ? document.getElementById('account-email').value : '')) {
           checkAccountEmail($(this));
         } else {
           loginOrCreateAccount($(this));

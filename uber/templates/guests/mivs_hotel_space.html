@@ -77,18 +77,18 @@
 
   <script type="text/javascript">
       var showOrHideConfirm = function() {
-          if ($('#needs_hotel_space').val() == '1') {
-              $('#confirm_text').text('I have filled out the hotel form link.')
+          if ((document.getElementById('needs_hotel_space') ? document.getElementById('needs_hotel_space').value : '') == '1') {
+              document.getElementById('confirm_text').text('I have filled out the hotel form link.')
           } else {
-              $('#confirm_text').text('I have taken care of my own hotel accommodations for MAGFest.')
+              document.getElementById('confirm_text').text('I have taken care of my own hotel accommodations for MAGFest.')
           }
 
-          setVisible($.field('confirm_checkbox').parents('.form-group'), $('#needs_hotel_space').val());
-          setVisible($('.hotel_link'), $('#needs_hotel_space').val() == '1');
+          setVisible($.field('confirm_checkbox').parents('.form-group'), (document.getElementById('needs_hotel_space') ? document.getElementById('needs_hotel_space').value : ''));
+          setVisible(document.querySelectorAll('.hotel_link'), (document.getElementById('needs_hotel_space') ? document.getElementById('needs_hotel_space').value : '') == '1');
       };
       document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideConfirm();
-          $('#needs_hotel_space').change(showOrHideConfirm);
+          document.getElementById('needs_hotel_space').change(showOrHideConfirm);
       });
   </script>
 {% endblock body %}

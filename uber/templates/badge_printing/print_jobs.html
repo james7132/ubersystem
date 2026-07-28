@@ -56,7 +56,7 @@
 </div>
 
 <script type="text/javascript">
-    $('.ajax-link').on('click', function (event) {
+    document.querySelectorAll('.ajax-link').on('click', function (event) {
         var $link = $(this);
         event.preventDefault();
         hideMessageBox();
@@ -65,7 +65,7 @@
             url: $link.attr('href'),
             success: function (json) {
                 if (json.success) {
-                    $("#message-alert").addClass("alert-success").show().children('span').html(json.message);
+                    document.getElementById('message-alert').addClass("alert-success").show().children('span').html(json.message);
                 } else {
                     showErrorMessage(json.message);
                 }

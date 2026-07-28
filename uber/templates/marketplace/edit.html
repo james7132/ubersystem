@@ -6,7 +6,7 @@
 
 <script type="text/javascript">
   document.addEventListener(\"DOMContentLoaded\", function () {
-    var $cancelForm = $('#cancel-form');
+    var $cancelForm = document.getElementById('cancel-form');
     $cancelForm.on('submit', function(event) {
       event.preventDefault();
       bootbox.confirm({

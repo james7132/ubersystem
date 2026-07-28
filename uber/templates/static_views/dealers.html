@@ -9,7 +9,7 @@
     <script type="text/javascript">
         document.addEventListener(\"DOMContentLoaded\", function () {
             fetch("dealerRules.html").then(function(res) { return res.text(); }).then(function(rules) {
-                $("#rules").html(rules);
+                document.getElementById('rules').html(rules);
             });
         });
     </script>

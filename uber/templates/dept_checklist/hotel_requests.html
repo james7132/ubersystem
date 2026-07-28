@@ -36,7 +36,7 @@ Please select a department above to view its hotel requests.
             deny if you know for a fact that they aren't needed. Approving will make them eligible for shifts in ALL departments they are 
             assigned to, so make sure you follow up with your volunteers to let them know that you approved them, and that you're expecting 
             them to pick up shifts in your department.</p>{% endif %}
-            <a href="#" onClick="$('#checkoff').show(); return false;">I have approved everyone who should be approved</a>
+            <a href="#" onClick="(document.getElementById('checkoff') ? document.getElementById('checkoff').style.display = '' : null); return false;">I have approved everyone who should be approved</a>
             <form id="checkoff" style="display:none" method="post" action="../dept_checklist/mark_item_complete">
             {{ csrf_token() }}
             <input type="hidden" name="department_id" value="{{ department_id }}" />

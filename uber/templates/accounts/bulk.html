@@ -4,7 +4,7 @@
 
 <script type="text/javascript">
 var mainMenuDropdownChanged = function () {
-    window.location = "bulk?department_id=" + $("#department").val();
+    window.location = "bulk?department_id=" + (document.getElementById('department') ? document.getElementById('department').value : '');
 };
 </script>
 
@@ -90,7 +90,7 @@ var mainMenuDropdownChanged = function () {
 <script>
 var list_of_ids = [];
 
-var admin_form = $("#admin_settings");
+var admin_form = document.getElementById('admin_settings');
 
 admin_form.submit( function(eventObj) {
     var checkboxes = $('.cbox:checked');
@@ -103,7 +103,7 @@ admin_form.submit( function(eventObj) {
                         return this.id;
                     })
                     .get();
-            $('#ids').val(ids);
+            if (document.getElementById('ids')) document.getElementById('ids').value = ids;;
             return true;
         }
         else {
@@ -117,19 +117,19 @@ admin_form.submit( function(eventObj) {
 });
 
 admin_form.ajaxForm(function(message){
-    $("#message-alert").addClass("alert-info").show().children('span').html(message);
+    document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
     setTimeout(function(){
         location.reload(true);
     }, 1500);
 });
 
-$("#checkAll").change(function () {
+document.getElementById('checkAll').change(function () {
     $('.cbox:checkbox').prop('checked', this.checked);
-    $("#count").text($('.cbox:checked').length);
+    document.getElementById('count').text($('.cbox:checked').length);
 });
 
-$('.cbox').change(function(){
-   $("#count").text($('.cbox:checked').length);
+document.querySelectorAll('.cbox').change(function(){
+   document.getElementById('count').text($('.cbox:checked').length);
 });
 
 </script>

@@ -73,11 +73,11 @@
     </tr>
 </table>
 <script type="text/javascript">
-    let workstationTable = $('#workstation-assignments');
+    let workstationTable = document.getElementById('workstation-assignments');
     var addWorkstationRow = function() {
         let newRow = $('<tr></tr>');
         newRow.prependTo(workstationTable);
-        newRow.html($('#template_workstation_assignment').children().clone())
+        newRow.html(document.getElementById('template_workstation_assignment').children().clone())
     };
     var deleteWorkstation = function(workstation_id, reg_station_id) {
         bootbox.confirm({
@@ -140,7 +140,7 @@
 
         <script type="text/javascript">
             var setTerminalRange = function(start, end) {
-                $('#workstation_ids').val(start + '-' + end);
+                if (document.getElementById('workstation_ids')) document.getElementById('workstation_ids').value = start + '-' + end;;
             }
         </script>
 

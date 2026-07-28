@@ -68,10 +68,10 @@
             if (response.new_cost) {
                 $('#' + groupId + '-cost').html(response.new_cost);
                 $('#' + groupId + '-receipt-total').html(response.new_receipt_total);
-                $("#message-alert").addClass("alert-info").show().children('span').html(response.message);
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html(response.message);
             } else {
                 $('#' + groupId).remove()
-                $("#message-alert").addClass("alert-success").show().children('span').html(response.message);
+                document.getElementById('message-alert').addClass("alert-success").show().children('span').html(response.message);
             }
             
         });

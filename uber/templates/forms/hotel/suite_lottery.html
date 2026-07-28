@@ -5,11 +5,11 @@
 
 <script type="text/javascript">
     var showOrHideRoomOpts = function() {
-        $('.hotel_and_room_type_ranking').toggle(!$('#room_opt_out').is(':checked'));
+        document.querySelectorAll('.hotel_and_room_type_ranking').toggle(!document.getElementById('room_opt_out').is(':checked'));
     }
     document.addEventListener(\"DOMContentLoaded\", function () {
         showOrHideRoomOpts();
-        $('#room_opt_out').change(showOrHideRoomOpts);
+        document.getElementById('room_opt_out').change(showOrHideRoomOpts);
     });
 </script>
 {% endblock %}

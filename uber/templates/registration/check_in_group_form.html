@@ -205,46 +205,46 @@
     var removeAttendeeFromPickupGroup = function(attendee_id, pickupGroupID) {
         $.post("remove_attendee_from_pickup_group", {id: attendee_id, csrf_token: csrf_token}).done(function(response) {
             if (response.error) {
-                $("#form-validations").addClass("alert-danger").children('span').html(response.error);
+                document.getElementById('form-validations').addClass("alert-danger").children('span').html(response.error);
             } else {
-                $("#form-validations").addClass("alert-success").children('span').html("Attendee removed from badge pickup group.");
-                $("#form-validations").show();
+                document.getElementById('form-validations').addClass("alert-success").children('span').html("Attendee removed from badge pickup group.");
+                (document.getElementById('form-validations') ? document.getElementById('form-validations').style.display = '' : null);
                 $(`#${attendee_id}`).remove();
             }
         }).fail(function() {
-            $('#form-validations').addClass('alert-danger').children('span').html("Couldn't contact server!");
-            $("#form-validations").show();
+            document.getElementById('form-validations').addClass('alert-danger').children('span').html("Couldn't contact server!");
+            (document.getElementById('form-validations') ? document.getElementById('form-validations').style.display = '' : null);
         });
     }
     var updateAttendee = function(attendee_id, pickupGroupID) {
         var $form = $('#update-form-' + attendee_id);
-        $("#form-validations").hide().removeClass().addClass("alert").children('span').html("");
+        (document.getElementById('form-validations') ? document.getElementById('form-validations').style.display = 'none' : null).removeClass().addClass("alert").children('span').html("");
         $.post("validate_attendee", $form.serialize() + '&form_list=CheckInForm').done(function (response) {
             if (response.error) {
-                $("#form-validations").addClass("alert-danger").children('span').html(
+                document.getElementById('form-validations').addClass("alert-danger").children('span').html(
                     "Please correct the following errors:" +
                     "<ul></ul>"
                     );
                 $.each(response.error, function(key, val) {
-                    $("#form-validations").find("ul").append("<li>" + val + "</li>");
+                    document.getElementById('form-validations').find("ul").append("<li>" + val + "</li>");
                 });
-                $("#form-validations").show();
+                (document.getElementById('form-validations') ? document.getElementById('form-validations').style.display = '' : null);
             } else {
                 $.post("save_no_check_in", $form.serialize()).done(function (response) {
                     if (response.error) {
-                        $("#form-validations").addClass("alert-danger").children('span').html(response.error);
-                        $("#form-validations").show();
+                        document.getElementById('form-validations').addClass("alert-danger").children('span').html(response.error);
+                        (document.getElementById('form-validations') ? document.getElementById('form-validations').style.display = '' : null);
                     } else {
-                        $("#form-validations").addClass("alert-success").children('span').html("Attendee updated!");
-                        $("#form-validations").show();
+                        document.getElementById('form-validations').addClass("alert-success").children('span').html("Attendee updated!");
+                        (document.getElementById('form-validations') ? document.getElementById('form-validations').style.display = '' : null);
                     }
                 }).fail(function() {
-                    $('#form-validations').addClass('alert-danger').children('span').html("Couldn't contact server!");
-                    $("#form-validations").show();
+                    document.getElementById('form-validations').addClass('alert-danger').children('span').html("Couldn't contact server!");
+                    (document.getElementById('form-validations') ? document.getElementById('form-validations').style.display = '' : null);
                 });
         };}).fail(function() {
-            $('#form-validations').addClass('alert-danger').children('span').html("Couldn't contact server!");
-            $("#form-validations").show();
+            document.getElementById('form-validations').addClass('alert-danger').children('span').html("Couldn't contact server!");
+            (document.getElementById('form-validations') ? document.getElementById('form-validations').style.display = '' : null);
         });
     };
     
@@ -274,7 +274,7 @@
                 hideMessageBox('form-validations');
                 var message = json.message;
                 if (json.success) {
-                $("#form-validations").addClass("alert-info").show().children('span').html(message);
+                document.getElementById('form-validations').addClass("alert-info").show().children('span').html(message);
                 } else {
                 showErrorMessage(message, 'form-validations');
                 }
@@ -300,9 +300,9 @@
                 hideMessageBox();
                 var message = json.message;
                 if (json.success) {
-                    $("#payment-loading-message").removeClass("alert-info").addClass("alert-success").show().html(message);
+                    document.getElementById('payment-loading-message').removeClass("alert-info").addClass("alert-success").show().html(message);
                     setTimeout(function(){
-                        loadCheckInGroupModal($('#mark-as-paid-group-id').val());
+                        loadCheckInGroupModal((document.getElementById('mark-as-paid-group-id') ? document.getElementById('mark-as-paid-group-id').value : ''));
                     }, 1000);
                 } else {
                     showErrorMessage(message);
@@ -316,7 +316,7 @@
     loadMinorCheckCartForm = function (pickupGroupID, printerID, num_adults=0) {
         $('#checkin_modal .modal-content').load(
             '../registration/minor_check_form?pickup_group_id=' + pickupGroupID + '&printer_id=' + printerID + '&num_adults=' + num_adults, function() {
-        if ($('.minor-check-id').length) {
+        if (document.querySelectorAll('.minor-check-id').length) {
         } else {
             showErrorMessage("Form loading failed.");
             loadCheckInGroupModal(pickupGroupID);
@@ -348,7 +348,7 @@
                         loadMinorCheckCartForm(pickupGroupID, $.val('printer_id'), json.num_adults);
                     } else {
                         checkInModal.hide();
-                        $("#message-alert").addClass("alert-success").show().children('span').html(json.message);
+                        document.getElementById('message-alert').addClass("alert-success").show().children('span').html(json.message);
                         window.scrollTo(0,0);
                     }
                 } else {
@@ -362,6 +362,6 @@
         return false;
     }
     document.addEventListener(\"DOMContentLoaded\", function () {
-        $("#form-validations").hide();
+        (document.getElementById('form-validations') ? document.getElementById('form-validations').style.display = 'none' : null);
     })
 </script>

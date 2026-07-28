@@ -7,8 +7,8 @@
     var loadingIcon = '<i class="fa fa-lg fa-repeat gly-spin"></i>';
     let intervalId;
     var startEmailGeneration = function(action='generate_emails') {
-        $('#email-loading-message').removeClass('alert-danger').addClass('alert-info');
-        $('#email-loading-message').html("Checking for new emails... &nbsp;" + loadingIcon).show();
+        document.getElementById('email-loading-message').removeClass('alert-danger').addClass('alert-info');
+        document.getElementById('email-loading-message').html("Checking for new emails... &nbsp;" + loadingIcon).show();
         $.post(action,
         {
             id: '{{ email.id }}',
@@ -18,15 +18,15 @@
             setTimeout(pollEmailGeneration, 500);
             intervalId = setInterval(pollEmailGeneration, 5000);
         } else if (json && json.error) {
-            $('#email-loading-message').removeClass('alert-info').addClass('alert-danger');
-            $('#email-loading-message').html(json.error);
+            document.getElementById('email-loading-message').removeClass('alert-info').addClass('alert-danger');
+            document.getElementById('email-loading-message').html(json.error);
         } else {
-            $('#email-loading-message').removeClass('alert-info').addClass('alert-danger');
-            $('#email-loading-message').html("Something went wrong!");
+            document.getElementById('email-loading-message').removeClass('alert-info').addClass('alert-danger');
+            document.getElementById('email-loading-message').html("Something went wrong!");
             }
         }).fail(function() {
-        $('#email-loading-message').removeClass('alert-info').addClass('alert-danger');
-        $('#email-loading-message').html("Couldn't contact server!");
+        document.getElementById('email-loading-message').removeClass('alert-info').addClass('alert-danger');
+        document.getElementById('email-loading-message').html("Couldn't contact server!");
         });
     }
     var pollEmailGeneration = function () {
@@ -36,40 +36,40 @@
             csrf_token: csrf_token
         }, function(json) {
         if (json && json.success) {
-            $('#email-loading-message').html(json.message);
+            document.getElementById('email-loading-message').html(json.message);
             clearInterval(intervalId);
         } else if (json && json.message) {
-            $('#email-loading-message').removeClass('alert-info').addClass('alert-danger');
-            $('#email-loading-message').html(json.message);
+            document.getElementById('email-loading-message').removeClass('alert-info').addClass('alert-danger');
+            document.getElementById('email-loading-message').html(json.message);
             clearInterval(intervalId);
         }
         });
     }
     document.addEventListener(\"DOMContentLoaded\", function () {
-        $('#email-loading-message').hide();
-        $('.email-info').on('submit', function(event) {
+        (document.getElementById('email-loading-message') ? document.getElementById('email-loading-message').style.display = 'none' : null);
+        document.querySelectorAll('.email-info').on('submit', function(event) {
         event.preventDefault();
         var $toSubmit = $(this);
         send_count = ''
         delete_count = ''
         may_or_will = 'MAY'
 
-        if ($('#policy').val() != '{{ email.policy }}') {
-            if ($('#policy').val() == '{{ c.DISABLED }}') {
+        if ((document.getElementById('policy') ? document.getElementById('policy').value : '') != '{{ email.policy }}') {
+            if ((document.getElementById('policy') ? document.getElementById('policy').value : '') == '{{ c.DISABLED }}') {
                 delete_count = '{{ unsent_count }}'
                 may_or_will = 'WILL'
-            } else if ('{{ c.AT_THE_CON }}' == 'True' && $('#allow_at_the_con').val() != true) {
+            } else if ('{{ c.AT_THE_CON }}' == 'True' && (document.getElementById('allow_at_the_con') ? document.getElementById('allow_at_the_con').value : '') != true) {
                 delete_count = '{{ unsent_count }}'
                 may_or_will = 'WILL'
-            } else if ('{{ c.POST_CON }}' == 'True' && $('#allow_post_con').val() != true) {
+            } else if ('{{ c.POST_CON }}' == 'True' && (document.getElementById('allow_post_con') ? document.getElementById('allow_post_con').value : '') != true) {
                 delete_count = '{{ unsent_count }}'
                 may_or_will = 'WILL'
             }
-            if ($('#policy').val() == '{{ c.AUTOSEND }}') {
+            if ((document.getElementById('policy') ? document.getElementById('policy').value : '') == '{{ c.AUTOSEND }}') {
                 send_count = '{{ unapproved_count }}'
             }
         }
-        if ($('#active_before').val() != '{{ email.active_before }}') {
+        if ((document.getElementById('active_before') ? document.getElementById('active_before').value : '') != '{{ email.active_before }}') {
             delete_count = '{{ unsent_count }}'
         }
 

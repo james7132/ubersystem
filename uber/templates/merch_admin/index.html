@@ -33,20 +33,20 @@
 
     let showMPointForm = function () {
         resetForms();
-        $("#mpoint-form").addClass('show');
+        document.getElementById('mpoint-form').addClass('show');
     }
 
     var recordMPointExchange = function () {
         $.post('record_old_mpoint_exchange', {
-            badge_num_or_qr_code:  $('#badge_num_or_qr_code').val(),
-            amount: $('#num_mpoints').val(),
+            badge_num_or_qr_code:  (document.getElementById('badge_num_or_qr_code') ? document.getElementById('badge_num_or_qr_code').value : ''),
+            amount: (document.getElementById('num_mpoints') ? document.getElementById('num_mpoints').value : ''),
             csrf_token: csrf_token
         }, function(json) {
             resetForms();
             if (json.success) {
-                $("#message-alert").addClass("alert-info").show().children('span').html(json.message);
-                $('#num_mpoints').val('');
-                $("#message").append(' &nbsp; ').append(
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message);
+                if (document.getElementById('num_mpoints')) document.getElementById('num_mpoints').value = '';;
+                document.getElementById('message').append(' &nbsp; ').append(
                     $('<a href="#">Undo</a>').click(function(){
                         undoMPointExchange(json.id);
                         return false;
@@ -58,7 +58,7 @@
     };
     var undoMPointExchange = function (id) {
         $.post('undo_mpoint_exchange', {'id': id, csrf_token: csrf_token}, function(s) {
-            $('#message').html(s);
+            document.getElementById('message').html(s);
         });
     };
 
@@ -76,18 +76,18 @@
             $('[id^=give-merch-btn]').attr('disabled', false);
 
             if (!json.success) {
-                $("#message-alert").addClass('alert-warning').show().children('span').html(json.message);
+                document.getElementById('message-alert').addClass('alert-warning').show().children('span').html(json.message);
             } else {
                 resetForms();
-                $("#message-alert").addClass('alert-info').show().children('span').html(json.message);
-                $('#message-alert').children('span')
+                document.getElementById('message-alert').addClass('alert-info').show().children('span').html(json.message);
+                document.getElementById('message-alert').children('span')
                     .append(' &nbsp; ')
                     .append(
                         $('<a href="#">Undo</a>').click(function(){
                             takeBackMerch(id, staffMerch);
                             return false;
                          }));
-                $('#badge_num_or_qr_code').focus();
+                document.getElementById('badge_num_or_qr_code').focus();
             }
         }, 'json');
     };
@@ -98,8 +98,8 @@
             staff_merch: staffMerch
         };
         $.post('take_back_merch', params, function (message) {
-            $("#message-alert").addClass("alert-info").show().children('span').html(message);
-            $('#badge_num_or_qr_code').focus();
+            document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
+            document.getElementById('badge_num_or_qr_code').focus();
         });
     };
 
@@ -109,16 +109,16 @@
     }
 
     let resetDiscountInfo = function () {
-        $("#message-alert").hide();
-        $("#discount-info").find('.alert').empty();
-        $('#redeem-discount').off('click.redeemdiscount').attr('disabled', false);
-        $("#discount-info").hide();
+        (document.getElementById('message-alert') ? document.getElementById('message-alert').style.display = 'none' : null);
+        document.getElementById('discount-info').find('.alert').empty();
+        document.getElementById('redeem-discount').off('click.redeemdiscount').attr('disabled', false);
+        (document.getElementById('discount-info') ? document.getElementById('discount-info').style.display = 'none' : null);
     };
 
     var checkDiscount = function () {
         resetForms();
         var params = {
-            badge_num_or_qr_code: $('#badge_num_or_qr_code').val(),
+            badge_num_or_qr_code: (document.getElementById('badge_num_or_qr_code') ? document.getElementById('badge_num_or_qr_code').value : ''),
             csrf_token: csrf_token
         };
         $.post('redeem_merch_discount', params, function (json) {
@@ -127,16 +127,16 @@
                 showErrorMessage(json.error || 'An unexpected error occurred.');
             } else {
                 let alertClass = json.warning ? 'alert-warning' : 'alert-info';
-                $("#discount-info").show().find('.alert').addClass(alertClass).html(json.message);
+                (document.getElementById('discount-info') ? document.getElementById('discount-info').style.display = '' : null).find('.alert').addClass(alertClass).html(json.message);
 
-                $('#redeem-discount').on('click.redeemdiscount', function () {
-                    $('#redeem-discount').attr('disabled', true);
+                document.getElementById('redeem-discount').on('click.redeemdiscount', function () {
+                    document.getElementById('redeem-discount').attr('disabled', true);
                     params.apply = 'true';
                     $.post('redeem_merch_discount', params, function (json) {
                         resetForms();
                         let alertClass = json.error ? 'alert-danger' : 'alert-info';
-                        $("#message-alert").addClass("alert-info").show().children('span').html(json.message || json.error);
-                        $('#badge_num_or_qr_code').focus();
+                        document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message || json.error);
+                        document.getElementById('badge_num_or_qr_code').focus();
                     });
                 }).text(json.warning ? 'Redeem Discount Anyway' : 'Redeem Discount');
             }
@@ -146,14 +146,14 @@
     let resetMerchInfo = function() {
         merchPending = '';
         if (savedInput != '') {
-            $('#badge_num_or_qr_code').val(savedInput);
+            if (document.getElementById('badge_num_or_qr_code')) document.getElementById('badge_num_or_qr_code').value = savedInput;;
             savedInput = '';
         }
 
-        $("#message-alert").removeClass('alert-info').removeClass('alert-danger');
-        $("#mpoint-form").removeClass('show');
+        document.getElementById('message-alert').removeClass('alert-info').removeClass('alert-danger');
+        document.getElementById('mpoint-form').removeClass('show');
         
-        $('#merch-info').hide().find('.alert').html('');
+        (document.getElementById('merch-info') ? document.getElementById('merch-info').style.display = 'none' : null).find('.alert').html('');
         $(`#shirt-size`).closest('.col').hide();
         $('[id$=shirt-size]').hide();
         $('[id^=give-merch-btn]').off('click.givemerch').attr('disabled', false).closest('.row').hide();
@@ -167,7 +167,7 @@
         let params = {
             csrf_token: csrf_token,
             staff_merch: staffMerch,
-            badge_num_or_qr_code: $('#badge_num_or_qr_code').val(),
+            badge_num_or_qr_code: (document.getElementById('badge_num_or_qr_code') ? document.getElementById('badge_num_or_qr_code').value : ''),
         };
         resetForms();
         $.ajax({
@@ -180,7 +180,7 @@
                     showErrorMessage(json.message);
                 } else {
                     let shirtFieldID = staffMerch ? "staff-shirt-size" : "shirt-size";
-                    $('#merch-info').show().find('.alert').empty().append(
+                    (document.getElementById('merch-info') ? document.getElementById('merch-info').style.display = '' : null).find('.alert').empty().append(
                         createMerchList(json.message, json.merch_items)
                     );
 
@@ -190,19 +190,19 @@
                         $(`#${shirtFieldID} :input`).val(Math.max(json.shirt, 0));
                     }
 
-                    $('#give-merch-btn').on('click.givemerch', function() {
+                    document.getElementById('give-merch-btn').on('click.givemerch', function() {
                         shirt_val = $(`#${shirtFieldID} :input`).is(":visible") ? $(`#${shirtFieldID} :input`).val() : ''
                         giveMerch('', json.id, staffMerch, shirt_val, json.gets_swadge);
                     });
 
                     {% if c.OUT_OF_SHIRTS %}
-                        $('#give-merch-btn-no-shirt').on('click.givemerch', function() {
+                        document.getElementById('give-merch-btn-no-shirt').on('click.givemerch', function() {
                             shirt_val = $(`#${shirtFieldID} :input`).is(":visible") ? $(`#${shirtFieldID} :input`).val() : ''
                             giveMerch('no_shirt', json.id, staffMerch, shirt_val, json.gets_swadge);
                         });
                     {% endif %}
 
-                    $('#give-merch-btn').closest('.row').show();
+                    document.getElementById('give-merch-btn').closest('.row').show();
                 }
             },
             error: function () {
@@ -222,8 +222,8 @@
                 },
                 callback: function (result) {
                 if (result) {
-                    savedInput = $('#badge_num_or_qr_code').val();
-                    $('#give-merch-btn').trigger('click');
+                    savedInput = (document.getElementById('badge_num_or_qr_code') ? document.getElementById('badge_num_or_qr_code').value : '');
+                    document.getElementById('give-merch-btn').trigger('click');
                 } else { 
                     resetForms();
                     if (callback != undefined) { callback(id); }
@@ -252,14 +252,14 @@
 
     let kioskLogin = function () {
         $.post('log_in_volunteer', {
-            badge_num:  $('#kiosk_badge_num').val(),
+            badge_num:  (document.getElementById('kiosk_badge_num') ? document.getElementById('kiosk_badge_num').value : ''),
             csrf_token: csrf_token
         }, function(json) {
             if (json.success) {
                 let volunteerLogin = bootstrap.Modal.getInstance(document.getElementById('volunteer-login'));
                 volunteerLogin.hide();
-                $('#kiosk-operator-name').text(json.operator_name);
-                $("#message-alert").addClass("alert-info").show().children('span').html(json.message);
+                document.getElementById('kiosk-operator-name').text(json.operator_name);
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message);
             } else {
                 showErrorMessage(json.message, 'modal-message-alert');
             }
@@ -280,19 +280,19 @@
             setTimeout(function(){ field.select(); }, 1);
         });
 
-        $('#num_mpoints').keypress(function(e){
+        document.getElementById('num_mpoints').keypress(function(e){
             if( (e.keyCode || e.which) == 13 ) {
                 recordMPointExchange();
             }
         });
 
-        $('#badge_num_or_qr_code').keydown(function(event){
+        document.getElementById('badge_num_or_qr_code').keydown(function(event){
             if(event.keyCode == 13) {
                 checkAction(checkMerch, '#check_merch');
             }
         });
 
-        $('#kiosk_badge_num').keypress(function(e){
+        document.getElementById('kiosk_badge_num').keypress(function(e){
             if( (e.keyCode || e.which) == 13 ) {
                 kioskLogin();
             }
@@ -304,7 +304,7 @@
 
         resetForms();
         {% if message %}
-        $("#message-alert").addClass("alert-info").show()
+        document.getElementById('message-alert').addClass("alert-info").show()
         {% endif %}
 
         replaceQueryParamInUrl('enter_kiosk');
@@ -313,7 +313,7 @@
 
         let volunteerLogin = new bootstrap.Modal(document.getElementById('volunteer-login'), {keyboard: false});
         {% if supervisor and not logged_in_volunteer %}
-        $('#modal-message-alert').hide();
+        (document.getElementById('modal-message-alert') ? document.getElementById('modal-message-alert').style.display = 'none' : null);
         volunteerLogin.show()
         {% endif %}
 

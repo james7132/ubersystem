@@ -12,10 +12,10 @@
 <div id="print_jobs"></div>
 <script type="text/javascript">
 var loadPrintJobs = function(flag) {
-  $('.job-types').removeClass('btn-primary btn-outline-secondary').addClass('btn-outline-secondary');
+  document.querySelectorAll('.job-types').removeClass('btn-primary btn-outline-secondary').addClass('btn-outline-secondary');
   $('#' + flag).addClass('btn-primary').removeClass('btn-outline-secondary');
-    $('#print_jobs').load('../badge_printing/print_jobs?flag=' + flag, function(){
-      if ($('#print_jobs').length) {
+    document.getElementById('print_jobs').load('../badge_printing/print_jobs?flag=' + flag, function(){
+      if (document.getElementById('print_jobs').length) {
           $(window).trigger( 'runJavaScript' );
       } else {
           // We got redirected -- likely to the login page -- so load it properly
@@ -25,6 +25,6 @@ var loadPrintJobs = function(flag) {
       }
       });
     }
-$('#pending').click();
+document.getElementById('pending').click();
 </script>
 {% endblock %}

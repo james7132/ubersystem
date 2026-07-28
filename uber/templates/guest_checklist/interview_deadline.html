@@ -21,7 +21,7 @@
 {% else %}
   <script type="text/javascript">
       var showOrHideInterviewOpts = function() {
-          setVisible($('.interview-opts'), $.field("will_interview").is(":checked"));
+          setVisible(document.querySelectorAll('.interview-opts'), $.field("will_interview").is(":checked"));
       };
       document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideInterviewOpts();

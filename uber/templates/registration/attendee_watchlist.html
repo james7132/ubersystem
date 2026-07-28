@@ -1,7 +1,7 @@
 {% set admin_area=True %}
 <script type="text/javascript">
   let confirmEntry = function() {
-  var formToSubmit = $('#confirm-entry');
+  var formToSubmit = document.getElementById('confirm-entry');
   bootbox.confirm({
       title: 'Confirm Watchlist Entry?',
       message: 'When you "confirm" a watchlist entry, that entry will be permanently associated with this ' +
@@ -31,10 +31,10 @@ document.addEventListener(\"DOMContentLoaded\", function () {
     $.post($(this).attr('action'), $(this).serializeArray())
     .success(function (json) {
         if(window.loadForm !== undefined) {
-          $("#attendee-modal-alert").addClass("alert-info").show().children('span').html(json.message);
+          document.getElementById('attendee-modal-alert').addClass("alert-info").show().children('span').html(json.message);
           loadForm("Watchlist");
         } else {
-          $("#message-alert").addClass("alert-info").show().children('span').html(json.message);
+          document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message);
         }
         window.location.hash = old_hash;
     })

@@ -86,7 +86,7 @@
         <div id="show-link"></div>
         <script>
             document.addEventListener(\"DOMContentLoaded\", function () {
-                var $showLink = $('#show-link'), $markForm = $('#mark-form');
+                var $showLink = document.getElementById('show-link'), $markForm = document.getElementById('mark-form');
                 {% if game.status in c.FINAL_MIVS_GAME_STATUSES %}
                     $.field('status').val({{ game.status }});
                     $showLink
@@ -96,7 +96,7 @@
                                 $showLink.hide();
                             });
                 {% else %}
-                    $('#mark-form').show();
+                    (document.getElementById('mark-form') ? document.getElementById('mark-form').style.display = '' : null);
                 {% endif %}
             });
         </script>
@@ -447,7 +447,7 @@
 
 <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-      $('#remove-judges').on('submit', function(event) {
+      document.getElementById('remove-judges').on('submit', function(event) {
         event.preventDefault();
         var $toSubmit = $(this);
         bootbox.confirm({

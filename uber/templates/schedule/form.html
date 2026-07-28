@@ -74,7 +74,7 @@
         $(event.target).parent("div").remove();
     };
     var addPanelist = function(id) {
-        $("#add").after(
+        document.getElementById('add').after(
             $("<div/>").css("padding-top", "5px").attr("class", "d-flex gap-3 align-items-center")
                        .append(
                             $panelists.clone()

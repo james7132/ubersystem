@@ -55,9 +55,9 @@ get shirtSize() { return (this.getsFreeEventShirt() && !this.eventShirtOptOut())
     <script type="text/javascript">
         var switchBadgeTypeOpts = function() {
             let attendanceType = $('#{{ id_upgrade_prepend }}attendance_type').val();
-            setVisible($('#badge_type_single-select').parents('.row'), attendanceType == '{{ c.SINGLE_DAY }}');
-            setVisible($('#one-day-alert'), attendanceType == '{{ c.SINGLE_DAY }}');
-            setVisible($('#badge_type-select').parents('.row'), attendanceType == '{{ c.WEEKEND }}');
+            setVisible(document.getElementById('badge_type_single-select').parents('.row'), attendanceType == '{{ c.SINGLE_DAY }}');
+            setVisible(document.getElementById('one-day-alert'), attendanceType == '{{ c.SINGLE_DAY }}');
+            setVisible(document.getElementById('badge_type-select').parents('.row'), attendanceType == '{{ c.WEEKEND }}');
         }
         document.addEventListener(\"DOMContentLoaded\", function () {
             switchBadgeTypeOpts();
@@ -148,13 +148,13 @@ get shirtSize() { return (this.getsFreeEventShirt() && !this.eventShirtOptOut())
 {% if upgrade_modal %}
 <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-        $("#upgrade_badge_type").on('change', function() {
+        document.getElementById('upgrade_badge_type').on('change', function() {
             updateReceiptPreview('badge_type', this.value);
         })
-        $("#upgrade_amount_extra").on('change', function() {
+        document.getElementById('upgrade_amount_extra').on('change', function() {
             updateReceiptPreview('amount_extra', this.value);
         })
-        $("#upgrade_extra_donation").on('blur', function() {
+        document.getElementById('upgrade_extra_donation').on('blur', function() {
             updateReceiptPreview('extra_donation', this.value);
         })
     });

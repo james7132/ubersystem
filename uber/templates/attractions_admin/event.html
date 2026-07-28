@@ -45,7 +45,7 @@
 
 <script>
   document.addEventListener(\"DOMContentLoaded\", function () {
-    var $attendeesTable = $('#attendees-table');
+    var $attendeesTable = document.getElementById('attendees-table');
 
     $attendeesTable.on('click', '.btn-success', function(event) {
       event.preventDefault();
@@ -129,7 +129,7 @@
                 $signupRow.fadeOut(function() {
                   $attendeesTable.DataTable().row($signupRow).remove().draw();
                 });
-                $("#message-alert").addClass("alert-success").show().children('span').html('Signup for ' + attendeeName + ' successfully cancelled', '', {timeOut: 3000});
+                document.getElementById('message-alert').addClass("alert-success").show().children('span').html('Signup for ' + attendeeName + ' successfully cancelled', '', {timeOut: 3000});
               }
             });
           }

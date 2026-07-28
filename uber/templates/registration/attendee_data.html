@@ -8,7 +8,7 @@ hideMessageBox('attendee-modal-alert');
 var updateAttendee = function(submit_button_name=''){
     hideMessageBox('attendee-modal-alert');
 
-    var formData = $("#attendee_form").serializeArray();
+    var formData = document.getElementById('attendee_form').serializeArray();
     var old_hash = window.location.hash;
     $.ajax({
         method: 'POST',
@@ -19,7 +19,7 @@ var updateAttendee = function(submit_button_name=''){
               if (submit_button_name == 'save_and_close') {
                 {# TODO: We really need better modal handling #}
                 $('#attendee_modal .btn-close').trigger('click');
-                $("#message-alert").addClass("alert-info").show().children('span').html(json.message);
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message);
               } else {
                 {% if attendee.is_new %}
                 old_hash = "#attendee_form?id=" + json.id
@@ -27,7 +27,7 @@ var updateAttendee = function(submit_button_name=''){
                 {% else %}
                 window.history.replaceState("", document.title, window.location.href.replace(location.hash, "") + old_hash);
                 loadForm("Data").then(function(result) {
-                  $("#attendee-modal-alert").addClass("alert-info").show().children('span').html(json.message);
+                  document.getElementById('attendee-modal-alert').addClass("alert-info").show().children('span').html(json.message);
                 });
                 {% endif %}
               }
@@ -40,14 +40,14 @@ var updateAttendee = function(submit_button_name=''){
         }
     });
     setTimeout(function(){ 
-      if($('#attendee_modal').is(':visible')) {
+      if(document.getElementById('attendee_modal').is(':visible')) {
         window.history.replaceState("", document.title, window.location.href.replace(location.hash, "") + old_hash); 
         }
       }, 1000);
 };
 var deleteAttendee = function(confirm_msg) {
   event.preventDefault();
-  var formData = $("#delete_attendee").serializeArray();
+  var formData = document.getElementById('delete_attendee').serializeArray();
   if (confirm(confirm_msg) == true) {
     $.ajax({
         method: 'POST',
@@ -56,7 +56,7 @@ var deleteAttendee = function(confirm_msg) {
         success: function (json) {
             if (json.success) {
               $('#attendee_modal .btn-close').trigger('click');
-              $("#message-alert").addClass("alert-info").show().children('span').html(json.message);
+              document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message);
             } else {
               showErrorMessage(json.message, 'attendee-modal-alert');
             }

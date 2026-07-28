@@ -73,7 +73,7 @@ Due to the extra scaffolding involved on this form, each block also has a _desc 
         {% endblock %}
         else {
             if (step == 1) {
-                $('#return-btn').text("Return to Options");
+                document.getElementById('return-btn').text("Return to Options");
             }
             let next_step = step + 1;
             $('#step-' + step).collapse('hide');
@@ -90,7 +90,7 @@ Due to the extra scaffolding involved on this form, each block also has a _desc 
 
     document.addEventListener(\"DOMContentLoaded\", function () {
         {% if application.current_step != 0 %}
-        $('#step-1').collapse('hide');
+        document.getElementById('step-1').collapse('hide');
         current_step = parseInt("{{ application.current_step }}");
         for (let step = 1; step <= current_step; step++) {
             $('#step-' + step + '-button').prop('disabled', false).html($('#step-' + step + '-button').html() + "&nbsp;<i class='fa fa-check'></i>");
@@ -103,7 +103,7 @@ Due to the extra scaffolding involved on this form, each block also has a _desc 
         $('#step-' + next_step + '-button').prop('disabled', false)
         $('#form-validations-{{ room_text }}-lottery-form').detach().prependTo($('#step-' + next_step).find('.accordion-body'));
         {% elif application.status != c.COMPLETE %}
-        $('#form-validations-{{ room_text }}-lottery-form').detach().prependTo($('#step-1').find('.accordion-body'));
+        $('#form-validations-{{ room_text }}-lottery-form').detach().prependTo(document.getElementById('step-1').find('.accordion-body'));
         {% endif %}
 
         $('#{{ room_text }}-lottery-form').submit(function(){

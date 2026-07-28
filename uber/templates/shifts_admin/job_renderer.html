@@ -140,12 +140,12 @@
                     .append(
                         $('<td class="text-end"></td>').append(
                             jobIsFull ? '' : $('<button class="btn btn-sm btn-success">Assign</button>').click(function() {
-                                var attendee = $('#attendee').val();
+                                var attendee = (document.getElementById('attendee') ? document.getElementById('attendee').value : '');
                                 if (attendee) {
                                     $.post('assign', {
                                         csrf_token: csrf_token,
                                         job_id: job.id,
-                                        staffer_id: $('#attendee').val()
+                                        staffer_id: (document.getElementById('attendee') ? document.getElementById('attendee').value : '')
                                     }, renderJob, 'json');
                                 } else {
                                     alert('You must select a volunteer to assign.');
@@ -158,7 +158,7 @@
     };
 
     var renderAll = function() {
-        var $jobs = $('#jobs'),
+        var $jobs = document.getElementById('jobs'),
             jobList = {{ jobs|jsonize }};
         if (jobList && jobList.length) {
             $.each(jobList, function(i, job) {

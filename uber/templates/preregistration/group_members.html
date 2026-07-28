@@ -74,8 +74,8 @@
     });
   }
   document.addEventListener(\"DOMContentLoaded\", function () {
-      $(".unset-group-member").submit(unsetMemberConfirm);
-      $(".remove-group-member").submit(removeMemberConfirm);
+      document.querySelectorAll('.unset-group-member').submit(unsetMemberConfirm);
+      document.querySelectorAll('.remove-group-member').submit(removeMemberConfirm);
 
       $("form[action='../preregistration/cancel_dealer']").submit(cancelConfirm);
   });

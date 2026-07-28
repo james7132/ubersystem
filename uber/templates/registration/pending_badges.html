@@ -10,7 +10,7 @@
               if (response.error) {
                   showErrorMessage(response.error);
               } else {
-                  $("#message-alert").addClass("alert-info").show().children('span').html('Badge approved');
+                  document.getElementById('message-alert').addClass("alert-info").show().children('span').html('Badge approved');
                   hideRows(response.added);
               }
           }, 'json');

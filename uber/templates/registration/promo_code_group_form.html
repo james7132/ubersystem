@@ -6,15 +6,15 @@
         if ($.field('buyer_id')) {
             var buyer = $.val('buyer_id');
             if (buyer === '') {
-                $('#buyer_link').hide();
-                $('#new_buyer').hide();
+                (document.getElementById('buyer_link') ? document.getElementById('buyer_link').style.display = 'none' : null);
+                (document.getElementById('new_buyer') ? document.getElementById('new_buyer').style.display = 'none' : null);
             } else if (buyer === 'None') {
-                $('#buyer_link').hide();
-                $('#new_buyer').show();
+                (document.getElementById('buyer_link') ? document.getElementById('buyer_link').style.display = 'none' : null);
+                (document.getElementById('new_buyer') ? document.getElementById('new_buyer').style.display = '' : null);
             } else {
                 var link_base = {% if c.HAS_REGISTRATION_ACCESS %}'../registration/form?id='{% else %}'#attendee_form?id='{% endif %};
-                $('#buyer_link').attr("href", link_base + buyer).show();
-                $('#new_buyer').hide();
+                document.getElementById('buyer_link').attr("href", link_base + buyer).show();
+                (document.getElementById('new_buyer') ? document.getElementById('new_buyer').style.display = 'none' : null);
             }
         }
     };

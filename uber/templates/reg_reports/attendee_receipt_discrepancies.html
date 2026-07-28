@@ -76,10 +76,10 @@
             if (response.new_cost) {
                 $('#' + attendeeId + '-cost').html(response.new_cost);
                 $('#' + attendeeId + '-receipt-total').html(response.new_receipt_total);
-                $("#message-alert").addClass("alert-info").show().children('span').html(response.message);
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html(response.message);
             } else {
                 $('#' + attendeeId).remove()
-                $("#message-alert").addClass("alert-success").show().children('span').html(response.message);
+                document.getElementById('message-alert').addClass("alert-success").show().children('span').html(response.message);
             }
             
         });

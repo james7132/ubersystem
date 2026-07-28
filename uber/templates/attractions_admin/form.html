@@ -321,7 +321,7 @@
     var locations = {{ attraction.locations_by_feature_id|jsonize }};
     var allLocations = {{ c.SCHEDULE_LOCATIONS|jsonize }};
 
-    $('#features').on('click', '.event-spacer a', function(event) {
+    document.getElementById('features').on('click', '.event-spacer a', function(event) {
       event.preventDefault();
       var eventId = $(this).data('eventId'),
           overlap = $(this).data('overlap'),
@@ -333,11 +333,11 @@
       $('#attractionevent input.gap_hours').val(hours * sign);
       $('#attractionevent input.gap_minutes').val(minutes * sign);
       $('#edit_event_gap input[name="id"]').val(eventId);
-      var modal = bootstrap.Modal.getOrCreateInstance($('#edit_event_gap'));
+      var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('edit_event_gap'));
       modal.show();
     });
 
-    $('#edit_event_gap').on('shown.bs.modal', function (event) {
+    document.getElementById('edit_event_gap').on('shown.bs.modal', function (event) {
       $('#attractionevent input.gap_minutes').focus();
     });
 
@@ -359,7 +359,7 @@
       });
     };
 
-    $('.feature-title').on('click', '.delete-feature', function(event) {
+    document.querySelectorAll('.feature-title').on('click', '.delete-feature', function(event) {
       event.preventDefault();
       var $button = $(this);
           featureId = $button.data('featureId'),
@@ -409,7 +409,7 @@
       });
     })
 
-    $('.room-col').on('click', '.delete-event', function(event) {
+    document.querySelectorAll('.room-col').on('click', '.delete-event', function(event) {
       event.preventDefault();
       var $button = $(this);
           eventId = $button.data('eventId'),
@@ -515,7 +515,7 @@
                 if (response['error']) {
                     showErrorMessage('There was an error opening signups: ' + response['error']);
                 } else {
-                    $("#message-alert").addClass("alert-success").show().children('span').html('Signups for all ' + features[featureId] + ' events on ' + day + ' opened!', {timeOut: 2000});
+                    document.getElementById('message-alert').addClass("alert-success").show().children('span').html('Signups for all ' + features[featureId] + ' events on ' + day + ' opened!', {timeOut: 2000});
                     $('#' + featureId + '_' + location + '_' + day + ' .open-signups').hide();
                     $('#' + featureId + '_' + location + '_' + day + ' .close-signups').show();
                 }
@@ -555,7 +555,7 @@
                 if (response['error']) {
                     showErrorMessage('There was an error closing signups: ' + response['error']);
                 } else {
-                    $("#message-alert").addClass("alert-success").show().children('span').html('Signups for all ' + features[featureId] + ' events on ' + day + ' closed!', {timeOut: 2000});
+                    document.getElementById('message-alert').addClass("alert-success").show().children('span').html('Signups for all ' + features[featureId] + ' events on ' + day + ' closed!', {timeOut: 2000});
                     $('#' + featureId + '_' + location + '_' + day + ' .close-signups').hide();
                     $('#' + featureId + '_' + location + '_' + day + ' .open-signups').show();
                 }

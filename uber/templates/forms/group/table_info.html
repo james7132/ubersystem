@@ -83,7 +83,7 @@ get otherCategory() { return this.categories.includes('{{ c.OTHER }}') },
 {% if not group.is_new %}
 <button type="submit" class="btn btn-primary" value="Upload">Save</button>
 {% if group.is_dealer %}
-<a href="#" class="btn btn-warning" onClick="$('#setStatus').toggle(); return false;">Waitlist/Decline With a Custom Message</a>
+<a href="#" class="btn btn-warning" onClick="document.getElementById('setStatus').toggle(); return false;">Waitlist/Decline With a Custom Message</a>
       <div id="setStatus" style="display:none">
         Enter an email message to be sent along with the notification: <br/>
         (The email subject will be "Your {{ c.EVENT_NAME }} {{ c.DEALER_REG_TERM|title }} has been [waitlisted | declined]")
@@ -96,7 +96,7 @@ get otherCategory() { return this.categories.includes('{{ c.OTHER }}') },
       <script type="text/javascript">
         var unapprove = function(action, convert) {
           if (!$.val("email_text")) {
-            $("#setstatus").prepend('<div style="color:red">You must enter an email message.</div>');
+            document.getElementById('setstatus').prepend('<div style="color:red">You must enter an email message.</div>');
           } else {
             $("button").attr("disabled", true);
             $.post("../dealer_admin/unapprove", {
@@ -115,9 +115,9 @@ get otherCategory() { return this.categories.includes('{{ c.OTHER }}') },
                 } else {
                   status_val = "{{ c.DECLINED }}";
                 }
-                $("#status").val(status_val);
-                $("#setStatus").hide();
-                $("#message-alert").addClass("alert-info").show().children('span').html("{{ c.DEALER_TERM.title() }} " + action + " and email sent.");
+                if (document.getElementById('status')) document.getElementById('status').value = status_val;;
+                (document.getElementById('setStatus') ? document.getElementById('setStatus').style.display = 'none' : null);
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html("{{ c.DEALER_TERM.title() }} " + action + " and email sent.");
               }
             }, 'json');
           }
@@ -142,8 +142,8 @@ get otherCategory() { return this.categories.includes('{{ c.OTHER }}') },
         shared_group_name = $("#sharedDealerForm [name='shared_group_name']").val();
       }
       var sharedTable = function() {
-        var form = $("#sharedDealerDiv").html();
-        $("#sharedDealerDiv").html('');
+        var form = document.getElementById('sharedDealerDiv').html();
+        document.getElementById('sharedDealerDiv').html('');
 
         bootbox.confirm({
             backdrop: true,
@@ -154,7 +154,7 @@ get otherCategory() { return this.categories.includes('{{ c.OTHER }}') },
             cancel: { label: 'Nevermind', className: 'btn-outline-secondary' }
             },
             callback: function (result) {
-              $("#sharedDealerDiv").html(form);
+              document.getElementById('sharedDealerDiv').html(form);
               if(result) {
                 $.post('../dealer_admin/set_table_shared', {
                   csrf_token: csrf_token,

@@ -62,10 +62,10 @@
 <div id="viewable_attendees"></div>
 <script type="text/javascript">
 var loadViewableAttendees = function(query) {
-  $('.attendee-types').removeClass('btn-primary btn-outline-secondary').addClass('btn-outline-secondary');
+  document.querySelectorAll('.attendee-types').removeClass('btn-primary btn-outline-secondary').addClass('btn-outline-secondary');
   $('#' + query).addClass('btn-primary').removeClass('btn-outline-secondary');
-    $('#viewable_attendees').load('../accounts/attendees?query=' + query, function(){
-      if ($('#viewable_attendees').length) {
+    document.getElementById('viewable_attendees').load('../accounts/attendees?query=' + query, function(){
+      if (document.getElementById('viewable_attendees').length) {
           $(window).trigger( 'runJavaScript' );
       } else {
           // We got redirected -- likely to the login page -- so load it properly

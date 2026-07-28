@@ -28,7 +28,7 @@
 
 <script type="text/javascript">
     var mainMenuDropdownChanged = function () {
-        window.location = "{{ c.PAGE }}?department_id=" + $("#department_id").val();
+        window.location = "{{ c.PAGE }}?department_id=" + (document.getElementById('department_id') ? document.getElementById('department_id').value : '');
     };
 </script>
 

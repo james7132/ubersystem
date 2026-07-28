@@ -9,18 +9,18 @@
 
 <script>
   document.addEventListener(\"DOMContentLoaded\", function () {
-    var $modals = $('.modal'),
-        $signupModal = $('#signup_modal'),
-        $altSignupModal = $('#alt_signup_modal'),
-        $doneModal = $('#done_modal'),
-        $btnShowSoldout = $('#btn_show_soldout');
+    var $modals = document.querySelectorAll('.modal'),
+        $signupModal = document.getElementById('signup_modal'),
+        $altSignupModal = document.getElementById('alt_signup_modal'),
+        $doneModal = document.getElementById('done_modal'),
+        $btnShowSoldout = document.getElementById('btn_show_soldout');
 
     $signupBModal = bootstrap.Modal.getOrCreateInstance($signupModal);
     $altSignupBModal = bootstrap.Modal.getOrCreateInstance($altSignupModal);
     $doneBModal = bootstrap.Modal.getOrCreateInstance($doneModal);
 
-    $('#badge-signup-alert').hide();
-    $('#nonbadge-signup-alert').hide();
+    (document.getElementById('badge-signup-alert') ? document.getElementById('badge-signup-alert').style.display = 'none' : null);
+    (document.getElementById('nonbadge-signup-alert') ? document.getElementById('nonbadge-signup-alert').style.display = 'none' : null);
 
     $btnShowSoldout.on('click', function(event) {
       var isShowing = $btnShowSoldout.hasClass('btn-secondary');
@@ -29,7 +29,7 @@
       $('body').toggleClass('show-soldout', !isShowing);
     });
 
-    $('#events').on('click', '.event', function(event) {
+    document.getElementById('events').on('click', '.event', function(event) {
       event.preventDefault();
       var $event = $(this),
           eventId = $event.data('eventId'),
@@ -41,8 +41,8 @@
 
       $modals.data('eventId', eventId);
       $modals.toggleClass('soldout', isSoldout);
-      $('.signup-event-label').html($('#' + eventId + ' .event-label').html());
-      $('.signup-event-location').html($('#' + eventId + ' .event-location').html());
+      document.querySelectorAll('.signup-event-label').html($('#' + eventId + ' .event-label').html());
+      document.querySelectorAll('.signup-event-location').html($('#' + eventId + ' .event-location').html());
 
       {% if c.AT_THE_CON %}
       $signupBModal.show();
@@ -69,8 +69,8 @@
             $('#' + eventId).toggleClass('soldout', response['is_sold_out']);
             $('#' + eventId + ' .remaining-slots').text(response['remaining_slots']);
             $('#' + eventId).find('.waitlist-remaining-slots').first().text(response['remaining_waitlist_slots']);
-            $('.waitlist-show').toggle(response['on_waitlist']);
-            $('.waitlist-hide').toggle(response['on_waitlist'] == false);
+            document.querySelectorAll('.waitlist-show').toggle(response['on_waitlist']);
+            document.querySelectorAll('.waitlist-hide').toggle(response['on_waitlist'] == false);
             callback(response);
           } else {
             showErrorMessage(response['error'] || 'Unknown error signing up for event.', 'nonbadge-signup-alert');
@@ -106,7 +106,7 @@
           if (response['remaining_slots'] === response['old_remaining_slots']) {
             message = ' was already signed up for ';
           }
-          $("#badge-signup-alert").addClass("alert-info").show().children('span').html($attendee.html() + message + $eventLabel.html());
+          document.getElementById('badge-signup-alert').addClass("alert-info").show().children('span').html($attendee.html() + message + $eventLabel.html());
           hideBadgeNumConfirm($doneModal, true);
         } else {
           hideBadgeNumConfirm($doneModal, false);
@@ -130,7 +130,7 @@
       });
     });
 
-    $('#alt_signup_form').on('submit', function(event) {
+    document.getElementById('alt_signup_form').on('submit', function(event) {
       event.preventDefault();
       var eventId = $signupModal.data('eventId');
       var params = {

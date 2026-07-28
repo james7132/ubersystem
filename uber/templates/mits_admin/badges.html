@@ -14,7 +14,7 @@
             if (response.error) {
                 showErrorMessage(response.error);
             } else {
-                $("#message-alert").addClass("alert-info").show().children('span').html('Linked applicant to ' + response.name);
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html('Linked applicant to ' + response.name);
                 hideRow(applicantId);
                 setCompCount(teamId, response.comp_count);
             }
@@ -25,7 +25,7 @@
             if (response.error) {
                 showErrorMessage(response.error);
             } else {
-                $("#message-alert").addClass("alert-info").show().children('span').html('Added new attendee badge for applicant');
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html('Added new attendee badge for applicant');
                 hideRow(applicantId);
                 setCompCount(teamId, response.comp_count);
             }

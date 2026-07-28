@@ -14,13 +14,13 @@
 
 <script type="text/javascript">
   document.addEventListener(\"DOMContentLoaded\", function () {
-    var table = $('.table').DataTable();
+    var table = document.querySelectorAll('.table').DataTable();
 
     $('form').on('submit', function(event) {
       event.preventDefault();
       try {
         var $tableInputs = $('table').DataTable().$('input');
-        $('#table-inputs-fix').append($tableInputs);
+        document.getElementById('table-inputs-fix').append($tableInputs);
         this.submit();
       } catch(ex) {
         window.location = window.location + '&message=There was an error adding new members'

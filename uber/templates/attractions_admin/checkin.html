@@ -97,13 +97,13 @@
 <script>
 
   document.addEventListener(\"DOMContentLoaded\", function () {
-    var $container = $('#container'),
+    var $container = document.getElementById('container'),
         $badgeNum = $('input[name=badge_num]'),
-        $signups = $('#signups'),
-        $showCheckedInButton = $('#filter'),
-        $showSameDeptButton = $('#same-dept'),
-        $showAllEventsButton = $('#all-events'),
-        $attendee = $('#attendee');
+        $signups = document.getElementById('signups'),
+        $showCheckedInButton = document.getElementById('filter'),
+        $showSameDeptButton = document.getElementById('same-dept'),
+        $showAllEventsButton = document.getElementById('all-events'),
+        $attendee = document.getElementById('attendee');
 
     var updateAttendee = function(attendee) {
       $container.toggleClass('has-attendee', !!attendee);
@@ -187,7 +187,7 @@
             showErrorMessage(response['error']);
             setTimeout(function(){ hideMessageBox() }, 3000);
           } else if(response && response['result']) {
-            $('.form-control-feedback').show();
+            document.querySelectorAll('.form-control-feedback').show();
             updateAttendee(response['result']['attendee']);
 
             if(response['result']['signups_and_events'].length) {
@@ -258,12 +258,12 @@
       toggleShowAllEvents($showAllEventsButton.hasClass('btn-secondary'));
     });
 
-    $('.form-control-feedback').on('click', function(event) {
+    document.querySelectorAll('.form-control-feedback').on('click', function(event) {
       event.preventDefault();
       $badgeNum.val('');
       getSignups('');
       $badgeNum.focus();
-      $('.form-control-feedback').hide();
+      document.querySelectorAll('.form-control-feedback').hide();
     });
 
     $signups.on('click', '.btn-outline-primary', function(event) {
@@ -293,7 +293,7 @@
           $signup.addClass('checked-in').addClass('checked-in-force-visible');
           $badgeNum.val('');
           $badgeNum.focus();
-          $('.form-control-feedback').hide();
+          document.querySelectorAll('.form-control-feedback').hide();
         }
       });
     });
@@ -341,7 +341,7 @@
       });
     });
 
-    $('.badge-num-form').on('submit', function(event) {
+    document.querySelectorAll('.badge-num-form').on('submit', function(event) {
       event.preventDefault();
       var $form = $(this),
           $badgeNum = $form.find('input[name=badge_num]');

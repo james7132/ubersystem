@@ -7,7 +7,7 @@
 
 <script type="text/javascript">
     var setStep = function (selector) {
-        $('.collapse').hide();
+        document.querySelectorAll('.collapse').hide();
         $(selector).show();
         if (selector == '#select-action') {
             const querystring = new URLSearchParams(window.location.search);
@@ -82,12 +82,12 @@
 
     document.addEventListener(\"DOMContentLoaded\", function () {
         {% if confirm != '' %}
-        $('#confirm').show();
+        (document.getElementById('confirm') ? document.getElementById('confirm').style.display = '' : null);
         {% else %}
-        $('#select-action').show();
+        (document.getElementById('select-action') ? document.getElementById('select-action').style.display = '' : null);
         {% endif %}
-        if($('#leave-group').length) { $("#leave-group").submit(leaveConfirm); }
-        if($('#switch-type').length) { $("#switch-type").submit(swapConfirm); }
+        if(document.getElementById('leave-group').length) { document.getElementById('leave-group').submit(leaveConfirm); }
+        if(document.getElementById('switch-type').length) { document.getElementById('switch-type').submit(swapConfirm); }
     })
 </script>
 

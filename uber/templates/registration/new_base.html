@@ -39,10 +39,10 @@
     var recordFee = function() {
         $.post('../merch_admin/record_sale', {
                 id:             'None',
-                what:           $('#what_select').val() || $('#what_text').val() || '',
-                cash:           $('#store_cash').val(),
-                badge_num:      $('#badge_num').val() || undefined,
-                payment_method: $('#payment_method').val(),
+                what:           (document.getElementById('what_select') ? document.getElementById('what_select').value : '') || (document.getElementById('what_text') ? document.getElementById('what_text').value : '') || '',
+                cash:           (document.getElementById('store_cash') ? document.getElementById('store_cash').value : ''),
+                badge_num:      (document.getElementById('badge_num') ? document.getElementById('badge_num').value : '') || undefined,
+                payment_method: (document.getElementById('payment_method') ? document.getElementById('payment_method').value : ''),
                 mpoints:        0,
                 csrf_token:     csrf_token,
             }, function(json) {
@@ -50,26 +50,26 @@
                 if (!json.success) {
                     showErrorMessage(json.message);
                 } else {
-                    $('#badge_num').val('');
-                    $("#message-alert").addClass("alert-info").show().children('span').html(json.message);
-                    window.location.replace('../merch_admin/arbitrary_charge_form?amount=' + $('#store_cash').val() +
+                    if (document.getElementById('badge_num')) document.getElementById('badge_num').value = '';;
+                    document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message);
+                    window.location.replace('../merch_admin/arbitrary_charge_form?amount=' + (document.getElementById('store_cash') ? document.getElementById('store_cash').value : '') +
                         '&description=' + json.message + '&sale_id=' + json.id);
                 }
             }, 'json');
     };
 
     var showOrHideWhatText = function(page_loading) {
-        $('#store_mpoints').val('0');
-        if( $('#what_select').val() == '' ) {
-            $('#what_text').show().focus();
-            $('#store_cash').val('');
+        if (document.getElementById('store_mpoints')) document.getElementById('store_mpoints').value = '0';;
+        if( (document.getElementById('what_select') ? document.getElementById('what_select').value : '') == '' ) {
+            (document.getElementById('what_text') ? document.getElementById('what_text').style.display = '' : null).focus();
+            if (document.getElementById('store_cash')) document.getElementById('store_cash').value = '';;
         }
         else {
             var prices = {{ c.FEE_PRICES|safe }};
-            $('#what_text').val('').hide();
-            $('#store_cash').val( prices[$('#what_select').val()] );
+            if (document.getElementById('what_text')) document.getElementById('what_text').value = '';.hide();
+            if (document.getElementById('store_cash')) document.getElementById('store_cash').value = prices[(document.getElementById('what_select'; ? document.getElementById('what_select').value : '')] );
             if( !page_loading )
-                $('#store_amount').focus();
+                document.getElementById('store_amount').focus();
         }
     };
     $(showOrHideWhatText);
@@ -98,7 +98,7 @@
                             hideMessageBox();
                             var message = json.message;
                             if (json.success) {
-                                $("#message-alert").addClass("alert-info").show().children('span').html(message);
+                                document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
                                 refreshRow(currentForm);
                             } else {
                                 showErrorMessage(message);
@@ -142,7 +142,7 @@
                         hideMessageBox();
                         var message = json.message;
                         if (json.success) {
-                            $("#message-alert").addClass("alert-info").show().children('span').html(message);
+                            document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
                             // Refresh the form
                             refreshRow(currentForm);
                         } else {

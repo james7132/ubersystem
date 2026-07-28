@@ -39,7 +39,7 @@
     </div>
 
     <script>
-    $("#refresh").submit(function(e){
+    document.getElementById('refresh').submit(function(e){
         e.preventDefault();
         $.ajax({
             url: "refresh",
@@ -53,16 +53,16 @@
 
         });
     });
-    $("#radial").submit(function(e){
+    document.getElementById('radial').submit(function(e){
         e.preventDefault();
-        var distance = $("#radius");
+        var distance = document.getElementById('radius');
         this.submit();
         distance.val("");
     });
 
-    $("#set_center").submit(function(e){
+    document.getElementById('set_center').submit(function(e){
         e.preventDefault();
-        var zip = $("#zip");
+        var zip = document.getElementById('zip');
         $.ajax({
             url: "set_center",
             data: {

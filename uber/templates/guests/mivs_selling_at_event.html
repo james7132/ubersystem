@@ -45,11 +45,11 @@
 
   <script type="text/javascript">
       var showOrHideConfirm = function() {
-          setVisible($('#selling_link'), $('#selling_at_event').val() == '1');
+          setVisible(document.getElementById('selling_link'), (document.getElementById('selling_at_event') ? document.getElementById('selling_at_event').value : '') == '1');
       };
       document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideConfirm();
-          $('#selling_at_event').change(showOrHideConfirm);
+          document.getElementById('selling_at_event').change(showOrHideConfirm);
       });
   </script>
 {% endblock body %}

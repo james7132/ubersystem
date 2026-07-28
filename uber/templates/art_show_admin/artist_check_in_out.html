@@ -192,7 +192,7 @@
       }
 
       document.addEventListener(\"DOMContentLoaded\", function () {
-        $('.check-in-out-datatable').each(function() {
+        document.querySelectorAll('.check-in-out-datatable').each(function() {
           if (! $.fn.DataTable.isDataTable($(this))) {
             var table = $(this).DataTable({
               columns: [null, { width: '15%' }, { width: '10%' }, { width: '35%' }, null, null],
@@ -206,7 +206,7 @@
         });
 
         /*
-        $('#app-modals').find('form').submit(function(e) {
+        document.getElementById('app-modals').find('form').submit(function(e) {
             $(this).find('button[type=submit]').prop('disabled', true);
             return true;
         });
@@ -215,12 +215,12 @@
         {% if not checkout %}
         {% include 'art_show_admin/unassign_locations.js' %}
 
-        $('#app-modals').find('.unassign-location').on('click', function() {
+        document.getElementById('app-modals').find('.unassign-location').on('click', function() {
           confirmUnassignLocation($(this).data('id'), $(this).data('label'), 'form-validations-check-in-out-' + $(this).data('app-id'))
         });
         {% endif %}
 
-        $('.check-in-out-form').on('submit', function(event) {
+        document.querySelectorAll('.check-in-out-form').on('submit', function(event) {
           event.preventDefault();
 
           if(!serverValidationPassed) {
@@ -247,7 +247,7 @@
                   hideMessageBox();
                   if (json.success) {
                     if (json.close_modal) {
-                      $("#message-alert").addClass("alert-success").show().children('span').html(json.success);
+                      document.getElementById('message-alert').addClass("alert-success").show().children('span').html(json.success);
                       $("#app-modal-" + app_id + " .btn-close").trigger('click');
                     } else {
                       $("#form-validations-check-in-out-" + app_id).addClass("alert-success").show().children('span').html(json.success);

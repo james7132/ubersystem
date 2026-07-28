@@ -88,7 +88,7 @@
   {% endif %}
 </div>
 <script type="text/javascript">
-$('#stripeModal').detach().appendTo("body");
+document.getElementById('stripeModal').detach().appendTo("body");
 
 stripe_action_params = {id: '{{ id }}'};
 
@@ -111,8 +111,8 @@ var callStripeAction = function (autoTrigger=false) {
             var dollars = result.stripe_intent.amount / 100;
             dollars = dollars.toLocaleString("en-US", {style:"currency", currency:"USD"});
             var cancel_url = result.cancel_url || '../preregistration/cancel_payment'
-            $('#stripeModal').find('#paymentAmount').text(dollars);
-            $('#stripeModal').find('#chargeDesc').text(result.stripe_intent.description);
+            document.getElementById('stripeModal').find('#paymentAmount').text(dollars);
+            document.getElementById('stripeModal').find('#chargeDesc').text(result.stripe_intent.description);
             {% if c.AUTHORIZENET_LOGIN_ID %}
                 collectAuthNetPayment(result.stripe_intent.id, result.stripe_intent.receipt_email,
                                       result.stripe_intent.description, result.stripe_intent.customer_id,
@@ -144,7 +144,7 @@ var processCancelUrl = function(result, form, card=null) {
     } else if (result.message) {
         showErrorMessage(result.message);
         $(form).addClass('d-none');
-        $('#stripeModal').off('hidden.bs.modal');
+        document.getElementById('stripeModal').off('hidden.bs.modal');
         if (card != null) {
             setTimeout(()=> {
                 card.destroy();
@@ -186,15 +186,15 @@ var collectAuthNetPayment = function (ref_id, email, desc, customer_id, success_
     authnet_success_url = success_url;
     authnet_cancel_url = cancel_url;
 
-    $('#authNetPayButton').attr("data-acceptUIFormBtnTxt", "Pay $" + (amount / 100).toFixed(2));
+    document.getElementById('authNetPayButton').attr("data-acceptUIFormBtnTxt", "Pay $" + (amount / 100).toFixed(2));
 
     if(authnet_loaded == false) {
         loadJS("https://js{{ 'test' if 'test' in c.AUTHORIZENET_ENDPOINT else '' }}.authorize.net/v3/AcceptUI.js", function() {
-            $('#authNetPayButton').trigger("click");
+            document.getElementById('authNetPayButton').trigger("click");
         });
         authnet_loaded = true;
     } else {
-        $('#authNetPayButton').trigger("click");
+        document.getElementById('authNetPayButton').trigger("click");
     }
 }
 
@@ -236,15 +236,15 @@ var handleAuthNetResponse = function (response) {
 }
 {% else %}
 var collectStripePayment = function (client_secret, stripe_id, success_url, cancel_url) {
-    var stripeModal = bootstrap.Modal.getOrCreateInstance($('#stripeModal'));
+    var stripeModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('stripeModal'));
     stripeModal.show();
-    $("#cc-message-alert").hide().removeClass().addClass("alert").children("span").html("");
+    (document.getElementById('cc-message-alert') ? document.getElementById('cc-message-alert').style.display = 'none' : null).removeClass().addClass("alert").children("span").html("");
     var form = document.getElementById('payment-form');
     var stripe = Stripe('{{ c.STRIPE_PUBLIC_KEY }}');
     var elements = stripe.elements();
     var card = elements.create("card");
 
-    $('#stripeModal').on('hidden.bs.modal', function (e) {
+    document.getElementById('stripeModal').on('hidden.bs.modal', function (e) {
         $.post(cancel_url, {stripe_id: stripe_id, csrf_token: csrf_token},
         function(result) {
             processCancelUrl(result, form, card);
@@ -271,7 +271,7 @@ var collectStripePayment = function (client_secret, stripe_id, success_url, canc
     card.mount("#card-element");
 
     card.addEventListener('change', ({error}) => {
-        const displayError = $('#card-errors');
+        const displayError = document.getElementById('card-errors');
         if (error) {
             displayError.textContent = error.message;
         } else {

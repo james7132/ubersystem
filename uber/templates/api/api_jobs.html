@@ -74,7 +74,7 @@
 </div>
 <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-      $('.delete-form').on('submit', function(event) {
+      document.querySelectorAll('.delete-form').on('submit', function(event) {
         event.preventDefault();
         var $toSubmit = $(this);
         bootbox.confirm({

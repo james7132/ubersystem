@@ -13,7 +13,7 @@
             if (response.error) {
                 showErrorMessage(response.error);
             } else {
-                $("#message-alert").addClass("alert-info").show().children('span').html('Linked panelist to ' + response.name);
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html('Linked panelist to ' + response.name);
                 hideRows(response.linked);
             }
         }, 'json');
@@ -23,7 +23,7 @@
             if (response.error) {
                 showErrorMessage(response.error);
             } else {
-                $("#message-alert").addClass("alert-info").show().children('span').html('Added panelist');
+                document.getElementById('message-alert').addClass("alert-info").show().children('span').html('Added panelist');
                 hideRows(response.added);
             }
         }, 'json');

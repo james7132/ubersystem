@@ -4,11 +4,11 @@
 <script type="text/javascript">
     var invertShowAll = function() {
       {% if empty %}
-      $('#search_empty').val('');
+      if (document.getElementById('search_empty')) document.getElementById('search_empty').value = '';;
       {% else %}
-      $('#search_empty').val('1');
+      if (document.getElementById('search_empty')) document.getElementById('search_empty').value = '1';;
       {% endif %}
-      $('#search_form').submit();
+      document.getElementById('search_form').submit();
     }
 </script>
 <div class="row g-3 row-cols-auto mb-3">
@@ -145,7 +145,7 @@
 {% endif %}
 <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-      $('.delete-form').on('submit', function(event) {
+      document.querySelectorAll('.delete-form').on('submit', function(event) {
         event.preventDefault();
         var $toSubmit = $(this);
         bootbox.confirm({

@@ -17,8 +17,8 @@
   </div>
   <script type="text/javascript">
   document.addEventListener(\"DOMContentLoaded\", function () {
-    var receiptModal = bootstrap.Modal.getOrCreateInstance($('#receiptModal'))
-    $('#receipt-stripe-btn').click(function() {
+    var receiptModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('receiptModal'))
+    document.getElementById('receipt-stripe-btn').click(function() {
         receiptModal.hide();
     })
   });

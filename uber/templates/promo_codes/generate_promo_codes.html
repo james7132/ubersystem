@@ -148,7 +148,7 @@ var onDiscountTypeChanged = function() {
     var $discountType = $('#discount-group select'),
         value = $discountType.val(),
         $addon = $('#discount-group .input-group-text'),
-        $help = $('#discount-type-desc');
+        $help = document.getElementById('discount-type-desc');
 
     if (value == '{{ c.PERCENT_DISCOUNT }}') {
         $addon.text('%');
@@ -163,7 +163,7 @@ var onDiscountTypeChanged = function() {
 };
 
 var onUseWordsChanged = function() {
-    var $lengthGroup = $('#length-group'),
+    var $lengthGroup = document.getElementById('length-group'),
         $useWords = $('input[name="use_words"]'),
         isChecked = $useWords.is(':checked');
     if (isChecked) {
@@ -175,29 +175,29 @@ var onUseWordsChanged = function() {
 
 var onIsSinglePromoCodeClicked = function(isSinglePromoCode) {
     if (isSinglePromoCode) {
-        $('#is_single').addClass('active');
-        $('#is_multi').removeClass('active');
+        document.getElementById('is_single').addClass('active');
+        document.getElementById('is_multi').removeClass('active');
         $.field('is_single_promo_code').val(1);
     } else {
-        $('#is_single').removeClass('active');
-        $('#is_multi').addClass('active');
+        document.getElementById('is_single').removeClass('active');
+        document.getElementById('is_multi').addClass('active');
         $.field('is_single_promo_code').val(0);
     }
 };
 
 document.addEventListener(\"DOMContentLoaded\", function () {
-    $('#word-list').on('click', '.label a', function(event) {
+    document.getElementById('word-list').on('click', '.label a', function(event) {
         event.preventDefault();
         deletePromoCodeWord($(this).closest('.label'));
     });
 
-    $('#word-list').on('click', '.btn-add', function(event) {
+    document.getElementById('word-list').on('click', '.btn-add', function(event) {
         event.preventDefault();
         var partOfSpeechIndex = parseInt($(this).data('part_of_speech_index'));
         addPromoCodeWords(partOfSpeechIndex);
     });
 
-    $('#word-list').on('click', '.btn-clear', function(event) {
+    document.getElementById('word-list').on('click', '.btn-clear', function(event) {
         event.preventDefault();
         var partOfSpeechIndex = parseInt($(this).data('part_of_speech_index')),
             partOfSpeech = partsOfSpeech[partOfSpeechIndex];

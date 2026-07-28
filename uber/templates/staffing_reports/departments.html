@@ -4,16 +4,16 @@
 
 <script>
     document.addEventListener(\"DOMContentLoaded\", function () {
-        $(".email").hide();
+        document.querySelectorAll('.email').hide();
 
-        $('#chkShowEmails').change(function() {
-            $(".email").toggle();
+        document.getElementById('chkShowEmails').change(function() {
+            document.querySelectorAll('.email').toggle();
         });
-        $('#chkShowDeptHeadsOnly').change(function() {
-            $(".nondepthead").toggle();
+        document.getElementById('chkShowDeptHeadsOnly').change(function() {
+            document.querySelectorAll('.nondepthead').toggle();
         });
-        $('#chkShowAssignedStaffOnly').change(function() {
-            $(".requested").toggle();
+        document.getElementById('chkShowAssignedStaffOnly').change(function() {
+            document.querySelectorAll('.requested').toggle();
         });
     });
 </script>

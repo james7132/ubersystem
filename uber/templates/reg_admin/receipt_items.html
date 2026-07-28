@@ -24,7 +24,7 @@
     $('#' + id + selector).html(text);
   };
   var updateTotal = function (text) {
-    $('#receipt_total').html(text);
+    document.getElementById('receipt_total').html(text);
   }
   var showForm = function(receiptId, whichForm) {
     $('#' + receiptId + whichForm).removeClass('d-none')
@@ -55,7 +55,7 @@
             if (response.error) {
               showErrorMessage(response.error);
             } else {
-              $("#message-alert").addClass("alert-info").show().children('span').html('Item deleted');
+              document.getElementById('message-alert').addClass("alert-info").show().children('span').html('Item deleted');
               hideRow(response.removed);
               updateTotal(response.new_total);
             }
@@ -133,7 +133,7 @@
         window.location.href = 'receipt_items?id={{ model.id }}&message=' + response.message;
       } else {
         hideMessageBox();
-        $("#message-alert").addClass("alert-info").show().children('span').html(response.message);
+        document.getElementById('message-alert').addClass("alert-info").show().children('span').html(response.message);
       }
     }, 'json');
   }
@@ -162,7 +162,7 @@
             if (response.error) {
               showErrorMessage(response.error);
             } else {
-              $("#message-alert").addClass("alert-info").show().children('span').html('Transaction cancelled');
+              document.getElementById('message-alert').addClass("alert-info").show().children('span').html('Transaction cancelled');
               updateRow(response.cancelled, ' td:last', "<em>Cancelled " + response.time + ".</em>");
               updateTotal(response.new_total);
             }
@@ -176,8 +176,8 @@
     var amountField = $("#refundTxnForm [name='amount']");
     amountField.attr('placeholder', amount.substring(1));
 
-    var form = $("#refundTxnDiv").html();
-    $("#refundTxnDiv").html('');
+    var form = document.getElementById('refundTxnDiv').html();
+    document.getElementById('refundTxnDiv').html('');
 
     bootbox.confirm({
       title: "Refund Transaction?",
@@ -193,14 +193,14 @@
           }
       },
       callback: function (result) {
-        $("#refundTxnDiv").html(form);
+        document.getElementById('refundTxnDiv').html(form);
         if(result) {
           $.post('refund_receipt_txn', {csrf_token: csrf_token, id: txnId, amount: $("#refundTxnForm [name='amount']").val() || 0}, function (response) {
             hideMessageBox();
             if (response.error) {
               showErrorMessage(response.error);
             } else {
-              $("#message-alert").addClass("alert-info").show().children('span').html('Transaction refunded');
+              document.getElementById('message-alert').addClass("alert-info").show().children('span').html('Transaction refunded');
               updateRow(response.refunded, ' td:last #amt-refunded', " ($" + (response.refund_total / 100).toFixed(2) + " refunded)");
               updateTotal(response.new_total);
             }
@@ -236,7 +236,7 @@
             if (response.error) {
               showErrorMessage(response.error);
             } else {
-              $("#message-alert").addClass("alert-info").show().children('span').html('Receipt email sent!');
+              document.getElementById('message-alert').addClass("alert-info").show().children('span').html('Receipt email sent!');
             }
           }, 'json');
         }
@@ -482,7 +482,7 @@
   }
 
   document.addEventListener(\"DOMContentLoaded\", function () {
-    $('#refundTxnForm').submit(function(event) {
+    document.getElementById('refundTxnForm').submit(function(event) {
       return false;
     })
     $("form[action='add_receipt_item']").submit(function(event){

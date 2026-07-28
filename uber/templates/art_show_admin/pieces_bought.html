@@ -260,23 +260,23 @@
       if (json && json.success) {
         window.location.reload();
       } else if (json && json.error) {
-        $('#payment-loading-message').removeClass('alert-info').addClass('alert-danger');
-        $('#payment-loading-message').html(json.error);
+        document.getElementById('payment-loading-message').removeClass('alert-info').addClass('alert-danger');
+        document.getElementById('payment-loading-message').html(json.error);
       } else {
-        $('#payment-loading-message').removeClass('alert-info').addClass('alert-danger');
-        $('#payment-loading-message').html("Something went wrong!");
+        document.getElementById('payment-loading-message').removeClass('alert-info').addClass('alert-danger');
+        document.getElementById('payment-loading-message').html("Something went wrong!");
         }
     }).fail(function() {
-      $('#payment-loading-message').removeClass('alert-info').addClass('alert-danger');
-      $('#payment-loading-message').html("Couldn't contact server!");
+      document.getElementById('payment-loading-message').removeClass('alert-info').addClass('alert-danger');
+      document.getElementById('payment-loading-message').html("Couldn't contact server!");
     });
     }
   
     var resumeStripeAction = callStripeAction;
     var callStripeAction = function() {
-      var credit_amt = $('#card_amount').val();
+      var credit_amt = (document.getElementById('card_amount') ? document.getElementById('card_amount').value : '');
       if (credit_amt == 0) {
-        stripe_action_params.amount = $('#original_total_cents').val();
+        stripe_action_params.amount = (document.getElementById('original_total_cents') ? document.getElementById('original_total_cents').value : '');
       } else {
         stripe_action_params.amount = credit_amt * 100;
       }
@@ -285,25 +285,25 @@
 
     var printReceipt = function(close=false) {
         window.open('', 'print_receipt_target', 'width=400,height=400,resizeable,scrollbars');
-        close == true ? $('#print_close_flag').val(true) : $('#print_close_flag').val('');
-        $('#print_form').attr('target', 'print_receipt_target').submit();
+        close == true ? if (document.getElementById('print_close_flag')) document.getElementById('print_close_flag').value = true; : if (document.getElementById('print_close_flag')) document.getElementById('print_close_flag').value = '';;
+        document.getElementById('print_form').attr('target', 'print_receipt_target').submit();
     };
 
-    $('#print_receipt').click(function () { printReceipt(); });
-    $('#print_close_receipt').click(function () { printReceipt(close=true); });
+    document.getElementById('print_receipt').click(function () { printReceipt(); });
+    document.getElementById('print_close_receipt').click(function () { printReceipt(close=true); });
 
     {% if must_choose %}
-    var modal = bootstrap.Modal.getOrCreateInstance($('.modal'))
+    var modal = bootstrap.Modal.getOrCreateInstance(document.querySelectorAll('.modal'))
     modal.show();
     document.addEventListener(\"DOMContentLoaded\", function () {
-        $("#choose_modal").on("hidden.bs.modal", function () {
+        document.getElementById('choose_modal').on("hidden.bs.modal", function () {
             window.location.assign('?id={{ receipt.id }}');
         });
     });
     {% endif %}
 
     document.addEventListener(\"DOMContentLoaded\", function () {
-    $('.undo_payment').on('click', function (event) {
+    document.querySelectorAll('.undo_payment').on('click', function (event) {
         event.preventDefault();
         var $self = $(this),
             desc = $self.data('desc'),

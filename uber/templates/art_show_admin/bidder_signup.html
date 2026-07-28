@@ -44,7 +44,7 @@
 {% block adminheader %}
 <script>
     document.addEventListener(\"DOMContentLoaded\", function () {
-        $('#search_bar').select();
+        document.getElementById('search_bar').select();
     });
 </script>
 {% endblock adminheader %}
@@ -238,7 +238,7 @@
 </div>
 <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-      $('.bidder-signup-form').on('submit', function(event) {
+      document.querySelectorAll('.bidder-signup-form').on('submit', function(event) {
         event.preventDefault();
 
         if(!serverValidationPassed) {
@@ -263,7 +263,7 @@
                 hideMessageBox('form-validations-bidder-signup-' + attendee_id);
                 hideMessageBox();
                 if (json.success) {
-                  $("#message-alert").addClass("alert-success").show().children('span').html(json.success);
+                  document.getElementById('message-alert').addClass("alert-success").show().children('span').html(json.success);
                   $("#bidder-modal-" + attendee_id + " .btn-close").trigger('click');
                   if (json.signed_up_str) {
                     $('#bidder-signup-btn-' + attendee_id).hide();

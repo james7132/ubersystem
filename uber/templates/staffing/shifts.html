@@ -259,9 +259,9 @@
                 hideMessageBox();
                 var message = json.message;
                 if (json.success) {
-                  $("#message-alert").addClass("alert-success").show().children('span').html(message);
+                  document.getElementById('message-alert').addClass("alert-success").show().children('span').html(message);
                   shiftDetails.hide();
-                  $("#weighted-hours").fadeOut(function() {
+                  document.getElementById('weighted-hours').fadeOut(function() {
                     $(this).text(json.hours)
                   }).fadeIn();
                   fetchedEventList.length = 0;
@@ -301,9 +301,9 @@
                 hideMessageBox();
                 var message = json.message;
                 if (json.success) {
-                  $("#message-alert").addClass("alert-success").show().children('span').html(message);
+                  document.getElementById('message-alert').addClass("alert-success").show().children('span').html(message);
                   shiftDetails.hide();
-                  $("#weighted-hours").fadeOut(function() {
+                  document.getElementById('weighted-hours').fadeOut(function() {
                     $(this).text(json.hours)
                   }).fadeIn();
                   fetchedEventList.length = 0;
@@ -426,9 +426,9 @@
     {% endif %}{% endif %}
     {% if requested_teardown_nights %}teardownShifts.length > 0
     {% endif %}) {
-      $('#requested-night-warning').hide();
+      (document.getElementById('requested-night-warning') ? document.getElementById('requested-night-warning').style.display = 'none' : null);
     } else {
-      $('#requested-night-warning').show();
+      (document.getElementById('requested-night-warning') ? document.getElementById('requested-night-warning').style.display = '' : null);
     }
   }
   {% endif %}
@@ -514,18 +514,18 @@
     if (info.view.type == 'listWeek') { return; }
     shiftDetails.hide();
     let eventInfo = info.event;
-    $('#shift-title').text(eventInfo.title);
-    $('#shift-dept').text(eventInfo.extendedProps.department_name);
+    document.getElementById('shift-title').text(eventInfo.title);
+    document.getElementById('shift-dept').text(eventInfo.extendedProps.department_name);
     if (eventInfo.extendedProps.slots != "") {
-      $('#shift-slots').text(eventInfo.extendedProps.slots);
-      $('#shift-weight').text(eventInfo.extendedProps.weight);
-      $(".slots-weighting").removeClass('d-none');
+      document.getElementById('shift-slots').text(eventInfo.extendedProps.slots);
+      document.getElementById('shift-weight').text(eventInfo.extendedProps.weight);
+      document.querySelectorAll('.slots-weighting').removeClass('d-none');
     } else {
-      $(".slots-weighting").addClass('d-none');
+      document.querySelectorAll('.slots-weighting').addClass('d-none');
     }
-    $('#shift-desc').html(eventInfo.extendedProps.desc);
+    document.getElementById('shift-desc').html(eventInfo.extendedProps.desc);
     // If the shift crosses the midnight boundary, show the user what day both the start and end of each shift are
-    $('#shift-time').html((moment(eventInfo.start).format("dddd") == moment(eventInfo.end).format("dddd")) ? 
+    document.getElementById('shift-time').html((moment(eventInfo.start).format("dddd") == moment(eventInfo.end).format("dddd")) ? 
                           moment(eventInfo.start).format("h:mma") + " – " + moment(eventInfo.end).format("h:mma")
                           : moment(eventInfo.start).format("dddd h:mma") + " – " + moment(eventInfo.end).format("dddd h:mma"));
 
@@ -550,7 +550,7 @@
       <button type="button" class="btn btn-sm btn-warning" disabled>Drop</button></span>`
     }
 
-    $('#shift-button').html(button);
+    document.getElementById('shift-button').html(button);
 
     let toastDiv = document.getElementById("shift-details");
     toastDiv.style.zIndex = 1055;
@@ -684,7 +684,7 @@
         eventDurationEditable: false,
     });
 
-    var shiftDetails = new bootstrap.Toast($('#shift-details')[0], {'animation': false, 'autohide': false, 'delay': 0});
+    var shiftDetails = new bootstrap.Toast(document.getElementById('shift-details')[0], {'animation': false, 'autohide': false, 'delay': 0});
 
     document.addEventListener(\"DOMContentLoaded\", function () {
       toggleButton('available', 'on');
@@ -698,7 +698,7 @@
 
     $(document).click(function(event) { 
       var $target = $(event.target);
-      if(!$target.closest('#shift-details').length && !$target.closest('#shift_cal').length && $('#shift-details').is(":visible")) {
+      if(!$target.closest('#shift-details').length && !$target.closest('#shift_cal').length && document.getElementById('shift-details').is(":visible")) {
         shiftDetails.hide();
       }
     });

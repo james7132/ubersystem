@@ -3,16 +3,16 @@
 {% block content %}
 <script type="text/javascript">
     var deptIdChanged = function () {
-        window.location = "{{ c.PAGE }}?department_id=" + $("#department_id").val();
+        window.location = "{{ c.PAGE }}?department_id=" + (document.getElementById('department_id') ? document.getElementById('department_id').value : '');
     };
     var emailPolicyChanged = function () {
-        window.location = "{{ c.PAGE }}?policy=" + $("#policy").val() + "&{{ c.query_str_for_search('policy') }}";
+        window.location = "{{ c.PAGE }}?policy=" + (document.getElementById('policy') ? document.getElementById('policy').value : '') + "&{{ c.query_str_for_search('policy') }}";
     };
     var goToSender = function () {
-      location.href = "#" + $('#sender').val();
+      location.href = "#" + (document.getElementById('sender') ? document.getElementById('sender').value : '');
     }
     document.addEventListener(\"DOMContentLoaded\", function () {
-      $('.delete-form').on('submit', function(event) {
+      document.querySelectorAll('.delete-form').on('submit', function(event) {
         event.preventDefault();
         var $toSubmit = $(this);
         bootbox.confirm({
@@ -133,7 +133,7 @@
     {% if checklist.completed %}
         You've already indicated that you have configured your department's automated emails but you can change their configuration below as needed.
     {% else %}
-        <a href="#" onClick="$('#checkoff').show(); return false;">As a head of this department, this looks good to me.</a>
+        <a href="#" onClick="(document.getElementById('checkoff') ? document.getElementById('checkoff').style.display = '' : null); return false;">As a head of this department, this looks good to me.</a>
         <form id="checkoff" style="display:none" method="post" action="../dept_checklist/mark_item_complete">
         {{ csrf_token() }}
         <input type="hidden" name="department_id" value="{{ department_id }}" />

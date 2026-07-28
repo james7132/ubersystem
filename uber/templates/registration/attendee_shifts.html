@@ -30,7 +30,7 @@
                         // non-modal pages don't have a loadForm function, so we
                         // use that to tell whether we're in a modal form
                         if (window.loadForm !== undefined) {
-                            $("#attendee-modal-alert").addClass("alert-info").show().children('span').html(json.message);
+                            document.getElementById('attendee-modal-alert').addClass("alert-info").show().children('span').html(json.message);
                             window.loadForm('Shifts');
                         } else {
                           const querystring = new URLSearchParams(window.location.search)

@@ -248,12 +248,12 @@
     <script type="text/javascript">
         document.addEventListener(\"DOMContentLoaded\", function () {
             var cancelModal = new bootstrap.Modal(document.getElementById('cancel-badges'))
-            $(".abandon-btn").on('click', function(event) {
+            document.querySelectorAll('.abandon-btn').on('click', function(event) {
                 let attendeeId = $(this).data("attendeeid");
                 $("[name=abandon_ids][value=" + attendeeId + "]").prop('checked', true);
                 cancelModal.show();
             })
-            $('#cancel-badges').on('hidden.bs.modal', function (event) {
+            document.getElementById('cancel-badges').on('hidden.bs.modal', function (event) {
             $("[name=abandon_ids]").prop('checked', false);
             })
     })
@@ -381,7 +381,7 @@
 {% endfor %}
 <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-      $('.new-account-form').on('submit', function(event) {
+      document.querySelectorAll('.new-account-form').on('submit', function(event) {
         event.preventDefault();
         var $toSubmit = $(this);
         bootbox.confirm({

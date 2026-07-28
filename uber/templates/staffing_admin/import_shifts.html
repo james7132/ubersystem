@@ -16,11 +16,11 @@
 <script type="text/javascript">
   document.addEventListener(\"DOMContentLoaded\", function () {
     var $shiftsForm = $("form[action='import_shifts']"),
-        $departmentsBlock = $('.departments_block'),
-        $targetUrl = $('#target_url'),
-        $fromDepartment = $('#from_department_id');
+        $departmentsBlock = document.querySelectorAll('.departments_block'),
+        $targetUrl = document.getElementById('target_url'),
+        $fromDepartment = document.getElementById('from_department_id');
 
-    $('#lookup_departments').on('click', function(e) {
+    document.getElementById('lookup_departments').on('click', function(e) {
         // Prevent form submit.
         e.preventDefault();
 
@@ -42,8 +42,8 @@
                   $.each(result.departments, function(i, d) {
                       $('<option>').val(d[0]).text(d[1]).appendTo($fromDepartment);
                   });
-                  $('#hidden_target').val($("form[action='import_shifts'] input[name='target_server']").val());
-                  $('#hidden_api').val($("form[action='import_shifts'] input[name='api_token']").val());
+                  if (document.getElementById('hidden_target')) document.getElementById('hidden_target').value = $("form[action='import_shifts'] input[name='target_server']";.val());
+                  if (document.getElementById('hidden_api')) document.getElementById('hidden_api').value = $("form[action='import_shifts'] input[name='api_token']";.val());
                   $departmentsBlock.show();
                 } else {
                   showErrorMessage('Did not find any results.');

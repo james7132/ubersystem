@@ -1,7 +1,7 @@
 
 <script type="text/javascript">
     var mainMenuDropdownChanged = function () {
-        window.location = "bulk?department_id=" + $("#department_id").val();
+        window.location = "bulk?department_id=" + (document.getElementById('department_id') ? document.getElementById('department_id').value : '');
     };
 </script>
 

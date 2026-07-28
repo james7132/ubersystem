@@ -301,7 +301,7 @@
 
   <script>
     document.addEventListener(\"DOMContentLoaded\", function () {
-      var $advance_notices = $('.advance_notices'),
+      var $advance_notices = document.querySelectorAll('.advance_notices'),
           $notification = $advance_notices.children('.notification'),
           $select = $notification.children('select'),
           $button = $('.advance_notices .glyphicon-plus-sign'),

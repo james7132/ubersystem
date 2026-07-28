@@ -68,16 +68,16 @@
             var newBadgeSubmitText = 'Add {{ member|title }}(s)';
             var updateBadgeEstimate = function() {
                 if(newBadgePrice == 0) { return; }
-                $('#estimatedCost').val(newBadgePrice * parseInt($('#newBadgeCount').val()));
-                $('#newBadgeSubmit').text(newBadgeSubmitText + " for $" + $('#estimatedCost').val());
+                if (document.getElementById('estimatedCost')) document.getElementById('estimatedCost').value = newBadgePrice * parseInt((document.getElementById('newBadgeCount'; ? document.getElementById('newBadgeCount').value : '')));
+                document.getElementById('newBadgeSubmit').text(newBadgeSubmitText + " for $" + (document.getElementById('estimatedCost') ? document.getElementById('estimatedCost').value : ''));
             }
             document.addEventListener(\"DOMContentLoaded\", function () {
-                $('#add-btn').click(function(e){
+                document.getElementById('add-btn').click(function(e){
                         $(e.target).hide();
-                        $("#add").show();
+                        (document.getElementById('add') ? document.getElementById('add').style.display = '' : null);
                         updateBadgeEstimate();
                     });
-                $('#newBadgeCount').change(function() {updateBadgeEstimate();});
+                document.getElementById('newBadgeCount').change(function() {updateBadgeEstimate();});
             });
         </script>
         {% endif %}
@@ -153,11 +153,11 @@ OR
     }
     document.addEventListener(\"DOMContentLoaded\", function () {
         hideMessageBox('attach-message-alert');
-        $('#attach-btn').click(function(e){
+        document.getElementById('attach-btn').click(function(e){
             $(e.target).hide();
-            $("#attach").show();
+            (document.getElementById('attach') ? document.getElementById('attach').style.display = '' : null);
         });
-        $('#find-group-member-form').submit(lookupGroupMember);
+        document.getElementById('find-group-member-form').submit(lookupGroupMember);
     });
 </script>
 {% endif %}

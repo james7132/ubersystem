@@ -7,14 +7,14 @@
 {% block content %}
 <script type="text/javascript">
     var setStep = function (selector) {
-        $('.collapse').hide();
+        document.querySelectorAll('.collapse').hide();
         $(selector).show();
         if (selector == '#select-action') {
             const querystring = new URLSearchParams(window.location.search);
             querystring.delete('action');
             history.replaceState( {} , '', "{{ c.PAGE }}" + '?' + querystring.toString() );
         } else if (selector == '#group-lookup') {
-            $('#join-group').show();
+            (document.getElementById('join-group') ? document.getElementById('join-group').style.display = '' : null);
         }
     }
 
@@ -28,12 +28,12 @@
               data: $(this).serialize(),
               success: function (json) {
                 if (json.success) {
-                    $('#group-found').show();
-                    $('#group-lookup').hide();
-                    $('.group-name').text(json.room_group_name);
-                    $('.leader-name').text(json.leader_name);
-                    $('.conf-num').text(json.invite_code);
-                    $('#room_group_id').val(json.room_group_id)
+                    (document.getElementById('group-found') ? document.getElementById('group-found').style.display = '' : null);
+                    (document.getElementById('group-lookup') ? document.getElementById('group-lookup').style.display = 'none' : null);
+                    document.querySelectorAll('.group-name').text(json.room_group_name);
+                    document.querySelectorAll('.leader-name').text(json.leader_name);
+                    document.querySelectorAll('.conf-num').text(json.invite_code);
+                    if (document.getElementById('room_group_id')) document.getElementById('room_group_id').value = json.room_group_id;
                 } else {
                     showErrorMessage(json.error);
                 }
@@ -99,18 +99,18 @@
 
     document.addEventListener(\"DOMContentLoaded\", function () {
         {% if action %}
-        $('#confirm').show();
+        (document.getElementById('confirm') ? document.getElementById('confirm').style.display = '' : null);
         {% elif create %}
-        $('#create-group').show()
+        (document.getElementById('create-group') ? document.getElementById('create-group').style.display = '' : null)
         {% else %}
-        $('#select-action').show();
+        (document.getElementById('select-action') ? document.getElementById('select-action').style.display = '' : null);
         {% endif %}
 
-        $('#group-lookup-form').submit(lookupRoomGroup);
-        if($('#disband-group').length) { $("#disband-group").submit(disbandConfirm); }
+        document.getElementById('group-lookup-form').submit(lookupRoomGroup);
+        if(document.getElementById('disband-group').length) { document.getElementById('disband-group').submit(disbandConfirm); }
 
         {% if application.status == c.COMPLETE %}
-        $("#join-group-form").submit(joinConfirm);
+        document.getElementById('join-group-form').submit(joinConfirm);
         {% endif %}
     })
 </script>

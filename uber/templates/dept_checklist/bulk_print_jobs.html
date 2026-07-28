@@ -121,7 +121,7 @@
 </div>
 
 <script type="text/javascript">
-    $('.delete-request').on('click', function (event) {
+    document.querySelectorAll('.delete-request').on('click', function (event) {
     var $formToSubmit = $(this).closest('form');
     event.preventDefault();
     hideMessageBox();
@@ -143,7 +143,7 @@
 
     document.addEventListener(\"DOMContentLoaded\", function () {
         if(window.location.hash == '#request-modal-new') {
-            new bootstrap.Modal($('#request-modal-new')).show();
+            new bootstrap.Modal(document.getElementById('request-modal-new')).show();
             window.location.hash = "";
         }
     })

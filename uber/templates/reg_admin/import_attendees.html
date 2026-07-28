@@ -155,12 +155,12 @@
     var which_import = $.field('which_import').val();
 
     if(which_import == 'accounts' || which_import == 'groups') {
-      $('#query').prop('required', false);
+      document.getElementById('query').prop('required', false);
     } else {
-      $('#query').prop('required', true);
+      document.getElementById('query').prop('required', true);
     }
 
-    $('#search-btn').val('Search ' + which_import.charAt(0).toUpperCase() + which_import.substr(1));
+    if (document.getElementById('search-btn')) document.getElementById('search-btn').value = 'Search ' + which_import.charAt(0;.toUpperCase() + which_import.substr(1));
   };
   document.addEventListener(\"DOMContentLoaded\", function () {
     updateFormForModel();

@@ -1,7 +1,7 @@
 <script type="text/javascript">
   var loadingIcon = '<i class="fa fa-lg fa-repeat gly-spin"></i>';
-  var startPaymentButton = $('#start-spin-payment-button');
-  var confirmPaymentButton = $('#confirm-spin-payment-button');
+  var startPaymentButton = document.getElementById('start-spin-payment-button');
+  var confirmPaymentButton = document.getElementById('confirm-spin-payment-button');
   let intervalId;
   var checkTerminalPayment = function(model_id, model_name, callback) {
     $.post('../registration/check_terminal_payment',
@@ -11,43 +11,43 @@
       csrf_token: csrf_token
     }).done( function(json) {
       if (json && json.success) {
-        $('#payment-loading-message').removeClass('alert-danger').addClass('alert-info');
-        $('#payment-loading-message').html("Checking last sent transaction...  &nbsp;" + loadingIcon).show();
+        document.getElementById('payment-loading-message').removeClass('alert-danger').addClass('alert-info');
+        document.getElementById('payment-loading-message').html("Checking last sent transaction...  &nbsp;" + loadingIcon).show();
         setTimeout(pollTerminalPayment, 500, callback);
         intervalId = setInterval(pollTerminalPayment, 5000, callback);
       } else if (json && json.message) {
-        $('#payment-loading-message').removeClass('alert-info').addClass('alert-danger');
-        $('#payment-loading-message').html(json.message).show();
+        document.getElementById('payment-loading-message').removeClass('alert-info').addClass('alert-danger');
+        document.getElementById('payment-loading-message').html(json.message).show();
       } else {
-        $('#payment-loading-message').removeClass('alert-info').addClass('alert-danger');
-        $('#payment-loading-message').html("Something went wrong!").show();
+        document.getElementById('payment-loading-message').removeClass('alert-info').addClass('alert-danger');
+        document.getElementById('payment-loading-message').html("Something went wrong!").show();
         }
     });
   }
   var startTerminalPayment = function(model_id='', pickup_group_id='', callback, action='../registration/start_terminal_payment') {
-    $('#payment-loading-message').removeClass('alert-danger').addClass('alert-info');
-    $('#payment-loading-message').html("Sending request... &nbsp;" + loadingIcon).show();
+    document.getElementById('payment-loading-message').removeClass('alert-danger').addClass('alert-info');
+    document.getElementById('payment-loading-message').html("Sending request... &nbsp;" + loadingIcon).show();
     $.post(action,
     {
       pickup_group_id: pickup_group_id,
       model_id: model_id,
-      amount: $('#card_amount').length ? $('#card_amount').val() : 0,
+      amount: document.getElementById('card_amount').length ? (document.getElementById('card_amount') ? document.getElementById('card_amount').value : '') : 0,
       csrf_token: csrf_token
     }).done( function(json) {
       if (json && json.success) {
-        $('#payment-loading-message').html("Request sent. Waiting for customer...  &nbsp;" + loadingIcon);
+        document.getElementById('payment-loading-message').html("Request sent. Waiting for customer...  &nbsp;" + loadingIcon);
         setTimeout(pollTerminalPayment, 500, callback);
         intervalId = setInterval(pollTerminalPayment, 5000, callback);
       } else if (json && json.error) {
-        $('#payment-loading-message').removeClass('alert-info').addClass('alert-danger');
-        $('#payment-loading-message').html(json.error);
+        document.getElementById('payment-loading-message').removeClass('alert-info').addClass('alert-danger');
+        document.getElementById('payment-loading-message').html(json.error);
       } else {
-        $('#payment-loading-message').removeClass('alert-info').addClass('alert-danger');
-        $('#payment-loading-message').html("Something went wrong!");
+        document.getElementById('payment-loading-message').removeClass('alert-info').addClass('alert-danger');
+        document.getElementById('payment-loading-message').html("Something went wrong!");
         }
     }).fail(function() {
-      $('#payment-loading-message').removeClass('alert-info').addClass('alert-danger');
-      $('#payment-loading-message').html("Couldn't contact server!");
+      document.getElementById('payment-loading-message').removeClass('alert-info').addClass('alert-danger');
+      document.getElementById('payment-loading-message').html("Couldn't contact server!");
     });
   }
   let return_json = {}
@@ -55,24 +55,24 @@
     $.post('../registration/poll_terminal_payment',
     {csrf_token: csrf_token}, function(json) {
       if (json && json.success) {
-        $('#payment-loading-message').html("Payment successful!");
+        document.getElementById('payment-loading-message').html("Payment successful!");
         clearInterval(intervalId);
         setTimeout(function(){
           callback(json);
         }, 1000);
       } else if (json && json.message) {
-        $('#payment-loading-message').html(json.message);
+        document.getElementById('payment-loading-message').html(json.message);
         clearInterval(intervalId);
         if (typeof callback != 'undefined' && callback.name == "recordCardPayment") {
           return_json = json;
-          $('#payment-loading-message').html(json.message + "<br/><button type='button' class='btn btn-success' onClick='forceCallback(" + callback.name + ")'>Mark Payment as Succeeded</button>")
+          document.getElementById('payment-loading-message').html(json.message + "<br/><button type='button' class='btn btn-success' onClick='forceCallback(" + callback.name + ")'>Mark Payment as Succeeded</button>")
         }
       } else if (json && json.error) {
-        $('#payment-loading-message').removeClass('alert-info').addClass('alert-danger');
-        $('#payment-loading-message').html("Error: " + json.error + ".");
+        document.getElementById('payment-loading-message').removeClass('alert-info').addClass('alert-danger');
+        document.getElementById('payment-loading-message').html("Error: " + json.error + ".");
         if (typeof callback != 'undefined' && callback.name == "recordCardPayment") {
           return_json = json;
-          $('#payment-loading-message').html($('#payment-loading-message').html() + "<br/><button type='button' class='btn btn-success' onClick='forceCallback(" + callback.name + ")'>Mark Payment as Succeeded</button>")
+          document.getElementById('payment-loading-message').html(document.getElementById('payment-loading-message').html() + "<br/><button type='button' class='btn btn-success' onClick='forceCallback(" + callback.name + ")'>Mark Payment as Succeeded</button>")
         }
         clearInterval(intervalId);
       }
@@ -81,7 +81,7 @@
   var forceCallback = function(callback) {
     callback(return_json);
   }
-  document.addEventListener(\"DOMContentLoaded\", function () {$('#payment-loading-message').hide();})
+  document.addEventListener(\"DOMContentLoaded\", function () {(document.getElementById('payment-loading-message') ? document.getElementById('payment-loading-message').style.display = 'none' : null);})
 </script>
 <style type="text/css">
     .gly-spin {

@@ -246,7 +246,7 @@
         }});
     }
     document.addEventListener(\"DOMContentLoaded\", function () {
-      $('#remove-games').on('submit', function(event) {
+      document.getElementById('remove-games').on('submit', function(event) {
         event.preventDefault();
         var $toSubmit = $(this);
         bootbox.confirm({

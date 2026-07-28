@@ -7,7 +7,7 @@
 <script type="text/javascript">
   document.addEventListener(\"DOMContentLoaded\", function () {
       {% if attendee.has_personalized_badge %}
-          $('.badge-row').show();
+          document.querySelectorAll('.badge-row').show();
       {% endif %}
       {% if attendee.amount_extra and not attendee.amount_unpaid %}
           setTimeout(function () {  // make sure this happens after jQuery.select2

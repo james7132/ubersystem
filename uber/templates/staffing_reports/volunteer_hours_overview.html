@@ -4,15 +4,15 @@
   <script type="text/javascript">
       $.fn.dataTable.ext.search.push(
           function( settings, data, dataIndex ) {
-              var min_hours = parseFloat( $('#min_hours').val());
-              var max_hours = parseFloat( $('#max_hours').val());
+              var min_hours = parseFloat( (document.getElementById('min_hours') ? document.getElementById('min_hours').value : ''));
+              var max_hours = parseFloat( (document.getElementById('max_hours') ? document.getElementById('max_hours').value : ''));
               var hours = parseFloat( data[5] ) || 0;
 
-              var min_worked = parseFloat( $('#min_worked').val());
-              var max_worked = parseFloat( $('#max_worked').val());
+              var min_worked = parseFloat( (document.getElementById('min_worked') ? document.getElementById('min_worked').value : ''));
+              var max_worked = parseFloat( (document.getElementById('max_worked') ? document.getElementById('max_worked').value : ''));
               var worked = parseFloat( data[6] ) || 0;
 
-              var show_hotel = ($('#show_all').is(':visible'));
+              var show_hotel = (document.getElementById('show_all').is(':visible'));
               var hotel_assigned = (data[8] == "yes");
 
               if ( ( isNaN( min_hours ) && isNaN( max_hours ) ) ||
@@ -38,8 +38,8 @@
       );
 
       document.addEventListener(\"DOMContentLoaded\", function () {
-          $('#show_all').hide();
-          var dtable = $('#volunteer_hours').DataTable({
+          (document.getElementById('show_all') ? document.getElementById('show_all').style.display = 'none' : null);
+          var dtable = document.getElementById('volunteer_hours').DataTable({
               dom: 'Bfrtip',
               buttons: [
                   {
@@ -52,12 +52,12 @@
           });
 
           $('#show_hotel a').click(function() {
-              $('#show_all').show();
-              $('#show_hotel').hide();
+              (document.getElementById('show_all') ? document.getElementById('show_all').style.display = '' : null);
+              (document.getElementById('show_hotel') ? document.getElementById('show_hotel').style.display = 'none' : null);
           });
           $('#show_all a').click(function() {
-              $('#show_hotel').show();
-              $('#show_all').hide();
+              (document.getElementById('show_hotel') ? document.getElementById('show_hotel').style.display = '' : null);
+              (document.getElementById('show_all') ? document.getElementById('show_all').style.display = 'none' : null);
           });
 
           $('#min_hours, #max_hours, #min_worked, #max_worked').keyup( function() {

@@ -33,7 +33,7 @@
                     }).fadeIn();
                     $(`#${json.model}-tab`).find('.badge').fadeOut(500);
 
-                    $("#message-alert").addClass("alert-info").show().children('span').html(json.message);
+                    document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message);
                   } else {
                     showErrorMessage(json.message);
                   }
@@ -73,7 +73,7 @@
           let badgeCount = $(`#${json.model}-tab`).find('.badge').find('.row-count');
           badgeCount.text(badgeCount.text() - 1);
           
-          $("#message-alert").addClass("alert-info").show().children('span').html(json.message);
+          document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message);
         } else {
           showErrorMessage(json.message);
         }
@@ -85,7 +85,7 @@
   }
   
   document.addEventListener(\"DOMContentLoaded\", function () {
-    $('#schedule-table').on('click', '.sync-item', markItemSynced);
+    document.getElementById('schedule-table').on('click', '.sync-item', markItemSynced);
     {% for model, label in c.GUIDEBOOK_MODELS %}
     $('#{{ model }}-table').on('click', '.sync-item', markItemSynced);
     {% endfor %}

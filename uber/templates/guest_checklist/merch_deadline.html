@@ -411,7 +411,7 @@
                       csrf_token: csrf_token
                     },
                     success: function(response, status) {
-                      $("#message-alert").addClass("alert-info").show().children('span').html(response.message);
+                      document.getElementById('message-alert').addClass("alert-info").show().children('span').html(response.message);
                       $('#track-' + id).remove();
                     },
                     error: function(response, status, statusText) {
@@ -487,9 +487,9 @@
                                     dataTable.row($inventoryRow).remove();
                                     dataTable.draw();
                                     if (!dataTable.rows().count()) {
-                                        $('#inventory_container').hide();
+                                        (document.getElementById('inventory_container') ? document.getElementById('inventory_container').style.display = 'none' : null);
                                     }
-                                    $("#message-alert").addClass("alert-success").show().children('span').html('', titleText + ' successfully removed!', {timeOut: 2000});
+                                    document.getElementById('message-alert').addClass("alert-success").show().children('span').html('', titleText + ' successfully removed!', {timeOut: 2000});
                                   }
                                 },
                                 error: function(response, status) {
@@ -569,10 +569,10 @@
                   }
                 });
 
-                $('.add_inventory').on('change', onChooseInventoryType);
+                document.querySelectorAll('.add_inventory').on('change', onChooseInventoryType);
 
-                var $inventoryContainer = $('#inventory_container'),
-                    $inventoryModals = $('#inventory_modals');
+                var $inventoryContainer = document.getElementById('inventory_container'),
+                    $inventoryModals = document.getElementById('inventory_modals');
 
                 $inventoryContainer.on('click', '.remove_inventory', onRemoveInventory);
                 $inventoryContainer.on('click', '.edit_inventory', onEditInventory);
@@ -586,12 +586,12 @@
                     '<div id="overlay" style="display: none;">' +
                       '<h1>Saving...</h1>' +
                     '</div>');
-                  $('#overlay').fadeIn('fast');
+                  document.getElementById('overlay').fadeIn('fast');
                   $(this).find('.save_inventory').prop('disabled', true);
                   return true;
                 });
 
-                $('#upload_frame').load(function() {
+                document.getElementById('upload_frame').load(function() {
                   try {
                     var responseText = $(this.contentDocument.body).text().trim();
                     this.contentDocument.body.innerHTML = '';
@@ -612,8 +612,8 @@
                       }
                     }
                   } finally {
-                    $('#overlay').fadeOut('fast', function() {
-                      $('#overlay').remove();
+                    document.getElementById('overlay').fadeOut('fast', function() {
+                      document.getElementById('overlay').remove();
                       $inventoryModals.find('.save_inventory').prop('disabled', false);
                     });
                   }

@@ -8,7 +8,7 @@
 
 <script>
   document.addEventListener(\"DOMContentLoaded\", function () {
-    var $formDecline = $('#form-decline');
+    var $formDecline = document.getElementById('form-decline');
     $formDecline.on('submit', function(event) {
       event.preventDefault();
       bootbox.confirm({
