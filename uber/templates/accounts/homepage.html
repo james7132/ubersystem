@@ -63,7 +63,7 @@
 <script type="text/javascript">
 var loadViewableAttendees = function(query) {
   document.querySelectorAll('.attendee-types').removeClass('btn-primary btn-outline-secondary').addClass('btn-outline-secondary');
-  $('#' + query).addClass('btn-primary').removeClass('btn-outline-secondary');
+  document.getElementById(query).addClass('btn-primary').removeClass('btn-outline-secondary');
     document.getElementById('viewable_attendees').load('../accounts/attendees?query=' + query, function(){
       if (document.getElementById('viewable_attendees').length) {
           $(window).trigger( 'runJavaScript' );

@@ -65,8 +65,8 @@ var partsOfSpeech = {
 
 var addPromoCodeWords = function(partOfSpeechIndex) {
     var partOfSpeech = partsOfSpeech[partOfSpeechIndex],
-        $button = $('#' + partOfSpeech + 's .btn-add'),
-        $wordsTextarea = $('#' + partOfSpeech + 's textarea'),
+        $button = document.getElementById(partOfSpeech + 's .btn-add'),
+        $wordsTextarea = document.getElementById(partOfSpeech + 's textarea'),
         text = $wordsTextarea.val().trim(),
         style = partOfSpeechStyles[partOfSpeechIndex];
 

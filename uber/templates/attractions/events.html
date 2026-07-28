@@ -41,8 +41,8 @@
 
       $modals.data('eventId', eventId);
       $modals.toggleClass('soldout', isSoldout);
-      document.querySelectorAll('.signup-event-label').html($('#' + eventId + ' .event-label').html());
-      document.querySelectorAll('.signup-event-location').html($('#' + eventId + ' .event-location').html());
+      document.querySelectorAll('.signup-event-label').html(document.getElementById(eventId + ' .event-label').html());
+      document.querySelectorAll('.signup-event-location').html(document.getElementById(eventId + ' .event-location').html());
 
       {% if c.AT_THE_CON %}
       $signupBModal.show();
@@ -66,9 +66,9 @@
         success: function(response, status) {
           if (response && response['event_id']) {
             $modals.toggleClass('soldout', response['is_sold_out']);
-            $('#' + eventId).toggleClass('soldout', response['is_sold_out']);
-            $('#' + eventId + ' .remaining-slots').text(response['remaining_slots']);
-            $('#' + eventId).find('.waitlist-remaining-slots').first().text(response['remaining_waitlist_slots']);
+            document.getElementById(eventId).toggleClass('soldout', response['is_sold_out']);
+            document.getElementById(eventId + ' .remaining-slots').text(response['remaining_slots']);
+            document.getElementById(eventId).find('.waitlist-remaining-slots').first().text(response['remaining_waitlist_slots']);
             document.querySelectorAll('.waitlist-show').toggle(response['on_waitlist']);
             document.querySelectorAll('.waitlist-hide').toggle(response['on_waitlist'] == false);
             callback(response);
@@ -101,7 +101,7 @@
       signupForEvent(eventId, {badge_num: $badgeNum.val()}, function(response) {
         if (response) {
           var $attendee = $doneModal.find('.confirm-row .attendee'),
-              $eventLabel = $('#' + eventId + ' .event-label'),
+              $eventLabel = document.getElementById(eventId + ' .event-label'),
               message = ' successfully signed up for ';
           if (response['remaining_slots'] === response['old_remaining_slots']) {
             message = ' was already signed up for ';

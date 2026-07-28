@@ -175,7 +175,7 @@
 
 <script type="text/javascript">
     var saveArtShowPiece = function(form_id, submit_button_name) {
-      var $form = $('#' + form_id);
+      var $form = document.getElementById(form_id);
       let serializedData = $form.serialize();
       if (submit_button_name != '') {
         serializedData += '&' + submit_button_name + '=1';

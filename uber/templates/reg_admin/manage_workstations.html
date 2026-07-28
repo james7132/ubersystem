@@ -100,10 +100,10 @@
         {
             csrf_token: csrf_token,
             id: workstation_id,
-            reg_station_id: $('#' + workstation_id + '_reg_station_id').val(),
-            terminal_id: $('#' + workstation_id + '_terminal_id').val(),
-            printer_id: $('#' + workstation_id + '_printer_id').val(),
-            minor_printer_id: $('#' + workstation_id + '_minor_printer_id').val(),
+            reg_station_id: document.getElementById(workstation_id + '_reg_station_id').val(),
+            terminal_id: document.getElementById(workstation_id + '_terminal_id').val(),
+            printer_id: document.getElementById(workstation_id + '_printer_id').val(),
+            minor_printer_id: document.getElementById(workstation_id + '_minor_printer_id').val(),
         }).done(function(json){
             if (json && json.success) {
                 window.location = "manage_workstations?message=" + json.message;

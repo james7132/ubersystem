@@ -3,7 +3,7 @@
 {% block content %}
   <script>
       var hideRows = function (id) {
-          $('#' + id).hide('slow');
+          document.getElementById(id).hide('slow');
       };
       var approve = function (id) {
           $.post('approve_badge', {csrf_token: csrf_token, id: id}, function (response) {

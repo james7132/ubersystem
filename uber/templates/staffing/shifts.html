@@ -368,14 +368,14 @@
   }
 
   let toggleButton = function(id, onOrOff) {
-    if ($('#' + id + '-btn-on').length == 0) { return; }
+    if (document.getElementById(id + '-btn-on').length == 0) { return; }
 
     if (onOrOff == 'on') {
-      $('#' + id + '-btn-off').hide();
-      $('#' + id + '-btn-on').show();
+      document.getElementById(id + '-btn-off').hide();
+      document.getElementById(id + '-btn-on').show();
     } else {
-      $('#' + id + '-btn-on').hide();
-      $('#' + id + '-btn-off').show();
+      document.getElementById(id + '-btn-on').hide();
+      document.getElementById(id + '-btn-off').show();
     }
   }
 
@@ -456,7 +456,7 @@
   }
 
   let setFilters = function (dropdown_name) {
-    let choice = $('#' + dropdown_name).val();
+    let choice = document.getElementById(dropdown_name).val();
     if (choice == "" || choice == "all") {
       ec.setOption('resources', {{ default_filters|safe }});
     } else {

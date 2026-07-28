@@ -234,8 +234,8 @@
         success: function(response, status) {
           if (response && response['event_id']) {
             $signupModal.toggleClass('soldout', response['is_sold_out']);
-            $('#' + eventId).toggleClass('soldout', response['is_sold_out']);
-            $('#' + eventId + ' .remaining-slots').text(response['remaining_slots']);
+            document.getElementById(eventId).toggleClass('soldout', response['is_sold_out']);
+            document.getElementById(eventId + ' .remaining-slots').text(response['remaining_slots']);
             callback(response);
           } else {
             showErrorMessage(response['error'] || 'Error signing up for event');

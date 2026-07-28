@@ -74,11 +74,11 @@
         $.post("../reg_admin/refresh_model_receipt",
         {id: attendeeId, csrf_token: csrf_token}, function(response) {
             if (response.new_cost) {
-                $('#' + attendeeId + '-cost').html(response.new_cost);
-                $('#' + attendeeId + '-receipt-total').html(response.new_receipt_total);
+                document.getElementById(attendeeId + '-cost').html(response.new_cost);
+                document.getElementById(attendeeId + '-receipt-total').html(response.new_receipt_total);
                 document.getElementById('message-alert').addClass("alert-info").show().children('span').html(response.message);
             } else {
-                $('#' + attendeeId).remove()
+                document.getElementById(attendeeId).remove()
                 document.getElementById('message-alert').addClass("alert-success").show().children('span').html(response.message);
             }
             

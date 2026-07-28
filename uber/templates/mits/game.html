@@ -183,14 +183,14 @@ var deleteDoc = function (id) {
     fetch('delete_document', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({id: id, csrf_token: csrf_token}) }).then(r => r.json()).then(function(message) {
         hideMessageBox();
         document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
-        $('#' + id).remove();
+        document.getElementById(id).remove();
     });
 };
 var deletePic = function (id) {
     fetch('delete_picture', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({id: id, csrf_token: csrf_token}) }).then(r => r.json()).then(function(message) {
         hideMessageBox();
         document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
-        $('#' + id).remove();
+        document.getElementById(id).remove();
     });
 };
 document.addEventListener(\"DOMContentLoaded\", function () {

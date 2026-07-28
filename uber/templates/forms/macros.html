@@ -280,7 +280,7 @@
     tabSelect: true,
     suggestionsThreshold: 0,
     clearControl: '',
-    onChange: function (item) { if (item === undefined) { $('#' + key).val(''); } },
+    onChange: function (item) { if (item === undefined) { document.getElementById(key).val(''); } },
     onSelectItem: function() {
       document.getElementById(key).dispatchEvent(new Event('input'));
     },
@@ -355,7 +355,7 @@
         document.querySelectorAll('.is-invalid').each(function() {
           var field_id = this.attr('id');
           this.removeClass('is-invalid');
-          $("#" + field_id + "-validation").hide();
+          document.getElementById(field_id + '-validation').hide();
         });
         if (response.warning) {
           let buttonText = response.button_text ? response.button_text : 'I understand, please continue!';
@@ -378,23 +378,23 @@
               );
               $.each(response.error, function(key, val) {
                 val = val.join(" ");
-                if ($("#" + key).length != 0 && $("#" + key).attr('type') != 'checkbox') {
+                if (document.getElementById(key).length != 0 && document.getElementById(key).attr('type') != 'checkbox') {
                   var field_label = $("label[for='" + key + "'] .form-label").text();
-                  if (field_label == '') { field_label = $("#" + key).children("legend").children(".form-label").text(); }
-                  if (field_label == '') { field_label = $("#" + key + "-select").children("legend").text(); }
+                  if (field_label == '') { field_label = document.getElementById(key).children("legend").children(".form-label").text(); }
+                  if (field_label == '') { field_label = document.getElementById(key + '-select').children("legend").text(); }
                   if (field_label == '') {
                     $("#form-validations-{{ form_id }}").find("ul").append("<li>" + val + "</li>");
                   } else {
                     $("#form-validations-{{ form_id }}").find("ul").append("<li>" + field_label.trim() + ": " + val + "</li>");
-                    $("#" + key).addClass("is-invalid");
+                    document.getElementById(key).addClass("is-invalid");
                   }
                 } else {
                   $("#form-validations-{{ form_id }}").find("ul").append("<li>" + val + "</li>");
                 }
 
-                if ($("#" + key + "-validation").length != 0)
+                if (document.getElementById(key + '-validation').length != 0)
                 {
-                  $("#" + key + "-validation").html(val).show();
+                  document.getElementById(key + '-validation').html(val).show();
                 }
               });
             }

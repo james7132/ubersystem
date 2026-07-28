@@ -141,7 +141,7 @@ Choose an option below to give them access to their badge.{% if attendee.group a
                         },
                         success: function(response, status) {
                             if(response.success) {
-                                $("#" + alertId).addClass("alert-info").show().children('span').html(response['message']);
+                                document.getElementById(alertId).addClass("alert-info").show().children('span').html(response['message']);
                                 document.querySelectorAll('.no-account').hide();
                             } else {
                                 showErrorMessage(response['message'], alertId);

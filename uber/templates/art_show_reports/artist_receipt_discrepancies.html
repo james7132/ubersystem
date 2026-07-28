@@ -63,11 +63,11 @@
         $.post("../reg_admin/refresh_model_receipt",
         {id: appId, csrf_token: csrf_token}, function(response) {
             if (response.new_cost) {
-                $('#' + appId + '-cost').html(response.new_cost);
-                $('#' + appId + '-receipt-total').html(response.new_receipt_total);
+                document.getElementById(appId + '-cost').html(response.new_cost);
+                document.getElementById(appId + '-receipt-total').html(response.new_receipt_total);
                 document.getElementById('message-alert').addClass("alert-info").show().children('span').html(response.message);
             } else {
-                $('#' + appId).remove()
+                document.getElementById(appId).remove()
                 document.getElementById('message-alert').addClass("alert-success").show().children('span').html(response.message);
             }
             

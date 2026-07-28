@@ -13,7 +13,7 @@
 <script type="text/javascript">
 var loadPrintJobs = function(flag) {
   document.querySelectorAll('.job-types').removeClass('btn-primary btn-outline-secondary').addClass('btn-outline-secondary');
-  $('#' + flag).addClass('btn-primary').removeClass('btn-outline-secondary');
+  document.getElementById(flag).addClass('btn-primary').removeClass('btn-outline-secondary');
     document.getElementById('print_jobs').load('../badge_printing/print_jobs?flag=' + flag, function(){
       if (document.getElementById('print_jobs').length) {
           $(window).trigger( 'runJavaScript' );

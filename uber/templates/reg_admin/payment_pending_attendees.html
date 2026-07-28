@@ -41,7 +41,7 @@
 
 <script>
     var hideRows = function (id) {
-        $('#' + id).hide('slow');
+        document.getElementById(id).hide('slow');
     };
     var invalidate = function (attendeeId) {
         $.post('invalidate_badge', {csrf_token: csrf_token, id: attendeeId}, function (response) {

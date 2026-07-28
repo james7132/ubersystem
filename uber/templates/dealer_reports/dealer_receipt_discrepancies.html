@@ -66,11 +66,11 @@
         $.post("../reg_admin/refresh_model_receipt",
         {id: groupId, csrf_token: csrf_token}, function(response) {
             if (response.new_cost) {
-                $('#' + groupId + '-cost').html(response.new_cost);
-                $('#' + groupId + '-receipt-total').html(response.new_receipt_total);
+                document.getElementById(groupId + '-cost').html(response.new_cost);
+                document.getElementById(groupId + '-receipt-total').html(response.new_receipt_total);
                 document.getElementById('message-alert').addClass("alert-info").show().children('span').html(response.message);
             } else {
-                $('#' + groupId).remove()
+                document.getElementById(groupId).remove()
                 document.getElementById('message-alert').addClass("alert-success").show().children('span').html(response.message);
             }
             

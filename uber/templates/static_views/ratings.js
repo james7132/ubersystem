@@ -18,7 +18,7 @@
     const UNRATED = {{c.UNRATED}};
 
     let findOrCreateElement = function(id, el) {
-        let $el = $('#' + id);
+        let $el = document.getElementById(id);
         if (!$el.length) {
            $el = $(el).attr('id', id);
         }
