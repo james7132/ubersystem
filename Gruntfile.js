@@ -4,13 +4,7 @@ module.exports = function (grunt) {
         npmcopy: {
             libs: {
                 files: {
-                    'uber/static/deps/libs/jquery.js': 'jquery:main',
-                    'uber/static/deps/libs/jquery-scanner.js': 'jQuery-Scanner-Detection:main',
                     'uber/static/deps/libs/moment.js': 'moment:main',
-                    'uber/static/deps/libs/jquery-ui.js': 'jquery-ui-dist/jquery-ui.js',
-                    'uber/static/deps/libs/jquery-ui.css': 'jquery-ui-dist/jquery-ui.css',
-                    'uber/static/deps/libs/geocomplete.js': 'geocomplete:main',
-                    'uber/static/deps/libs/jquery.form.js': 'jquery-form/jquery.form.js',
                     'uber/static/deps/libs/choices.js':'choices.js:main',
                     'uber/static/deps/libs/flatpickr.css':'flatpickr/dist/flatpickr.css',
                     'uber/static/deps/libs/flatpickr.js':'flatpickr:main',
@@ -23,16 +17,17 @@ module.exports = function (grunt) {
                 options: {
                     separator: ';',
                 },
-                src: ['uber/static/deps/libs/jquery.js', //Jquery must be first.
+                src: [
                     'uber/static/deps/libs/moment.js',
-                    'uber/static/deps/libs/*.js',
-                    'uber/static/deps/jquery-datetextentry/jquery.datetextentry.js',
-                    'uber/static/deps/selectToAutocomplete/jquery.select-to-autocomplete.js'],
+                    'uber/static/deps/libs/choices.js',
+                    'uber/static/deps/libs/flatpickr.js',
+                    'uber/static/deps/libs/moment-tz-10yr.js'
+                ],
                 dest: 'uber/static/deps/combined.js',
 
             },
             css: {
-                src: ['uber/static/deps/libs/*.css', 'uber/static/deps/choices/choices-bootstrap.css', 'uber/static/deps/jquery-datetextentry/jquery.datetextentry.css'],
+                src: ['uber/static/deps/libs/*.css', 'uber/static/deps/choices/choices-bootstrap.css'],
                 dest: 'uber/static/deps/combined.css',
             }
         },

@@ -1,25 +1,32 @@
 let updateLinkHashes = function() {
-  $('a.include-tab-hash').each(function() {
-    let baseLink = $(this).attr('href').split('#')[0];
-    $(this).attr('href', baseLink + window.location.hash);
-  });
-}
+    document.querySelectorAll('a.include-tab-hash').forEach(function(link) {
+        let baseLink = (link.getAttribute('href') || '').split('#')[0];
+        link.setAttribute('href', baseLink + window.location.hash);
+    });
+};
 
-$('.nav-tabs button').click(function() {
-    window.location.hash = $(this).data('bs-target');
-    updateLinkHashes();
-})
-$().ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.nav-tabs button').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            let target = this.getAttribute('data-bs-target');
+            if (target) {
+                window.location.hash = target;
+                updateLinkHashes();
+            }
+        });
+    });
+
     var tabID = window.location.hash;
     updateLinkHashes();
-    try {
-      var tab = $(tabID + '-tab');
-    } catch(error) {
-      new bootstrap.Tab($('.nav-tabs button').first()).show();
+    var tab = tabID ? document.querySelector(tabID + '-tab') : null;
+    var firstBtn = document.querySelector('.nav-tabs button');
+    if (tab && typeof bootstrap !== 'undefined') {
+        try {
+            new bootstrap.Tab(tab).show();
+        } catch (e) {
+            if (firstBtn) new bootstrap.Tab(firstBtn).show();
+        }
+    } else if (firstBtn && typeof bootstrap !== 'undefined') {
+        new bootstrap.Tab(firstBtn).show();
     }
-    if(tab && tab.length) {
-      new bootstrap.Tab(tab).show();
-    } else {
-      new bootstrap.Tab($('.nav-tabs button').first()).show();
-    }
-})
+});
