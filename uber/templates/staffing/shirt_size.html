@@ -104,7 +104,7 @@
         }
     }
 
-    $().ready(function () {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         disableSizeOpts();
         $('#shirt_opt_out_select').on('change', disableSizeOpts);
         if($.field('num_event_shirts')) {

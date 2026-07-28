@@ -7,7 +7,7 @@
     var showOrHideRoomOpts = function() {
         $('.hotel_and_room_type_ranking').toggle(!$('#room_opt_out').is(':checked'));
     }
-    $().ready(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         showOrHideRoomOpts();
         $('#room_opt_out').change(showOrHideRoomOpts);
     });

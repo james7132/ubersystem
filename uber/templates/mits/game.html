@@ -193,7 +193,7 @@ var deletePic = function (id) {
         $('#' + id).remove();
     });
 };
-$().ready(function() {
+document.addEventListener(\"DOMContentLoaded\", function () {
     ageToDesc = {{ c.MITS_DESC_BY_AGE|tojson }};
     explanationAges = [{{ c.TEEN }}, {{ c.MATURE }}, {{ c.ADULT }}]
     showAgeDesc = function() {

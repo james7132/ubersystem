@@ -5,7 +5,7 @@
 {% block content %}
 
 <script type="text/javascript">
-  $(function(){
+  document.addEventListener(\"DOMContentLoaded\", function () {
       {% if attendee.has_personalized_badge %}
           $('.badge-row').show();
       {% endif %}

@@ -56,7 +56,7 @@
       var showOrHideDonation = function () {
           setVisible('#donating_yes', $.val('donating') === {{ c.DONATING }});
       };
-      $(function () {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideDonation();
           $.field('donating').on('change', showOrHideDonation);
       });

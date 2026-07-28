@@ -41,7 +41,7 @@
             $("#result").html("failed: couldn't get badge# - server error");
         });
     }
-    $(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         $("#barcode_scan").click(function () {
             getScan();
         });

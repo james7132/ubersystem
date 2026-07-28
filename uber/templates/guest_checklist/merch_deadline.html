@@ -539,7 +539,7 @@
               $sizesPanel.toggleClass('disabled', isOneSize);
             };
 
-            $(function () {
+            document.addEventListener(\"DOMContentLoaded\", function () {
                 showOrHideRockIsland();
                 $.field('selling_merch').on('change', showOrHideRockIsland);
 

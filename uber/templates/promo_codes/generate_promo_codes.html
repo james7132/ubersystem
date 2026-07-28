@@ -185,7 +185,7 @@ var onIsSinglePromoCodeClicked = function(isSinglePromoCode) {
     }
 };
 
-$(document).ready(function() {
+document.addEventListener(\"DOMContentLoaded\", function () {
     $('#word-list').on('click', '.label a', function(event) {
         event.preventDefault();
         deletePromoCodeWord($(this).closest('.label'));

@@ -5,7 +5,7 @@
 {% set attendee = app.attendee %}
 
 <script type="text/javascript">
-  $(function() {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     var $cancelForm = $('#cancel-form');
     $cancelForm.on('submit', function(event) {
       event.preventDefault();

@@ -481,7 +481,7 @@
     });
   }
 
-  $().ready(function () {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     $('#refundTxnForm').submit(function(event) {
       return false;
     })

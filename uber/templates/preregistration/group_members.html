@@ -73,7 +73,7 @@
         }
     });
   }
-  $().ready(function() {
+  document.addEventListener(\"DOMContentLoaded\", function () {
       $(".unset-group-member").submit(unsetMemberConfirm);
       $(".remove-group-member").submit(removeMemberConfirm);
 

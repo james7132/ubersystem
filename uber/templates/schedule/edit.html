@@ -151,7 +151,7 @@ let updateLocations = function () {
     updateiCalFilter(currLocations);
 }
 
-$(function() {
+document.addEventListener(\"DOMContentLoaded\", function () {
 var $scheduleTable = $('.schedule-table'),
     $scheduleRooms = $('.schedule-rooms');
 
@@ -320,7 +320,7 @@ ec = new EventCalendar(document.getElementById('event-schedule'), {
 });
 
 {% if current_event %}
-$().ready(function () {
+document.addEventListener(\"DOMContentLoaded\", function () {
     replaceQueryParamInUrl('view_event');
     location.href = "#event-{{ current_event }}";
 });

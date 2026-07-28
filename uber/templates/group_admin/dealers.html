@@ -3,7 +3,7 @@
         window.location = "index?order={{ order }}&show=" + $(dropdown).val();
     }
 
-    $(document).ready(function () {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         $('div.dataTables_filter input').focus();
     });
 </script>

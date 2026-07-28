@@ -8,7 +8,7 @@
           $('#code_link_'+code).toggle();
           return false;
       };
-      $().ready(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
         $('[id^="code_form_"]').hide();
       })
   </script>
@@ -105,7 +105,7 @@
 
       {% if c.REMAINING_BADGES > 50 and c.ONLINE_PAYMENT_AVAILABLE  %}
       <script type="text/javascript">
-          $(function() {
+          document.addEventListener(\"DOMContentLoaded\", function () {
             {% if attendee.amount_unpaid %}
               $('<div class="disabled" title="Please pay for your current registration and extras before buying more codes.">' +
                   '<button disabled class="btn btn-primary">Click here to add more promo codes</button>' +

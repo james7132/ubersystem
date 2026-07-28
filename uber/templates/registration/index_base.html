@@ -17,7 +17,7 @@
       $('#search_form').submit();
     }
 
-    $(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
       $('#search_bar').select();
 
       {% if c.REG_USES_BARCODES %}

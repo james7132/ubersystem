@@ -64,7 +64,7 @@ Please select a department above to view its signups.
   {% else %}
   SHOW_FULL_JOBS = false;
   {% endif %}
-  $().ready(function() {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     replaceQueryParamInUrl('toggle_filter'); // prevent re-toggling filter on refresh
   });
   </script>

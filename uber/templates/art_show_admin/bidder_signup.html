@@ -43,7 +43,7 @@
 
 {% block adminheader %}
 <script>
-    $(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         $('#search_bar').select();
     });
 </script>
@@ -237,7 +237,7 @@
   {%- endfor %}
 </div>
 <script type="text/javascript">
-    $(document).ready(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
       $('.bidder-signup-form').on('submit', function(event) {
         event.preventDefault();
 

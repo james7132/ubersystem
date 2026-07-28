@@ -222,7 +222,7 @@ get noBadgeNumText() { return this.preassignedBadge() ? 'Use next available badg
             $('#group_link').attr("href", '../group_admin/form?id=' + group).show();
         }
     };
-    $(function () {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         setGroupLink();
         $('#{{ badge_flags.group_membership.id }}').change(setGroupLink);
     });

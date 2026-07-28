@@ -85,7 +85,7 @@
 
         <div id="show-link"></div>
         <script>
-            $(function () {
+            document.addEventListener(\"DOMContentLoaded\", function () {
                 var $showLink = $('#show-link'), $markForm = $('#mark-form');
                 {% if game.status in c.FINAL_MIVS_GAME_STATUSES %}
                     $.field('status').val({{ game.status }});
@@ -446,7 +446,7 @@
 </div>
 
 <script type="text/javascript">
-    $(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
       $('#remove-judges').on('submit', function(event) {
         event.preventDefault();
         var $toSubmit = $(this);

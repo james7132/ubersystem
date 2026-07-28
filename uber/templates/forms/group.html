@@ -12,7 +12,7 @@
     </a>
   </span>
   <script type="text/javascript">
-    $(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
       $('#tc-link').appendTo($("#dealer-actions"));
     });
   </script>
@@ -174,7 +174,7 @@
         }
       }
   };
-  $(function() {
+  document.addEventListener(\"DOMContentLoaded\", function () {
       $("select[name=tables]").on('change', updateBadgeMax);
       updateBadgeMax();
       let badges = parseInt("{{ badges }}") || 0
@@ -267,7 +267,7 @@
     setVisible('#category-other', $(":checkbox[name=categories][value={{ c.OTHER }}]").prop("checked"));
   };
 
-  $(function () {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     showOrHideCategoriesText();
     $(":checkbox[name=categories]").click(showOrHideCategoriesText);
   });
@@ -376,7 +376,7 @@
 {% set explanation %}
 {# Always read-only #}
 <script type="text/javascript">
-    $(function () {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         $('#bold-field-message').insertBefore($.field('name').parents('.form-group'));
     });
 </script>

@@ -37,7 +37,7 @@
           }
       );
 
-      $().ready(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           $('#show_all').hide();
           var dtable = $('#volunteer_hours').DataTable({
               dom: 'Bfrtip',

@@ -17,7 +17,7 @@
           setVisible('#tax-info', $.val('selling_merch') === {{ c.OWN_TABLE }});
           $.field('tax_phone').prop('required', $.val('selling_merch') === {{ c.OWN_TABLE }});
       };
-      $(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideTaxInfo();
           $.field('selling_merch').on('change', showOrHideTaxInfo);
       });

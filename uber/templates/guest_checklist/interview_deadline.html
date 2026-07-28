@@ -23,7 +23,7 @@
       var showOrHideInterviewOpts = function() {
           setVisible($('.interview-opts'), $.field("will_interview").is(":checked"));
       };
-      $(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideInterviewOpts();
           $.field("will_interview").on('click', showOrHideInterviewOpts);
       });

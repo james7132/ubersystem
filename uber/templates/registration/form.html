@@ -205,7 +205,7 @@
         </li>
     </ul>
     <script type="text/javascript">
-        $().ready(function() {
+        document.addEventListener(\"DOMContentLoaded\", function () {
             $('#attendee-form-nav').find('.nav-link').click(function() {
                 $(this).parents('#attendee-form-nav').find('.nav-link').removeClass('active');
                 $(this).addClass('active');

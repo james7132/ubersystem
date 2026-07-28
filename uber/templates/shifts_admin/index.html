@@ -238,7 +238,7 @@ Please select a department above to view its shifts.
     const event_end_date = '{{ c.ESCHATON.date() }}';
     const event_dates = getDateArray(event_start_date, event_end_date);
 
-$(document).ready(function() {
+document.addEventListener(\"DOMContentLoaded\", function () {
     let eventList = new Array();
     {% for job in jobs %}
         eventList.push({

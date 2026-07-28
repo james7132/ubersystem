@@ -1,55 +1,42 @@
-var unassignLocation = function(id, removeSpace, alertId="message-alert") {
-    $.ajax({
+var unassignLocation = function(id, removeSpace, alertId) {
+    alertId = alertId || "message-alert";
+    var formData = new FormData();
+    formData.append('id', id);
+    formData.append('remove_space', removeSpace);
+    formData.append('csrf_token', typeof csrf_token !== 'undefined' ? csrf_token : '');
+
+    fetch('unassign_location', {
         method: 'POST',
-        url: 'unassign_location',
-        dataType: 'json',
-        data: {
-            id: id,
-            remove_space: removeSpace,
-            csrf_token: csrf_token,
-        },
-        success: function (json) {
-            hideMessageBox();
-            var message = json.message;
-            if (json.success) {
-                $("#" + alertId).addClass("alert-info").show().children('span').html(message);
-                window.scrollTo(0,0); setTimeout(() => { window.scrollTo(0, 0); }, 100);
-            } else {
-                showErrorMessage(message, alertId);
+        body: formData
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(json) {
+        if (typeof hideMessageBox === 'function') hideMessageBox();
+        var message = json.message;
+        if (json.success) {
+            var alertEl = document.getElementById(alertId);
+            if (alertEl) {
+                alertEl.classList.add("alert-info");
+                alertEl.style.display = 'block';
+                var span = alertEl.querySelector('span');
+                if (span) span.innerHTML = message;
             }
-        },
-        error: function () {
+            window.scrollTo(0,0);
+            setTimeout(function() { window.scrollTo(0, 0); }, 100);
+        } else {
+            if (typeof showErrorMessage === 'function') showErrorMessage(message, alertId);
+        }
+    })
+    .catch(function() {
+        if (typeof showErrorMessage === 'function') {
             showErrorMessage('Unable to connect to server, please try again.', alertId);
         }
     });
-}
+};
 
 var confirmUnassignLocation = function(id, label, alertId) {
-bootbox.dialog({
-    backdrop: true,
-    title: 'Unassign Location?',
-    message: 'Are you sure you want to unassign location ' + label + ' from this artist? ' +
-            'You can also remove the requested table/panel space from the application.',
-    buttons: {
-    confirm: {
-        label: 'Unassign',
-        className: 'btn-outline-danger',
-        callback: function (result) {
-        if(result) {
-            unassignLocation(id, '', alertId)
-        }
-        }
-    },
-    remove_space: { 
-        label: 'Unassign and Remove Space',
-        className: 'btn-danger',
-        callback: function (result) {
-        if(result) {
-            unassignLocation(id, 'true', alertId)
-        }
-        }
-    },
-    cancel: { label: 'Nevermind', className: 'btn-outline-secondary' }
+    if (confirm('Unassign location ' + label + ' from this artist?\n\nClick OK to Unassign, or Cancel to keep.')) {
+        var removeSpace = confirm('Do you also want to REMOVE the requested table/panel space from the application?') ? 'true' : '';
+        unassignLocation(id, removeSpace, alertId);
     }
-});
-}
+};

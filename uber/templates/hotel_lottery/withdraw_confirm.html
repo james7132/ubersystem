@@ -49,7 +49,7 @@ withdrawConfirm = function() {
     });
 }
 
-$().ready(function() {
+document.addEventListener(\"DOMContentLoaded\", function () {
     $("#withdraw-suite").submit(withdrawConfirmSuite);
     $("#withdraw-lottery").submit(withdrawConfirm);
 });

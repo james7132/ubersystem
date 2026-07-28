@@ -27,7 +27,7 @@
         $("input[type=checkbox]").prop("checked", false);
     }
     {% if not job.is_new %}
-      $(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           $("form[action='delete']").submit(function(event){
               var formToSubmit = this;
               event.preventDefault();

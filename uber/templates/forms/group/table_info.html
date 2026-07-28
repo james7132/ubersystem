@@ -50,7 +50,7 @@ get otherCategory() { return this.categories.includes('{{ c.OTHER }}') },
         }
       }
   };
-  $(function() {
+  document.addEventListener(\"DOMContentLoaded\", function () {
       $("select[name=tables]").on('change', updateBadgeMax);
       updateBadgeMax();
       let badges = parseInt("{{ badges }}") || 0

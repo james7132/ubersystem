@@ -141,7 +141,7 @@
     });
     });
 
-    $().ready(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         if(window.location.hash == '#request-modal-new') {
             new bootstrap.Modal($('#request-modal-new')).show();
             window.location.hash = "";

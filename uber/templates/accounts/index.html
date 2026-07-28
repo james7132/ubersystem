@@ -172,7 +172,7 @@ function check_passwords() {
 }
 {% endif %}
 
-$(document).ready(function() {
+document.addEventListener(\"DOMContentLoaded\", function () {
     $('table').on('click', '.delete-button', function (event) {
         event.preventDefault();
         var $self = $(this),

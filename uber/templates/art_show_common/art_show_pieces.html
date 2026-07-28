@@ -203,7 +203,7 @@
       return false;
     };
 
-    $(document).ready(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
       if(window.location.hash == '#piece-modal-new') {
             new bootstrap.Modal($('#piece-modal-new')).show();
             window.location.hash = {% if admin_area %}"#pieces"{% else %}""{% endif %};

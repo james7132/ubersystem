@@ -108,7 +108,7 @@
 
 <script type="text/javascript">
     {% if not job_template.is_new %}
-      $(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           $("form[action='delete_template']").submit(function(event){
               var formToSubmit = this;
               event.preventDefault();

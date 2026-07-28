@@ -97,7 +97,7 @@
         });
     }
 
-    $().ready(function () {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         {% if action %}
         $('#confirm').show();
         {% elif create %}

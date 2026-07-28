@@ -207,7 +207,7 @@
     {{ "js/window-hash-tabload.js"|serve_static_content }}
   {% else %}
     <script type="text/javascript">
-    $(function () {
+    document.addEventListener(\"DOMContentLoaded\", function () {
       if($.field('guest_group_type') && $.field('guest_group_type').length) {
         var autoTypeAndRibbon = function() {
           if($.val('guest_group_type') != '0' && $.val('guest_group_type') != '{{ c.MIVS }}') {

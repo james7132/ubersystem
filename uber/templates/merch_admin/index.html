@@ -266,7 +266,7 @@
        }, 'json');
     }
 
-    $(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         {% if c.REG_USES_BARCODES %}
         $('body').barcodeField({
           targetField: '#badge_num_or_qr_code',

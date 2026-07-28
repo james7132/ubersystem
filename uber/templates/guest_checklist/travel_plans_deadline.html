@@ -24,7 +24,7 @@
           setVisible('#modes-other', $(":checkbox[name=modes][value={{ c.OTHER }}]").prop("checked"));
       };
 
-      $(function () {
+      document.addEventListener(\"DOMContentLoaded\", function () {
         showOrHideModesText();
           $(":checkbox[name=modes]").click(showOrHideModesText);
       });

@@ -316,7 +316,7 @@
 </style>
 
 <script>
-  $(function() {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     var features = {{ attraction.feature_names_by_id|jsonize }};
     var locations = {{ attraction.locations_by_feature_id|jsonize }};
     var allLocations = {{ c.SCHEDULE_LOCATIONS|jsonize }};

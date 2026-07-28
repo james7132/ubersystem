@@ -5,7 +5,7 @@
     showOrHideAddress = function () {
         setVisible('#address-row', $.field('want_to_sell').is(':checked'));
     };
-    $(function () {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         showOrHideAddress();
         $.field('want_to_sell').on('click', showOrHideAddress);
     });

@@ -46,7 +46,7 @@
 
   {% include 'art_show_admin/unassign_locations.js' %}
 
-  $().ready(function () {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     $('#assign-location-table').on('click', '.unassign-location', function() {
       confirmUnassignLocation($(this).data('id'), $(this).data('label'))
     });

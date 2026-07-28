@@ -21,7 +21,7 @@
         {% if not c.APP_LIMIT or guest.group.leader.submitted_panels|length < c.APP_LIMIT %}Use the link above to submit more panel idea(s).{% endif %}
     {% endif %}
     <script type="text/javascript">
-        $(function() {
+        document.addEventListener(\"DOMContentLoaded\", function () {
             $('a[href^="panel"]').prop("href", "../panels/index?attendee_id={{ guest.group.leader.id }}&return_to=../guests/index?id={{ guest.id }}");
         });
     </script>

@@ -86,7 +86,7 @@
           setVisible($.field('confirm_checkbox').parents('.form-group'), $('#needs_hotel_space').val());
           setVisible($('.hotel_link'), $('#needs_hotel_space').val() == '1');
       };
-      $().ready(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideConfirm();
           $('#needs_hotel_space').change(showOrHideConfirm);
       });

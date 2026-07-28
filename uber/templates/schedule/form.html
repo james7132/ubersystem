@@ -85,7 +85,7 @@
                                      .click(removePanelist)));
     };
     
-    $(function(){
+    document.addEventListener(\"DOMContentLoaded\", function () {
         $.each({{ assigned|jsonize }}, function(i,id) {
             addPanelist(id);
         });
@@ -94,7 +94,7 @@
         var showOrHidePanelDetails = function() {
             setVisible(".card-details", !($.val('panel_id')))
         };
-        $(function() {
+        document.addEventListener(\"DOMContentLoaded\", function () {
             showOrHidePanelDetails();
             $.field('panel_id').on('change', showOrHidePanelDetails);
         });

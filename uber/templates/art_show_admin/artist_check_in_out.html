@@ -191,7 +191,7 @@
         $('#check-in-out-' + appId).submit();
       }
 
-      $(document).ready(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
         $('.check-in-out-datatable').each(function() {
           if (! $.fn.DataTable.isDataTable($(this))) {
             var table = $(this).DataTable({

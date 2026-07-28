@@ -39,7 +39,7 @@
   var scannerDetectionOnErrorHandlers = [];
   var scannerDetectionOnReceiveHandlers = [];
 
-  $(function () {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     $(document).scannerDetection({
       timeBeforeScanTest: 100,
       avgTimeByChar: 30,

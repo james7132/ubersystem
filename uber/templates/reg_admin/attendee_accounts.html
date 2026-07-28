@@ -144,7 +144,7 @@
 </ul>
 {% endif %}
 <script type="text/javascript">
-    $(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
       $('.delete-form').on('submit', function(event) {
         event.preventDefault();
         var $toSubmit = $(this);

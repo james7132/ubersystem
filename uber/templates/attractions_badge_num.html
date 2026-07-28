@@ -60,7 +60,7 @@
     });
   };
 
-  $(function() {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     $('.badge-num-form .confirm-row .btn-danger').on('click', function (event) {
       event.preventDefault();
       hideBadgeNumConfirm($(this).closest('form'), false);

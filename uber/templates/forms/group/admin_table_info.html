@@ -46,7 +46,7 @@ get showConvertBadges() { return this.group_status == '{{ c.DECLINED }}' },
           toggleOn = $("#{{ table_info.status.id }}").val() == "{{ c.SHARED }}";
           $("#{{ table_info.shared_with_name.id }}").closest('.col-12').toggle(toggleOn);
         }
-        $().ready(function () {
+        document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideSharedName();
           $('#{{ table_info.status.id }}').change(showOrHideSharedName);
         });

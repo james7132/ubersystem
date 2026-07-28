@@ -686,7 +686,7 @@
 
     var shiftDetails = new bootstrap.Toast($('#shift-details')[0], {'animation': false, 'autohide': false, 'delay': 0});
 
-    $().ready(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
       toggleButton('available', 'on');
       toggleButton('assigned', 'on');
       toggleButton('highlight', 'off');

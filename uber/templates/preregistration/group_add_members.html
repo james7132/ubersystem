@@ -71,7 +71,7 @@
                 $('#estimatedCost').val(newBadgePrice * parseInt($('#newBadgeCount').val()));
                 $('#newBadgeSubmit').text(newBadgeSubmitText + " for $" + $('#estimatedCost').val());
             }
-            $(function() {
+            document.addEventListener(\"DOMContentLoaded\", function () {
                 $('#add-btn').click(function(e){
                         $(e.target).hide();
                         $("#add").show();
@@ -151,7 +151,7 @@ OR
             }
           });
     }
-    $(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         hideMessageBox('attach-message-alert');
         $('#attach-btn').click(function(e){
             $(e.target).hide();

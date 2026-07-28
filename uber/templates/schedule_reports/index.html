@@ -84,7 +84,7 @@
     });
   }
   
-  $().ready(function () {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     $('#schedule-table').on('click', '.sync-item', markItemSynced);
     {% for model, label in c.GUIDEBOOK_MODELS %}
     $('#{{ model }}-table').on('click', '.sync-item', markItemSynced);

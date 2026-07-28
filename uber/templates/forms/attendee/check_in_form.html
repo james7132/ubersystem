@@ -71,7 +71,7 @@ Use these to add or rearrange fields. Remember to use {{ super() }} to print the
             {{ form_macros.input(check_in_form.badge_num) }}
         </div>
         <script type="text/javascript">
-            $().ready(function() { $('#badge_num').focus(); });
+            document.addEventListener(\"DOMContentLoaded\", function () { $('#badge_num').focus(); });
         </script>
     {% endif %}
     {% if c.COLLECT_EXACT_BIRTHDATE %}

@@ -117,7 +117,7 @@ $('#stripe_frame').load(function() {
         }
     }
 });
-$().ready(function() {
+document.addEventListener(\"DOMContentLoaded\", function () {
     $('#stripeModal').detach().appendTo($('#checkin_modal').parent());
     $('select[name=payment_method]').each(function (i, dropdown) {
         toggleMarkButton(dropdown);

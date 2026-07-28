@@ -47,7 +47,7 @@
       var showOrHideConfirm = function() {
           setVisible($('#selling_link'), $('#selling_at_event').val() == '1');
       };
-      $().ready(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideConfirm();
           $('#selling_at_event').change(showOrHideConfirm);
       });

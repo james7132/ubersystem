@@ -144,7 +144,7 @@
       var showOrHideVehicleInfo = function () {
           setVisible('#vehicle-info', $.field('bringing_vehicle').prop('checked'));
       };
-      $(function () {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideVehicleInfo();
           $.field('bringing_vehicle').on('click', showOrHideVehicleInfo);
       });

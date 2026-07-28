@@ -88,7 +88,7 @@ Due to the extra scaffolding involved on this form, each block also has a _desc 
     };
     var isSubmitting = false
 
-    $().ready(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         {% if application.current_step != 0 %}
         $('#step-1').collapse('hide');
         current_step = parseInt("{{ application.current_step }}");

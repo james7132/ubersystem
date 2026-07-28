@@ -24,7 +24,7 @@
       }
   });
   };
-$(function () {
+document.addEventListener(\"DOMContentLoaded\", function () {
   $("form[action*='/security_admin/']").submit(function (event) {
     event.preventDefault();
     var old_hash = window.location.hash;

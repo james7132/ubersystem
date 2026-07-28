@@ -117,7 +117,7 @@
         }
     };
 
-    $(function () {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         showOrHideDetailedTravels();
         $.field('detailed_travels').on('change', showOrHideDetailedTravels);
 

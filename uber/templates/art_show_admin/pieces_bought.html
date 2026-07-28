@@ -295,14 +295,14 @@
     {% if must_choose %}
     var modal = bootstrap.Modal.getOrCreateInstance($('.modal'))
     modal.show();
-    $().ready(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         $("#choose_modal").on("hidden.bs.modal", function () {
             window.location.assign('?id={{ receipt.id }}');
         });
     });
     {% endif %}
 
-    $(document).ready(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
     $('.undo_payment').on('click', function (event) {
         event.preventDefault();
         var $self = $(this),

@@ -81,7 +81,7 @@
   var forceCallback = function(callback) {
     callback(return_json);
   }
-  $().ready(function() {$('#payment-loading-message').hide();})
+  document.addEventListener(\"DOMContentLoaded\", function () {$('#payment-loading-message').hide();})
 </script>
 <style type="text/css">
     .gly-spin {

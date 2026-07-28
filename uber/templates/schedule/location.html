@@ -14,7 +14,7 @@
 <div class="card card-body">
 <script type="text/javascript">
     {% if not location.is_new %}
-      $(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           $("form[action='delete_location']").submit(function(event){
               var formToSubmit = this;
               event.preventDefault();

@@ -3,7 +3,7 @@
 {% block content %}
 
 <script type="text/javascript">
-    $().ready(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
       $("a[href^='delete']").click(function(event){
           var urlToUse = $(this).attr('href');
           event.preventDefault();

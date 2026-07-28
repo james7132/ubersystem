@@ -96,7 +96,7 @@
           $('.delete-button').toggleClass('disabled', $.field('id').val() == "None");
       };
 
-      $(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           updateAccesses({{ access_group.access|safe }}, '_access');
           updateAccesses({{ access_group.read_only_access|safe }}, '_read_only_access');
           enableOrDisabledDelete();

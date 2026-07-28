@@ -44,7 +44,7 @@
 {% include 'attractions_checkin.html' %}
 
 <script>
-  $(function() {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     var $attendeesTable = $('#attendees-table');
 
     $attendeesTable.on('click', '.btn-success', function(event) {

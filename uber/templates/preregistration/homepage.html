@@ -246,7 +246,7 @@
     </div>
 </div>
     <script type="text/javascript">
-        $(function() {
+        document.addEventListener(\"DOMContentLoaded\", function () {
             var cancelModal = new bootstrap.Modal(document.getElementById('cancel-badges'))
             $(".abandon-btn").on('click', function(event) {
                 let attendeeId = $(this).data("attendeeid");
@@ -380,7 +380,7 @@
 {% endif %}
 {% endfor %}
 <script type="text/javascript">
-    $(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
       $('.new-account-form').on('submit', function(event) {
         event.preventDefault();
         var $toSubmit = $(this);

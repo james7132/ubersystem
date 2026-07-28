@@ -162,7 +162,7 @@
 
     $('#search-btn').val('Search ' + which_import.charAt(0).toUpperCase() + which_import.substr(1));
   };
-  $(function() {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     updateFormForModel();
       $.field('which_import').on('change', updateFormForModel);
   });

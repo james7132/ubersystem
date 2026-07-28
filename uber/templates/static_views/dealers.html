@@ -7,7 +7,7 @@
     </style>
     {{ "deps/combined.min.js"|serve_static_content }}
     <script type="text/javascript">
-        $(function() {
+        document.addEventListener(\"DOMContentLoaded\", function () {
             $.get("dealerRules.html", function(rules) {
                 $("#rules").html(rules);
             });

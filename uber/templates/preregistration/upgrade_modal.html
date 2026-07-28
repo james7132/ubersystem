@@ -110,7 +110,7 @@
           }
         });
     };
-    $().ready(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         hideMessageBox("upgrade-message-alert");
         $('#upgrade-purchase').prop('disabled', true);
         $("form[action='purchase_upgrades']").submit(function(event){

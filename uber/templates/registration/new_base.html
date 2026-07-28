@@ -116,7 +116,7 @@
         }
     };
     $(makeStripeAjax);
-    $(function() {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         {% if c.REG_USES_BARCODES and c.NUMBERED_BADGES %}
           $('body').barcodeField({
             targetField: 'input[name=badge_num]:focus,#badge_num:focus',

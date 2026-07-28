@@ -59,7 +59,7 @@ get shirtSize() { return (this.getsFreeEventShirt() && !this.eventShirtOptOut())
             setVisible($('#one-day-alert'), attendanceType == '{{ c.SINGLE_DAY }}');
             setVisible($('#badge_type-select').parents('.row'), attendanceType == '{{ c.WEEKEND }}');
         }
-        $(function () {
+        document.addEventListener(\"DOMContentLoaded\", function () {
             switchBadgeTypeOpts();
             $('#{{ id_upgrade_prepend }}attendance_type').on('change', switchBadgeTypeOpts);
         })
@@ -147,7 +147,7 @@ get shirtSize() { return (this.getsFreeEventShirt() && !this.eventShirtOptOut())
 {% block upgrade_modal_js %}
 {% if upgrade_modal %}
 <script type="text/javascript">
-    $(function () {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         $("#upgrade_badge_type").on('change', function() {
             updateReceiptPreview('badge_type', this.value);
         })

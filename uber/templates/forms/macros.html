@@ -247,7 +247,7 @@
             }
         });
     };
-    $(function () {
+    document.addEventListener(\"DOMContentLoaded\", function () {
         setField_{{ target_field.name }}("{{ target_field.data }}");
         $('.{{ target_field.name }}_card_link').click(function(){
             setField_{{ target_field.name }}(this.dataset.value);
@@ -417,7 +417,7 @@
   };
   
 
-  $(function () {
+  document.addEventListener(\"DOMContentLoaded\", function () {
     $("#form-validations-{{ form_id }}").hide();
     {{ submit_validation_and_disclaimer(form_id, include_disclaimers_modal, callback=callback if always_use_callback else '') }}
 });

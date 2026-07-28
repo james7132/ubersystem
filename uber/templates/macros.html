@@ -576,7 +576,7 @@
           }
       };
 
-      $(function() {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           {% if update_international %}setInternational();{% endif %}
           
           if ($('#{{ name_prefix }}country{{ suffix }}').closest('.modal').find('.modal-content').length) {
@@ -763,7 +763,7 @@
           }
           {%- if required_selector -%}$('{{ required_selector }}').prop('required', isVisible);{%- endif -%}
       };
-      $(function () {
+      document.addEventListener(\"DOMContentLoaded\", function () {
           toggleVisibility{{ suffix }}();
           $('#toggle_visibility{{ suffix }}').change(toggleVisibility{{ suffix }});
       })
