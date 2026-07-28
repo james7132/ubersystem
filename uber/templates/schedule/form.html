@@ -64,9 +64,9 @@
 <script type="text/javascript">
     var panelists = {{ panelists|jsonize }};
     
-    var $panelists = $("<select/>").attr("name", "panelists").attr("class", "form-select").css("margin-right", "10px");
+    var $panelists = document.createElement('select').attr("name", "panelists").attr("class", "form-select").css("margin-right", "10px");
     $.each(panelists, function(i,p) {
-        $panelists.append( $("<option/>").attr("value", p[0]).text(p[1]) );
+        $panelists.append( document.createElement('option').attr("value", p[0]).text(p[1]) );
     });
     
     var removePanelist = function(event) {
@@ -75,12 +75,12 @@
     };
     var addPanelist = function(id) {
         document.getElementById('add').after(
-            $("<div/>").css("padding-top", "5px").attr("class", "d-flex gap-3 align-items-center")
+            document.createElement('div').css("padding-top", "5px").attr("class", "d-flex gap-3 align-items-center")
                        .append(
                             $panelists.clone()
                                       .val(id || $panelists.val()))
                        .append(
-                            $("<a/>").attr("href", "#").attr("class", "btn btn-sm btn-danger")
+                            document.createElement('a').attr("href", "#").attr("class", "btn btn-sm btn-danger")
                                      .text("Remove Panelist")
                                      .click(removePanelist)));
     };

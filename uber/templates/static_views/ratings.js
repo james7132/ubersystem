@@ -159,7 +159,7 @@
             .empty()
             .append(
                 $.map([{{ c.RATED_BAD }}, {{ c.RATED_GREAT }}], function(rating, i) {
-                    return $('<img/>')
+                    return document.createElement('img')
                         .attr('src', RATINGS[rating][shift.rating === rating])
                         .attr('title', shift.comment)
                         .data('rating', rating);

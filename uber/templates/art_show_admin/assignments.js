@@ -716,7 +716,7 @@ class panelLogic {
             }
         }
         $(unassigned_dom).append("Artists needing assignment: ");
-        let un_ul = $("<ul />");
+        let un_ul = document.createElement('ul');
         for(let k in unassigned) {
             let u_s = $("<span />",{id:unassigned[k][0]+"_u_key",text:unassigned[k][1]});
             if(this.manual_assignee===k[0]) {
@@ -725,13 +725,13 @@ class panelLogic {
             $(u_s).on("click",{arg1:logic,arg2:unassigned[k][0]},function(e) {
                 e.data.arg1.setManualAssignee(e.data.arg2);
             })
-            let u_li = $("<li />");
+            let u_li = document.createElement('li');
             $(u_li).append(u_s);
             $(un_ul).append(u_li);
         }
         $(unassigned_dom).append(un_ul);
         $(assigned_dom).append("Artists assigned: ");
-        let a_ul = $("<ul />");
+        let a_ul = document.createElement('ul');
         
         for(let a in assigned) {
             let a_s = $("<span />",{id:assigned[a][0]+"_a_key",text:assigned[a][1]});
@@ -742,7 +742,7 @@ class panelLogic {
                 e.data.arg1.setManualAssignee(e.data.arg2);
                 //e.data.arg1.shadeByUse(e.data.arg2);
             })
-            let a_li = $("<li />");
+            let a_li = document.createElement('li');
             $(a_li).append(a_s);
             $(a_ul).append(a_li);
         }
