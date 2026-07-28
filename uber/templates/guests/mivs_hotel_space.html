@@ -83,7 +83,7 @@
               document.getElementById('confirm_text').text('I have taken care of my own hotel accommodations for MAGFest.')
           }
 
-          setVisible($.field('confirm_checkbox').parents('.form-group'), (document.getElementById('needs_hotel_space') ? document.getElementById('needs_hotel_space').value : ''));
+          setVisible(getField('confirm_checkbox').parents('.form-group'), (document.getElementById('needs_hotel_space') ? document.getElementById('needs_hotel_space').value : ''));
           setVisible(document.querySelectorAll('.hotel_link'), (document.getElementById('needs_hotel_space') ? document.getElementById('needs_hotel_space').value : '') == '1');
       };
       document.addEventListener(\"DOMContentLoaded\", function () {

@@ -37,11 +37,11 @@
     }
 
     var recordMPointExchange = function () {
-        $.post('record_old_mpoint_exchange', {
+        fetch('record_old_mpoint_exchange', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({
             badge_num_or_qr_code:  (document.getElementById('badge_num_or_qr_code') ? document.getElementById('badge_num_or_qr_code').value : ''),
             amount: (document.getElementById('num_mpoints') ? document.getElementById('num_mpoints').value : ''),
             csrf_token: csrf_token
-        }, function(json) {
+        }) }).then(r => r.json()).then(function(json) {
             resetForms();
             if (json.success) {
                 document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message);
@@ -57,7 +57,7 @@
        }, 'json');
     };
     var undoMPointExchange = function (id) {
-        $.post('undo_mpoint_exchange', {'id': id, csrf_token: csrf_token}, function(s) {
+        fetch('undo_mpoint_exchange', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({'id': id, csrf_token: csrf_token}) }).then(r => r.json()).then(function(s) {
             document.getElementById('message').html(s);
         });
     };

@@ -373,23 +373,23 @@
         {% include "region_opts.html" %}
         <script type="text/javascript">
           var showOrHideDeliveryHint = function() {
-            setVisible('#delivery_hint', $.val('delivery_method') == "{{ c.SHIPPING }}");
+            setVisible('#delivery_hint', getVal('delivery_method') == "{{ c.SHIPPING }}");
           }
 
           var showOrHidePayoutExtraFields = function() {
-            setVisible($.field('paypal_email').parents('.form-group'), $.val('payout_method') == "{{ c.PAYPAL }}");
-            $.field('paypal_email').prop('required', $.val('payout_method') == "{{ c.PAYPAL }}");
-            $("label[for='paypal_email']").toggleClass('optional-field', $.val('payout_method') != "{{ c.PAYPAL }}");
+            setVisible(getField('paypal_email').parents('.form-group'), getVal('payout_method') == "{{ c.PAYPAL }}");
+            getField('paypal_email').prop('required', getVal('payout_method') == "{{ c.PAYPAL }}");
+            $("label[for='paypal_email']").toggleClass('optional-field', getVal('payout_method') != "{{ c.PAYPAL }}");
 
-            setVisible('#payout_address', $.val('payout_method') == "{{ c.CHECK }}");
-            $.field('check_payable').prop('required', $.val('payout_method') == "{{ c.CHECK }}");
-            $("label[for='check_payable']").toggleClass('optional-field', $.val('payout_method') != "{{ c.CHECK }}");
+            setVisible('#payout_address', getVal('payout_method') == "{{ c.CHECK }}");
+            getField('check_payable').prop('required', getVal('payout_method') == "{{ c.CHECK }}");
+            $("label[for='check_payable']").toggleClass('optional-field', getVal('payout_method') != "{{ c.CHECK }}");
             {% for field_name in ['country', 'address1', 'city', 'region', 'zip_code'] %}
-            $.field('check_{{ field_name }}').prop('required', $.val('payout_method') == "{{ c.CHECK }}");
-            $("label[for='check_{{ field_name }}']").toggleClass('optional-field', $.val('payout_method') != "{{ c.CHECK }}");
+            getField('check_{{ field_name }}').prop('required', getVal('payout_method') == "{{ c.CHECK }}");
+            $("label[for='check_{{ field_name }}']").toggleClass('optional-field', getVal('payout_method') != "{{ c.CHECK }}");
             {% endfor %}
             // I STILL hate Select2Autocomplete
-            $.field('check_country').next().prop('required', $.val('payout_method') == "{{ c.CHECK }}");
+            getField('check_country').next().prop('required', getVal('payout_method') == "{{ c.CHECK }}");
           }
 
           var deleteTrack = function(id) {
@@ -424,7 +424,7 @@
           }
 
             var showOrHideRockIsland = function() {
-                var isRockIsland = $.val('selling_merch') == "{{ c.ROCK_ISLAND }}";
+                var isRockIsland = getVal('selling_merch') == "{{ c.ROCK_ISLAND }}";
                 setVisible('#rockisland', isRockIsland);
                 setVisible('#music-sample', isRockIsland);
 
@@ -541,13 +541,13 @@
 
             document.addEventListener(\"DOMContentLoaded\", function () {
                 showOrHideRockIsland();
-                $.field('selling_merch').on('change', showOrHideRockIsland);
+                getField('selling_merch').on('change', showOrHideRockIsland);
 
                 showOrHideDeliveryHint();
-                $.field('delivery_method').on('change', showOrHideDeliveryHint);
+                getField('delivery_method').on('change', showOrHideDeliveryHint);
 
                 showOrHidePayoutExtraFields();
-                $.field('payout_method').on('change', showOrHidePayoutExtraFields);
+                getField('payout_method').on('change', showOrHidePayoutExtraFields);
 
                 $("form[action='merch']").submit(function(event) {
                   var formToSubmit = this;

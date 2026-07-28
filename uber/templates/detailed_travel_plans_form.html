@@ -17,7 +17,7 @@
     };
 
     var showOrHideDetailedTravels = function () {
-        var count = $.val('detailed_travels'),
+        var count = getVal('detailed_travels'),
             $template = $('#travel_form_template > .card'),
             $ops = $('#travels_container > .card');
         setVisible('#travels_container', count);
@@ -119,7 +119,7 @@
 
     document.addEventListener(\"DOMContentLoaded\", function () {
         showOrHideDetailedTravels();
-        $.field('detailed_travels').on('change', showOrHideDetailedTravels);
+        getField('detailed_travels').on('change', showOrHideDetailedTravels);
 
         // Move the template out of the <form> tag to avoid validation errors
         document.getElementById('travel_form_template').appendTo($('body'));

@@ -3,11 +3,11 @@
 
 <script>
     showOrHideAddress = function () {
-        setVisible('#address-row', $.field('want_to_sell').is(':checked'));
+        setVisible('#address-row', getField('want_to_sell').is(':checked'));
     };
     document.addEventListener(\"DOMContentLoaded\", function () {
         showOrHideAddress();
-        $.field('want_to_sell').on('click', showOrHideAddress);
+        getField('want_to_sell').on('click', showOrHideAddress);
     });
 </script>
 

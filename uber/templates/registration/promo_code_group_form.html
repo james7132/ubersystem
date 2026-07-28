@@ -3,8 +3,8 @@
 {% block content %}
   <script type="text/javascript">
   var setBuyerLink = function () {
-        if ($.field('buyer_id')) {
-            var buyer = $.val('buyer_id');
+        if (getField('buyer_id')) {
+            var buyer = getVal('buyer_id');
             if (buyer === '') {
                 (document.getElementById('buyer_link') ? document.getElementById('buyer_link').style.display = 'none' : null);
                 (document.getElementById('new_buyer') ? document.getElementById('new_buyer').style.display = 'none' : null);

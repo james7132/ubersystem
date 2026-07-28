@@ -107,7 +107,7 @@
     document.addEventListener(\"DOMContentLoaded\", function () {
         disableSizeOpts();
         document.getElementById('shirt_opt_out_select').on('change', disableSizeOpts);
-        if($.field('num_event_shirts')) {
+        if(getField('num_event_shirts')) {
             showOrHideSizeOpts();
             $('input[name="num_event_shirts"]').bind('change',showOrHideSizeOpts);
         }

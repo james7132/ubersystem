@@ -14,12 +14,12 @@
   </div>
   <script type="text/javascript">
       var showOrHideTaxInfo = function() {
-          setVisible('#tax-info', $.val('selling_merch') === {{ c.OWN_TABLE }});
-          $.field('tax_phone').prop('required', $.val('selling_merch') === {{ c.OWN_TABLE }});
+          setVisible('#tax-info', getVal('selling_merch') === {{ c.OWN_TABLE }});
+          getField('tax_phone').prop('required', getVal('selling_merch') === {{ c.OWN_TABLE }});
       };
       document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideTaxInfo();
-          $.field('selling_merch').on('change', showOrHideTaxInfo);
+          getField('selling_merch').on('change', showOrHideTaxInfo);
       });
   </script>
 {% endblock %}

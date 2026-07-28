@@ -345,7 +345,7 @@
                         }
                     }
                     if (json.minor_check) {
-                        loadMinorCheckCartForm(pickupGroupID, $.val('printer_id'), json.num_adults);
+                        loadMinorCheckCartForm(pickupGroupID, getVal('printer_id'), json.num_adults);
                     } else {
                         checkInModal.hide();
                         document.getElementById('message-alert').addClass("alert-success").show().children('span').html(json.message);

@@ -208,20 +208,20 @@
   {% else %}
     <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-      if($.field('guest_group_type') && $.field('guest_group_type').length) {
+      if(getField('guest_group_type') && getField('guest_group_type').length) {
         var autoTypeAndRibbon = function() {
-          if($.val('guest_group_type') != '0' && $.val('guest_group_type') != '{{ c.MIVS }}') {
-            $.field('new_badge_type').val('{{ c.GUEST_BADGE }}');
+          if(getVal('guest_group_type') != '0' && getVal('guest_group_type') != '{{ c.MIVS }}') {
+            getField('new_badge_type').val('{{ c.GUEST_BADGE }}');
           } else {
-            $.field('new_badge_type').val('{{ c.ATTENDEE_BADGE }}');
+            getField('new_badge_type').val('{{ c.ATTENDEE_BADGE }}');
           }
-          if ($.val('guest_group_type') == '{{ c.BAND }}') {
+          if (getVal('guest_group_type') == '{{ c.BAND }}') {
             $(':checkbox[value={{ c.BAND }}]').prop("checked","true");
           } else {
             $(':checkbox[value={{ c.BAND }}]').prop("checked",false);
           }
         };
-        $.field('guest_group_type').change(autoTypeAndRibbon);
+        getField('guest_group_type').change(autoTypeAndRibbon);
         autoTypeAndRibbon();
     }});
     </script>

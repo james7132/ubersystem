@@ -21,11 +21,11 @@
 {% else %}
   <script type="text/javascript">
       var showOrHideInterviewOpts = function() {
-          setVisible(document.querySelectorAll('.interview-opts'), $.field("will_interview").is(":checked"));
+          setVisible(document.querySelectorAll('.interview-opts'), getField("will_interview").is(":checked"));
       };
       document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideInterviewOpts();
-          $.field("will_interview").on('click', showOrHideInterviewOpts);
+          getField("will_interview").on('click', showOrHideInterviewOpts);
       });
   </script>
 

@@ -3,7 +3,7 @@
 {% block content %}
 <script type="text/javascript">
     var undoSale = function(id) {
-        $.post('undo_sale', {id: id, csrf_token: csrf_token}, function(message) {
+        fetch('undo_sale', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({id: id, csrf_token: csrf_token}) }).then(r => r.json()).then(function(message) {
             hideMessageBox();
             window.location.replace('new?message=' + message);
         });

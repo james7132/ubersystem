@@ -94,9 +94,9 @@
             attendee_ids.push(attendee_id);
         });
         console.log(attendee_ids);
-        $.post('add_multiple_accounts', {attendee_ids: attendee_ids.join(), 
+        fetch('add_multiple_accounts', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({attendee_ids: attendee_ids.join(), 
                                          account_emails: account_emails.join(),
-                                         csrf_token: csrf_token}, function(s) {
+                                         csrf_token: csrf_token}) }).then(r => r.json()).then(function(s) {
             var sep = location.href.indexOf('?') === -1 ? '?' : '&';
             location.href += sep + 'message=' + encodeURIComponent(s);
         });

@@ -95,7 +95,7 @@ get otherCategory() { return this.categories.includes('{{ c.OTHER }}') },
       </div>
       <script type="text/javascript">
         var unapprove = function(action, convert) {
-          if (!$.val("email_text")) {
+          if (!getVal("email_text")) {
             document.getElementById('setstatus').prepend('<div style="color:red">You must enter an email message.</div>');
           } else {
             $("button").attr("disabled", true);
@@ -104,7 +104,7 @@ get otherCategory() { return this.categories.includes('{{ c.OTHER }}') },
               action: action,
               convert: convert,
               csrf_token: csrf_token,
-              email_text: $.val("email_text")
+              email_text: getVal("email_text")
             }, function(json) {
               if (json.message) {
                 window.location = "index?message="+ json.message + "#dealers";

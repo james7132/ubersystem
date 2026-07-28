@@ -92,11 +92,11 @@
     });
     {% if event.is_new %}
         var showOrHidePanelDetails = function() {
-            setVisible(".card-details", !($.val('panel_id')))
+            setVisible(".card-details", !(getVal('panel_id')))
         };
         document.addEventListener(\"DOMContentLoaded\", function () {
             showOrHidePanelDetails();
-            $.field('panel_id').on('change', showOrHidePanelDetails);
+            getField('panel_id').on('change', showOrHidePanelDetails);
         });
     {% endif %}
 </script>

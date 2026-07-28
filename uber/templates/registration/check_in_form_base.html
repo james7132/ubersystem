@@ -203,7 +203,7 @@ document.addEventListener(\"DOMContentLoaded\", function () {
 <script type="text/javascript">
     var changeButtonLabel = function () {
         if ((document.getElementById('printer_id') ? document.getElementById('printer_id').value : '') != printer_id) {
-            document.getElementById('printAndOrCheckIn')[0].innerHTML = "Print to " + $.val('printer_id') + " & Check In";
+            document.getElementById('printAndOrCheckIn')[0].innerHTML = "Print to " + getVal('printer_id') + " & Check In";
             document.getElementById('printAndOrCheckIn').removeClass('btn-success');
             document.getElementById('printAndOrCheckIn').addClass('btn-warning');
         } else {
@@ -241,7 +241,7 @@ document.addEventListener(\"DOMContentLoaded\", function () {
                     hideMessageBox('form-validations-check_in_form_' + attendeeID);
                     if (json.success) {
                         if (json.minor_check) {
-                            loadMinorCheckForm(attendeeID, $.val('printer_id'));
+                            loadMinorCheckForm(attendeeID, getVal('printer_id'));
                         } else {
                             checkIn(attendeeID);
                         }
@@ -257,11 +257,11 @@ document.addEventListener(\"DOMContentLoaded\", function () {
     }
 
     age = {{ attendee.age_now_or_at_con|default(0, true) }};
-    if (age < 18 && $.field('printer_id')) {
-        $.field('printer_id').val(minor_printer_id);
+    if (age < 18 && getField('printer_id')) {
+        getField('printer_id').val(minor_printer_id);
         if(document.getElementById('printAndOrCheckIn').length) { changeButtonLabel(); }
-    } else if (age >= 18 && $.field('printer_id')) {
-        $.field('printer_id').val(printer_id);
+    } else if (age >= 18 && getField('printer_id')) {
+        getField('printer_id').val(printer_id);
         if(document.getElementById('printAndOrCheckIn').length) { changeButtonLabel(); }
     }
 </script>

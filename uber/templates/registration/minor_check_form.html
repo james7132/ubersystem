@@ -27,8 +27,8 @@
 <script type="text/javascript">
     var changeButtonLabel = function () {
         var old_printer_id = "{{ printer_id }}";
-        if ($.val('printer_id') != old_printer_id) {
-            document.getElementById('completeMinorCheckButton')[0].innerHTML = "Print to " + $.val('printer_id') + " Instead";
+        if (getVal('printer_id') != old_printer_id) {
+            document.getElementById('completeMinorCheckButton')[0].innerHTML = "Print to " + getVal('printer_id') + " Instead";
             document.getElementById('completeMinorCheckButton').removeClass('btn-success');
             document.getElementById('completeMinorCheckButton').addClass('btn-warning');
         } else {
@@ -50,7 +50,7 @@
         data: {
             pickup_group_id: pickupGroupID,
             attendee_id: attendeeID,
-            printer_id: $.val('printer_id'),
+            printer_id: getVal('printer_id'),
         },
         success: function (json) {
             hideMessageBox();

@@ -180,14 +180,14 @@
 </form>
 <script type="text/javascript">
 var deleteDoc = function (id) {
-    $.post('delete_document', {id: id, csrf_token: csrf_token}, function(message) {
+    fetch('delete_document', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({id: id, csrf_token: csrf_token}) }).then(r => r.json()).then(function(message) {
         hideMessageBox();
         document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
         $('#' + id).remove();
     });
 };
 var deletePic = function (id) {
-    $.post('delete_picture', {id: id, csrf_token: csrf_token}, function(message) {
+    fetch('delete_picture', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({id: id, csrf_token: csrf_token}) }).then(r => r.json()).then(function(message) {
         hideMessageBox();
         document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
         $('#' + id).remove();
@@ -197,12 +197,12 @@ document.addEventListener(\"DOMContentLoaded\", function () {
     ageToDesc = {{ c.MITS_DESC_BY_AGE|tojson }};
     explanationAges = [{{ c.TEEN }}, {{ c.MATURE }}, {{ c.ADULT }}]
     showAgeDesc = function() {
-        document.getElementById('age_desc').text(ageToDesc[$.val('min_age')]);
+        document.getElementById('age_desc').text(ageToDesc[getVal('min_age')]);
     };
     showOrHideAgeExplanation = function() {
-        $('[name="age_explanation"').parents('.form-group').toggle(explanationAges.indexOf($.val('min_age')) != -1)
+        $('[name="age_explanation"').parents('.form-group').toggle(explanationAges.indexOf(getVal('min_age')) != -1)
     };
-    $.field('min_age').on('change', function() {
+    getField('min_age').on('change', function() {
         showAgeDesc();
         showOrHideAgeExplanation();
     });

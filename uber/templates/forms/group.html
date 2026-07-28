@@ -55,7 +55,7 @@
   </div>
   <script type="text/javascript">
     var unapprove = function(action, convert) {
-      if (!$.val("email_text")) {
+      if (!getVal("email_text")) {
         document.getElementById('setstatus').prepend('<div style="color:red">You must enter an email message.</div>');
       } else {
         $("button").attr("disabled", true);
@@ -64,7 +64,7 @@
           action: action,
           convert: convert,
           csrf_token: csrf_token,
-          email_text: $.val("email_text")
+          email_text: getVal("email_text")
         }, function(json) {
           if (json.message) {
             window.location = "index?message="+ json.message + "#dealers";
@@ -377,7 +377,7 @@
 {# Always read-only #}
 <script type="text/javascript">
     document.addEventListener(\"DOMContentLoaded\", function () {
-        document.getElementById('bold-field-message').insertBefore($.field('name').parents('.form-group'));
+        document.getElementById('bold-field-message').insertBefore(getField('name').parents('.form-group'));
     });
 </script>
 <div id="group-explanation" class="form-group group_fields">
@@ -543,10 +543,10 @@
   </style>
   <script type="text/javascript">
   var optionalOrNotLeader = function () {
-    document.querySelectorAll('.leader_info').toggleClass('optional-field', !($.val('group_type')));
+    document.querySelectorAll('.leader_info').toggleClass('optional-field', !(getVal('group_type')));
   }
   optionalOrNotLeader();
-  $.field('group_type').on('change', optionalOrNotLeader);
+  getField('group_type').on('change', optionalOrNotLeader);
   </script>
 {% endif %}
 {% endif %}

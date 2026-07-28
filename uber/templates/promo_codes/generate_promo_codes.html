@@ -177,11 +177,11 @@ var onIsSinglePromoCodeClicked = function(isSinglePromoCode) {
     if (isSinglePromoCode) {
         document.getElementById('is_single').addClass('active');
         document.getElementById('is_multi').removeClass('active');
-        $.field('is_single_promo_code').val(1);
+        getField('is_single_promo_code').val(1);
     } else {
         document.getElementById('is_single').removeClass('active');
         document.getElementById('is_multi').addClass('active');
-        $.field('is_single_promo_code').val(0);
+        getField('is_single_promo_code').val(0);
     }
 };
 
@@ -221,7 +221,7 @@ document.addEventListener(\"DOMContentLoaded\", function () {
         e.preventDefault();
         $('#promo-code-tabs a').removeClass('active');
         $(this).addClass('active').tab('show');
-        $.field('is_single_promo_code').val($(this).data('is_single_promo_code'));
+        getField('is_single_promo_code').val($(this).data('is_single_promo_code'));
     });
 
     onDiscountTypeChanged();

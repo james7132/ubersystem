@@ -134,9 +134,9 @@
       event.preventDefault();
       var eventId = $signupModal.data('eventId');
       var params = {
-        first_name: $.val('first_name'),
-        last_name: $.val('last_name'),
-        email: $.val('email'),
+        first_name: getVal('first_name'),
+        last_name: getVal('last_name'),
+        email: getVal('email'),
         zip_code: $('[name="zip_code"]').val() // keep leading 0, if present
       };
       signupForEvent(eventId, params, function (response) {

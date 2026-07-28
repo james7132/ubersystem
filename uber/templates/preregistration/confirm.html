@@ -11,7 +11,7 @@
       {% endif %}
       {% if attendee.amount_extra and not attendee.amount_unpaid %}
           setTimeout(function () {  // make sure this happens after jQuery.select2
-              $.field('amount_extra').find('option').each(function(){
+              getField('amount_extra').find('option').each(function(){
                   if ($(this).val() < {{ attendee.amount_extra }}) {
                       $(this).remove();
                   }

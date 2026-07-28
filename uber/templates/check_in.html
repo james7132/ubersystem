@@ -129,7 +129,7 @@ var checkIn = function (attendeeID) {
     });
 };
 var undoCheckIn = function (id, pre_badge) {
-    $.post('undo_checkin', {id: id, csrf_token: csrf_token, pre_badge: pre_badge}, function(s) {
+    fetch('undo_checkin', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({id: id, csrf_token: csrf_token, pre_badge: pre_badge}) }).then(r => r.json()).then(function(s) {
         var sep = location.href.indexOf('?') === -1 ? '?' : '&';
         location.href += sep + 'message=' + encodeURIComponent(s);
     });

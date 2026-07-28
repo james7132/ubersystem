@@ -88,7 +88,7 @@
             document.addEventListener(\"DOMContentLoaded\", function () {
                 var $showLink = document.getElementById('show-link'), $markForm = document.getElementById('mark-form');
                 {% if game.status in c.FINAL_MIVS_GAME_STATUSES %}
-                    $.field('status').val({{ game.status }});
+                    getField('status').val({{ game.status }});
                     $showLink
                         .append(`<p>This game has already been marked as {{ game.status_label }}, but you can edit it by
                                 <a href="#results">clicking here</a>.</p>`).on('click', function () {

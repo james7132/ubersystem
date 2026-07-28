@@ -4,13 +4,13 @@
 
 <script>
     var showOrHideForm = function () {
-        setVisible('#formcontent', $.field('needs').prop('checked') && !$.field('defer').prop('checked'));
+        setVisible('#formcontent', getField('needs').prop('checked') && !getField('defer').prop('checked'));
     };
     var showOrHideCash = function () {
-        setVisible('#cash', $.field('needs_cash').prop('checked'));
+        setVisible('#cash', getField('needs_cash').prop('checked'));
     };
     var showOrHideMPoints = function () {
-        setVisible('#mpoints', $.field('needs_mpoints').prop('checked'));
+        setVisible('#mpoints', getField('needs_mpoints').prop('checked'));
     };
     var showOrHideComments = function() {
         document.getElementById('comments').toggle();

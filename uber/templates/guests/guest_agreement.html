@@ -142,11 +142,11 @@
 
   <script>
       var showOrHideVehicleInfo = function () {
-          setVisible('#vehicle-info', $.field('bringing_vehicle').prop('checked'));
+          setVisible('#vehicle-info', getField('bringing_vehicle').prop('checked'));
       };
       document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideVehicleInfo();
-          $.field('bringing_vehicle').on('click', showOrHideVehicleInfo);
+          getField('bringing_vehicle').on('click', showOrHideVehicleInfo);
       });
   </script>
 

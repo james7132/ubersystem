@@ -54,11 +54,11 @@
 
   <script>
       var showOrHideDonation = function () {
-          setVisible('#donating_yes', $.val('donating') === {{ c.DONATING }});
+          setVisible('#donating_yes', getVal('donating') === {{ c.DONATING }});
       };
       document.addEventListener(\"DOMContentLoaded\", function () {
           showOrHideDonation();
-          $.field('donating').on('change', showOrHideDonation);
+          getField('donating').on('change', showOrHideDonation);
       });
   </script>
 {% endif %}

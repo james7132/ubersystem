@@ -152,7 +152,7 @@
 
 <script type="text/javascript">
   var updateFormForModel = function() {
-    var which_import = $.field('which_import').val();
+    var which_import = getField('which_import').val();
 
     if(which_import == 'accounts' || which_import == 'groups') {
       document.getElementById('query').prop('required', false);
@@ -164,7 +164,7 @@
   };
   document.addEventListener(\"DOMContentLoaded\", function () {
     updateFormForModel();
-      $.field('which_import').on('change', updateFormForModel);
+      getField('which_import').on('change', updateFormForModel);
   });
 </script>
 

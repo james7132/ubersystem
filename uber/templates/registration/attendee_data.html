@@ -68,8 +68,8 @@ var deleteAttendee = function(confirm_msg) {
   }
 }
 $(window).on("runJavaScript", function () {
-if($.field('return_to')) {
-    $.field('return_to').val(window.location.pathname + window.location.search);
+if(getField('return_to')) {
+    getField('return_to').val(window.location.pathname + window.location.search);
   }
 })
 </script>
