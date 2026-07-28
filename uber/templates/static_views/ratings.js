@@ -55,7 +55,7 @@
                     comment: '',
                     csrf_token: csrf_token
                 };
-                $.post('../shifts_admin/rate', params, function (json) {
+                fetch('../shifts_admin/rate', { method: 'POST', body: new URLSearchParams(params) }).then(r => r.json()).then(function(json) {
                     $container.find('img').each(function () {
                         let r = $(this).data('rating');
                         $(this)
@@ -118,7 +118,7 @@
             csrf_token: csrf_token
         };
 
-         $.post('../shifts_admin/rate', params, function (jsonResponse) {
+         fetch('../shifts_admin/rate', { method: 'POST', body: new URLSearchParams(params) }).then(r => r.json()).then(function(jsonResponse) {
             //Update our copy in memory of the shift
             let updatedShift = jsonResponse.shift;
             shift.rating = updatedShift.rating;

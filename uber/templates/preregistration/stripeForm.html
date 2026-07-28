@@ -102,8 +102,7 @@ var callStripeAction = function (autoTrigger=false) {
         stripe_action_params['{{ key }}'] = '{{ val }}';
     {% endfor %}
     stripe_action_params.csrf_token = csrf_token;
-    $.post('{{ action }}', stripe_action_params, 
-    function(result) {
+    fetch('{{ action }}', { method: 'POST', body: new URLSearchParams(stripe_action_params) }).then(r => r.json()).then(function(result) {
         if (autoTrigger == false) { $btn.prop('disabled', false); }
         if (result.error) {
             showErrorMessage(result.error);

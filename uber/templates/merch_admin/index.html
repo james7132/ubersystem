@@ -72,7 +72,7 @@
             shirt_size: shirtSize || null,
             give_swadge: giveSwadge ? 'true' : ''
         };
-        $.post('give_merch', params, function(json) {
+        fetch('give_merch', { method: 'POST', body: new URLSearchParams(params) }).then(r => r.json()).then(function(json) {
             $('[id^=give-merch-btn]').attr('disabled', false);
 
             if (!json.success) {
@@ -97,7 +97,7 @@
             csrf_token: csrf_token,
             staff_merch: staffMerch
         };
-        $.post('take_back_merch', params, function (message) {
+        fetch('take_back_merch', { method: 'POST', body: new URLSearchParams(params) }).then(r => r.json()).then(function(message) {
             document.getElementById('message-alert').addClass("alert-info").show().children('span').html(message);
             document.getElementById('badge_num_or_qr_code').focus();
         });
@@ -121,7 +121,7 @@
             badge_num_or_qr_code: (document.getElementById('badge_num_or_qr_code') ? document.getElementById('badge_num_or_qr_code').value : ''),
             csrf_token: csrf_token
         };
-        $.post('redeem_merch_discount', params, function (json) {
+        fetch('redeem_merch_discount', { method: 'POST', body: new URLSearchParams(params) }).then(r => r.json()).then(function(json) {
             if (!json.message) {
                 resetForms();
                 showErrorMessage(json.error || 'An unexpected error occurred.');
@@ -132,7 +132,7 @@
                 document.getElementById('redeem-discount').on('click.redeemdiscount', function () {
                     document.getElementById('redeem-discount').attr('disabled', true);
                     params.apply = 'true';
-                    $.post('redeem_merch_discount', params, function (json) {
+                    fetch('redeem_merch_discount', { method: 'POST', body: new URLSearchParams(params) }).then(r => r.json()).then(function(json) {
                         resetForms();
                         let alertClass = json.error ? 'alert-danger' : 'alert-info';
                         document.getElementById('message-alert').addClass("alert-info").show().children('span').html(json.message || json.error);

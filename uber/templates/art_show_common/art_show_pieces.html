@@ -181,7 +181,7 @@
         serializedData += '&' + submit_button_name + '=1';
       }
       var alertId = $(this).find('.alert-dismissible').first().prop('id');
-      $.post($form.prop('action'), serializedData, function(result) {
+      fetch($form.prop('action'), { method: 'POST', body: new URLSearchParams(serializedData) }).then(r => r.json()).then(function(result) {
         history.replaceState({}, document.title, window.location.pathname + '?id={{ app.id }}');
         hideMessageBox(alertId);
         if (result.error) {

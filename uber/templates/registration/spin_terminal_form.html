@@ -52,8 +52,7 @@
   }
   let return_json = {}
   var pollTerminalPayment = function (callback) {
-    $.post('../registration/poll_terminal_payment',
-    {csrf_token: csrf_token}, function(json) {
+    fetch('../registration/poll_terminal_payment', { method: 'POST', body: new URLSearchParams({csrf_token: csrf_token}) }).then(r => r.json()).then(function(json) {
       if (json && json.success) {
         document.getElementById('payment-loading-message').html("Payment successful!");
         clearInterval(intervalId);

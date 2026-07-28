@@ -159,7 +159,7 @@ Choose an option below to give them access to their badge.{% if attendee.group a
     var validatedEmail = '';
     var existingAccountId = '';
     var checkAccountEmail = function($form) {
-      $.post("../registration/check_account_email", $form.serialize(), function (result) {
+      fetch("../registration/check_account_email", { method: 'POST', body: new URLSearchParams($form.serialize()) }).then(r => r.json()).then(function(result) {
         if (result.success) {
           validatedEmail = (document.getElementById('account-email') ? document.getElementById('account-email').value : '');
           checkAccountEmailPassed = true;

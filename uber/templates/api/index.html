@@ -23,7 +23,7 @@
       $createApiTokenForm.on('submit', function(event) {
         event.preventDefault();
         $btn.prop('disabled', true);
-        $.post('create_api_token', $createApiTokenForm.serialize(), function(result) {
+        fetch('create_api_token', { method: 'POST', body: new URLSearchParams($createApiTokenForm.serialize()) }).then(r => r.json()).then(function(result) {
           $btn.prop('disabled', false);
           if (result.error) {
             showErrorMessage(result.error);

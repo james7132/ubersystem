@@ -76,8 +76,7 @@
             data.push({name: 'new_vals', value: element})
         });
 
-        $.post("get_receipt_preview", $.param(data),
-        function(result) {
+        fetch("get_receipt_preview", { method: 'POST', body: new URLSearchParams($.param(data)) }).then(r => r.json()).then(function(result) {
           if (result.error) {
             showErrorMessage(result.error, 'upgrade-message-alert');
           } else {
@@ -118,7 +117,7 @@
         $btn = $form.find('button[type=submit]');
         event.preventDefault();
         $btn.prop('disabled', true);
-        $.post('purchase_upgrades', $form.serialize(), function(result) {
+        fetch('purchase_upgrades', { method: 'POST', body: new URLSearchParams($form.serialize()) }).then(r => r.json()).then(function(result) {
             $btn.prop('disabled', false);
             if (result.error) {
                 showErrorMessage(result.error, 'upgrade-message-alert');

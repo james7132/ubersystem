@@ -304,7 +304,7 @@
   };
 
   var addPayment = function ($form, $btn) {
-    $.post('add_receipt_txn', $form.serialize(), function(result) {
+    fetch('add_receipt_txn', { method: 'POST', body: new URLSearchParams($form.serialize()) }).then(r => r.json()).then(function(result) {
       $btn.prop('disabled', false);
       hideMessageBox();
       if (result.error) {
@@ -490,7 +490,7 @@
       $btn = $form.find('button[type=submit]');
       event.preventDefault();
       $btn.prop('disabled', true);
-      $.post('add_receipt_item', $form.serialize(), function(result) {
+      fetch('add_receipt_item', { method: 'POST', body: new URLSearchParams($form.serialize()) }).then(r => r.json()).then(function(result) {
         hideMessageBox();
         $btn.prop('disabled', false);
         if (result.error) {
