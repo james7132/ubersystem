@@ -8,7 +8,7 @@
     {{ "deps/combined.min.js"|serve_static_content }}
     <script type="text/javascript">
         document.addEventListener(\"DOMContentLoaded\", function () {
-            $.get("dealerRules.html", function(rules) {
+            fetch("dealerRules.html").then(function(res) { return res.text(); }).then(function(rules) {
                 $("#rules").html(rules);
             });
         });
