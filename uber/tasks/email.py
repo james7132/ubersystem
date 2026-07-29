@@ -19,7 +19,15 @@ from uber.email import EmailService
 from uber.models import AutomatedEmail, Email, MagModel, UberSession, Session
 from uber.tasks import celery
 
+from typing import NamedTuple
+
 log = logging.getLogger(__name__)
+
+
+class PendingEmailCount(NamedTuple):
+    """Record container for pending automated email report count."""
+    email: AutomatedEmail
+    count: int
 
 
 __all__ = ['notify_admins_of_pending_emails', 'send_automated_emails', 'send_email', 'check_emails_for_fixture']
@@ -56,7 +64,7 @@ def notify_admins_of_pending_emails():
         depts_by_sender = EmailService.emails_from_depts(session)
 
         for email in pending_automated_emails:
-            pending_emails_by_sender[email.sender].append({email: pending_count_by_id[email.id]})
+            pending_emails_by_sender[email.sender].append(PendingEmailCount(email=email, count=pending_count_by_id[email.id]))
 
         for sender, automated_emails in pending_emails_by_sender.items():
             if sender == c.REPORTS_CC_EMAIL:

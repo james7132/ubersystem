@@ -7,7 +7,17 @@ from pytz import UTC
 from sqlalchemy import and_, exists, or_, func, select, not_
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.types import DateTime, Uuid
-from typing import ClassVar
+from typing import Any, ClassVar, NamedTuple
+
+class SignNowTextField(NamedTuple):
+    """Record container for SignNow document text fields."""
+    page_number: int
+    data: str
+    x: int
+    y: int
+    font: str
+    line_height: int
+    size: int
 
 from uber.config import c
 from uber.custom_tags import format_currency
@@ -122,7 +132,7 @@ class Group(MagModel, TakesPaymentMixin, table=True):
             return attendee.purchaser_id
 
     @property
-    def signnow_texts_list(self):
+    def signnow_texts_list(self) -> list[dict[str, Any]]:
         """
         Returns a list of JSON representing uneditable texts fields to use for this group's document in SignNow.
         """
@@ -133,20 +143,20 @@ class Group(MagModel, TakesPaymentMixin, table=True):
 
         texts_config = [(self.name, 73, 392), (self.email, 73, 436), (self.id, 200, 748)]
 
-        texts = []
+        texts: list[SignNowTextField] = []
 
         for field, x, y in texts_config:
-            texts.append({
-                "page_number": page_number,
-                "data":        field,
-                "x":           x,
-                "y":           y,
-                "font":        textFont,
-                "line_height": textLineHeight,
-                "size":        6 if field == self.id else textSize,
-            })
+            texts.append(SignNowTextField(
+                page_number=page_number,
+                data=field,
+                x=x,
+                y=y,
+                font=textFont,
+                line_height=textLineHeight,
+                size=6 if field == self.id else textSize,
+            ))
 
-        return texts
+        return [t._asdict() for t in texts]
 
     @property
     def signnow_document_signed(self):

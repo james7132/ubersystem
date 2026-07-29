@@ -44,6 +44,14 @@ class DonationTierRecord(NamedTuple):
     all_descriptions: list[tuple[str, str]] = []
     value: int = 0
 
+
+class BadgeTypeRecord(NamedTuple):
+    """Record container for formatted badge type options."""
+    name: str
+    desc: str
+    value: Any
+    price: int
+
 plugins_dir = pathlib.Path(__file__).parents[1] / "plugins"
 
 def reset_threadlocal():
@@ -679,31 +687,31 @@ class Config(_Overridable):
         return badge_types
 
     @property
-    def FORMATTED_BADGE_TYPES(self):
-        badge_types = []
+    def FORMATTED_BADGE_TYPES(self) -> list[BadgeTypeRecord]:
+        badge_types: list[BadgeTypeRecord] = []
         if c.AT_THE_CON and self.ONE_DAYS_ENABLED:
             if self.PRESELL_ONE_DAYS:
                 badge_types.extend(self.build_presold_one_days())
             elif self.ONE_DAY_BADGE_AVAILABLE:
-                badge_types.append({
-                    'name': 'Single Day',
-                    'desc': 'Can be upgraded to an Attendee badge later.',
-                    'value': c.ONE_DAY_BADGE,
-                    'price': c.ONEDAY_BADGE_PRICE
-                })
-        badge_types.append({
-            'name': 'Attendee',
-            'desc': 'Allows access to the convention for its duration.',
-            'value': c.ATTENDEE_BADGE,
-            'price': c.get_attendee_price()
-            })
+                badge_types.append(BadgeTypeRecord(
+                    name='Single Day',
+                    desc='Can be upgraded to an Attendee badge later.',
+                    value=c.ONE_DAY_BADGE,
+                    price=c.ONEDAY_BADGE_PRICE,
+                ))
+        badge_types.append(BadgeTypeRecord(
+            name='Attendee',
+            desc='Allows access to the convention for its duration.',
+            value=c.ATTENDEE_BADGE,
+            price=c.get_attendee_price(),
+        ))
         for badge_type in sorted(c.BADGE_TYPE_PRICES, key=c.BADGE_TYPE_PRICES.get):
-            badge_types.append({
-                'name': c.BADGES[badge_type],
-                'desc': 'Donate extra to get an upgraded badge with perks.',
-                'value': badge_type,
-                'price': c.BADGE_TYPE_PRICES[badge_type]
-            })
+            badge_types.append(BadgeTypeRecord(
+                name=c.BADGES[badge_type],
+                desc='Donate extra to get an upgraded badge with perks.',
+                value=badge_type,
+                price=c.BADGE_TYPE_PRICES[badge_type],
+            ))
         return badge_types
 
     @request_cached_property

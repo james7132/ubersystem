@@ -13,7 +13,15 @@ from uber.forms import load_forms
 from uber.models import Attendee, Job, FoodRestrictions
 from uber.utils import check_csrf, create_valid_user_supplied_redirect_url, ensure_csrf_token_exists, localized_now, extract_urls, validate_model
 
+from typing import Any, NamedTuple
+
 log = logging.getLogger(__name__)
+
+
+class ShiftFilterOption(NamedTuple):
+    """Record container for shift filter options."""
+    id: Any
+    title: str
 
 
 def _convert_urls(desc):
@@ -279,15 +287,15 @@ class Root:
                 event_dates.append(day.strftime('%Y-%m-%d'))
             day += timedelta(days=1)
 
-        default_filters = [{'id': 'public_assigned', 'title': "Assigned Shifts (Public)"}]
+        default_filters = [ShiftFilterOption(id='public_assigned', title="Assigned Shifts (Public)")]
         for department in volunteer.assigned_depts:
-            default_filters.append({
-                'id': department.id,
-                'title': department.name,
-            })
+            default_filters.append(ShiftFilterOption(
+                id=department.id,
+                title=department.name,
+            ))
         other_filters = [
-            {'id': 'public', 'title': "Public Shifts",},
-            ]
+            ShiftFilterOption(id='public', title="Public Shifts"),
+        ]
         
         requested_hotel_nights = volunteer.hotel_requests.nights_ints if volunteer.hotel_requests else []
 
