@@ -249,11 +249,9 @@ class Root:
             from uszipcode import SearchEngine
 
             zips = {}
-            self.zips_counter = Counter()
             zip_counts = session.query(Attendee.zip_code, func.count(Attendee.id)).filter(
                 Attendee.zip_code != '', Attendee.zip_code != None).group_by(Attendee.zip_code).all()
-            for zip_code, count in zip_counts:
-                self.zips_counter[zip_code] = count
+            self.zips_counter = Counter(dict(zip_counts))
 
             for z in self.zips_counter.keys():
                 try:

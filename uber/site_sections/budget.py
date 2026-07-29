@@ -55,9 +55,13 @@ class Root:
     @log_pageview
     def index(self, session):
         receipt_items = session.query(ReceiptItem)
-        receipt_payment_total = session.query(func.sum(ReceiptItem.amount)).filter_by(txn_type=c.PAYMENT).scalar() or 0
-        receipt_refund_total = session.query(func.sum(ReceiptItem.amount)).filter_by(txn_type=c.REFUND).scalar() or 0
-        receipt_total = receipt_payment_total - receipt_refund_total
+        receipt_totals = dict(
+            session.query(ReceiptItem.txn_type, func.sum(ReceiptItem.amount))
+            .filter(ReceiptItem.txn_type.in_([c.PAYMENT, c.REFUND]))
+            .group_by(ReceiptItem.txn_type)
+            .all()
+        )
+        receipt_total = receipt_totals.get(c.PAYMENT, 0) - receipt_totals.get(c.REFUND, 0)
         sales_total = (session.query(func.sum(Sale.cash)).scalar() or 0) * 100
         arbitrary_charge_total = (session.query(func.sum(ArbitraryCharge.amount)).scalar() or 0) * 100
         return {
