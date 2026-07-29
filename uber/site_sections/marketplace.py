@@ -13,7 +13,7 @@ from uber.models import Attendee, ArtistMarketplaceApplication
 from uber.utils import check, validate_model
 from uber.payments import TransactionRequest, ReceiptManager, RefundRequest
 
-from typing import Any, NamedTuple, Optional
+from typing import Any, NamedTuple, Optional, Union
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class MarketplaceResponse(NamedTuple):
     """Structured response container for marketplace application validation."""
     success: bool = True
     message: str = ""
-    error: Optional[Any] = None
+    error: Optional[Union[dict[str, Any], list[str], str]] = None
 
 
 @all_renderable(public=True)

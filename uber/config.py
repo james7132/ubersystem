@@ -49,7 +49,7 @@ class BadgeTypeRecord(NamedTuple):
     """Record container for formatted badge type options."""
     name: str
     desc: str
-    value: Any
+    value: int | str
     price: int
 
 plugins_dir = pathlib.Path(__file__).parents[1] / "plugins"

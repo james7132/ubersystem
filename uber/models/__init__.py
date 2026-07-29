@@ -42,19 +42,19 @@ from uber.utils import check_csrf, normalize_email_legacy, create_new_hash, Dept
     RegistrationCode, listify
 from uber.payments import ReceiptManager
 
-log = logging.getLogger(__name__)
-
+from datetime import datetime
+from typing import Union
 
 class ChecklistStatus(NamedTuple):
     """Status container for department checklist items."""
-    conf: Optional[Any] = None
+    conf: Optional[Union[dict[str, Any], bool, str]] = None
     relevant: bool = False
-    completed: Optional[Any] = None
+    completed: Optional[Union[bool, datetime, str]] = None
 
 
 class StafferDropdownOption(NamedTuple):
     """Option container for staffer dropdown selections."""
-    id: Any
+    id: str | int
     full_name: str
 
 def _make_getter(model):

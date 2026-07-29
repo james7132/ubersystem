@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 class SelectOption(NamedTuple):
     """Option container for dropdown select elements."""
-    value: Any
+    value: str | int | float | bool | None
     label: str
     alt_spellings: str = ""
 

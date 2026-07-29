@@ -37,7 +37,7 @@ from typing import NamedTuple, Optional, Any
 log = logging.getLogger(__name__)
 
 
-def is_namedtuple_instance(val: Any) -> bool:
+def is_namedtuple_instance(val: object) -> bool:
     """Return True if val is an instance of a NamedTuple class."""
     return isinstance(val, tuple) and hasattr(type(val), '_fields')
 

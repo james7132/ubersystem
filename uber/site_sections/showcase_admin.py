@@ -9,7 +9,7 @@ from uber.errors import HTTPRedirect
 from uber.files import FileService
 from uber.forms import load_forms
 from uber.models import AdminAccount, Attendee, Email, IndieJudge, IndieGameReview, IndieStudio, IndieGame, PageViewTracking, Tracking
-from typing import Any, NamedTuple, Optional
+from typing import Any, NamedTuple, Optional, Union
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class ShowcaseAdminResponse(NamedTuple):
     """Structured response container for showcase admin action endpoints."""
     success: bool = True
     message: str = ""
-    error: Optional[Any] = None
+    error: Optional[Union[dict[str, Any], list[str], str]] = None
 
 
 def _process_showcase_type(showcase_type, message=''):

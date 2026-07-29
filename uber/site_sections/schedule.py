@@ -10,7 +10,7 @@ from dateutil import parser as dateparser
 from time import mktime
 from sqlalchemy.orm import joinedload, selectinload
 
-from typing import Any, NamedTuple, Optional
+from typing import Any, NamedTuple, Optional, Union
 from uber.config import c
 from uber.decorators import ajax, ajax_gettable, all_renderable, cached, csrf_protected, csv_file, render, schedule_view, site_mappable
 from uber.errors import HTTPRedirect
@@ -25,8 +25,8 @@ class APIResponse(NamedTuple):
     """Structured response container for AJAX and API endpoints."""
     success: bool = True
     message: str = ""
-    data: Optional[Any] = None
-    error: Optional[Any] = None
+    data: Optional[Union[dict[str, Any], list[Any], str, int, bool]] = None
+    error: Optional[Union[dict[str, Any], list[str], str]] = None
 
 
 @all_renderable()

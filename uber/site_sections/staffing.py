@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 class ShiftFilterOption(NamedTuple):
     """Record container for shift filter options."""
-    id: Any
+    id: str | int
     title: str
 
 

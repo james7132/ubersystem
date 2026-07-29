@@ -6,7 +6,7 @@ import json
 from sqlalchemy import func, literal_column
 from sqlalchemy.orm import joinedload
 
-from typing import Any, NamedTuple, Optional
+from typing import Any, NamedTuple, Optional, Union
 from uber.email import EmailService
 from uber.config import c
 from uber.decorators import ajax, all_renderable, csrf_protected, csv_file, render
@@ -23,9 +23,9 @@ class PanelAdminResponse(NamedTuple):
     """Structured response container for panels admin action endpoints."""
     success: bool = True
     message: str = ""
-    error: Optional[Any] = None
-    added: Optional[Any] = None
-    linked: Optional[Any] = None
+    error: Optional[Union[dict[str, Any], list[str], str]] = None
+    added: Optional[Union[dict[str, Any], list[str], str, int]] = None
+    linked: Optional[Union[dict[str, Any], list[str], str, int]] = None
 
 
 @all_renderable()

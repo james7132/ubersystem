@@ -80,7 +80,7 @@ class JSONRPCResponsePayload(NamedTuple):
     """Payload container for JSON-RPC 2.0 success responses."""
     jsonrpc: str = "2.0"
     id: Optional[Union[str, int]] = None
-    result: Optional[Any] = None
+    result: Optional[Union[dict[str, Any], list[Any], str, int, float, bool]] = None
 
 
 def _make_jsonrpc_handler(services, debug=c.DEV_BOX, precall=lambda body: None):
