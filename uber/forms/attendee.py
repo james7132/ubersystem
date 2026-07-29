@@ -269,8 +269,16 @@ class AdminBadgeFlags(BadgeFlags):
         from sqlalchemy.orm import load_only
         from uber.models import Group
         with Session() as session:
-            groups_list = [(g.id, g.name + (f" ({g.status_label})" if g.is_dealer else ""))
-                           for g in session.query(Group).options(load_only(Group.id, Group.name, Group.status, Group.is_dealer)).filter(Group.status != c.IMPORTED).order_by(Group.name).all()]
+            groups_query = (
+                session.query(Group)
+                .options(load_only(Group.id, Group.name, Group.status, Group.is_dealer))
+                .filter(Group.status != c.IMPORTED)
+                .order_by(Group.name)
+            )
+            groups_list = [
+                (g.id, g.name + (f" ({g.status_label})" if g.is_dealer else ""))
+                for g in groups_query.all()
+            ]
             return [('', "No Group")] + groups_list
 
 

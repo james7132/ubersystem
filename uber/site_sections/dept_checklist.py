@@ -248,11 +248,18 @@ class Root:
 
         if department_id != '':
             dept_filter = [] if not department_id else [Attendee.dept_memberships.any(department_id=department_id)]
-            placeholders = session.query(Attendee).filter(
-                Attendee.placeholder == True,  # noqa: E712
-                Attendee.staffing == True,  # noqa: E712
-                Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]),
-                *dept_filter).order_by(Attendee.full_name).all()  # noqa: E712
+            placeholders = (
+                session.query(Attendee)
+                .options(joinedload(Attendee.assigned_depts))
+                .filter(
+                    Attendee.placeholder == True,  # noqa: E712
+                    Attendee.staffing == True,  # noqa: E712
+                    Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]),
+                    *dept_filter
+                )
+                .order_by(Attendee.full_name)
+                .all()
+            )
 
         try:
             checklist = session.checklist_status('placeholders', department_id)
@@ -396,10 +403,17 @@ class Root:
         attendees = []
 
         if department_id != '':
-            attendees = session.query(Attendee).filter(Attendee.hotel_eligible == True,  # noqa: E712
-                                                       Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]),
-                                                       Attendee.dept_memberships.any(department_id=department_id)
-                                                       ).order_by(Attendee.full_name).all()
+            attendees = (
+                session.query(Attendee)
+                .options(joinedload(Attendee.assigned_depts))
+                .filter(
+                    Attendee.hotel_eligible == True,  # noqa: E712
+                    Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]),
+                    Attendee.dept_memberships.any(department_id=department_id)
+                )
+                .order_by(Attendee.full_name)
+                .all()
+            )
 
         try:
             checklist = session.checklist_status('hotel_eligible', department_id)

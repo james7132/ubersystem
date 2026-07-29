@@ -252,17 +252,22 @@ class Root:
     @xlsx_file
     def seller_tax_info(self, out, session):
         rows = []
-        for group in session.query(Group).options(joinedload(Group.leader)).filter(Group.is_dealer == True).all():  # noqa: E712
+        dealer_groups = (
+            session.query(Group)
+            .options(joinedload(Group.leader))
+            .filter(Group.is_dealer == True)  # noqa: E712
+            .all()
+        )
+        for group in dealer_groups:
             name = group.leader.full_name if group.leader else ''
             phone = group.phone or (group.leader.cellphone if group.leader else '')
-            if group.is_dealer:
-                rows.append([
-                    group.status_label,
-                    group.name,
-                    name,
-                    group.email,
-                    group.physical_address,
-                    phone,
+            rows.append([
+                group.status_label,
+                group.name,
+                name,
+                group.email,
+                group.physical_address,
+                phone,
                     group.special_needs,
                     group.admin_notes,
                     group.wares,
