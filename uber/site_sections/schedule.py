@@ -80,7 +80,10 @@ class Root:
     @csv_file
     def panels(self, out, session):
         out.writerow(['Panel', 'Time', 'Duration', 'Room', 'Description', 'Panelists'])
-        for event in sorted(session.query(Event).all(), key=lambda e: [e.start_time, e.location_name]):
+        events = session.query(Event).options(
+            selectinload(Event.assigned_panelists).joinedload(AssignedPanelist.attendee)
+        ).order_by(Event.start_time).all()
+        for event in sorted(events, key=lambda e: [e.start_time, e.location_name]):
             if 'Panel' in event.location_name or 'Autograph' in event.location_name:
                 panelist_names = ' / '.join(ap.attendee.full_name for ap in sorted(
                     event.assigned_panelists, key=lambda ap: ap.attendee.full_name))
@@ -96,6 +99,9 @@ class Root:
     @schedule_view
     def panels_json(self, session):
         cherrypy.response.headers['Content-Type'] = 'application/json'
+        events = session.query(Event).options(
+            selectinload(Event.assigned_panelists).joinedload(AssignedPanelist.attendee)
+        ).order_by(Event.start_time).all()
         return json.dumps([
             {
                 'name': event.name,
@@ -108,7 +114,7 @@ class Root:
                 'description': event.public_description or event.description,
                 'panelists': [panelist.attendee.full_name for panelist in event.assigned_panelists]
             }
-            for event in sorted(session.query(Event).all(), key=lambda e: [e.start_time, e.location_name])
+            for event in sorted(events, key=lambda e: [e.start_time, e.location_name])
         ], indent=4).encode('utf-8')
 
     @schedule_view
@@ -311,7 +317,7 @@ class Root:
             view_date = event.start_time_local.date()
 
         event_list = []
-        for event in session.query(Event).order_by('start_time').all():
+        for event in session.query(Event).options(joinedload(Event.location)).order_by('start_time').all():
             event_list.append({
                 'id': event.id,
                 'resourceIds': [f"{event.location.id}" if event.location else "None"],
@@ -411,7 +417,7 @@ class Root:
             'Recording OK',
         ])
 
-        for app in session.query(PanelApplication).join(PanelApplication.event).order_by(Event.start_time):
+        for app in session.query(PanelApplication).options(joinedload(PanelApplication.event)).join(PanelApplication.event).order_by(Event.start_time):
             app_presentation = app.other_presentation if app.presentation == c.OTHER else app.presentation_label
             app_length = app.length_text if app.length == c.OTHER else app.length_label
             app_record_label = app.livestream_label if len(c.LIVESTREAM_OPTS) > 2 else app.record_label
@@ -431,7 +437,7 @@ class Root:
     @csv_file
     def panel_tech_needs(self, out, session):
         panels = defaultdict(dict)
-        panel_applications = session.query(PanelApplication).join(PanelApplication.event).join(
+        panel_applications = session.query(PanelApplication).options(joinedload(PanelApplication.event)).join(PanelApplication.event).join(
             Event.location).join(EventLocation.department).filter(
                 Department.manages_panels == True,
                 PanelApplication.event_id == Event.id)
