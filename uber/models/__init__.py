@@ -818,7 +818,7 @@ class UberSession(sqlalchemy.orm.Session):
 
         def order(self, attrs):
             order = []
-            for attr in listify(attrs):
+            for attr in ([attrs] if isinstance(attrs, str) else (attrs or [])):
                 col = getattr(self.model, attr.lstrip('-'))
                 order.append(col.desc() if attr.startswith('-') else col)
             return self.order_by(*order)
@@ -2055,7 +2055,7 @@ class UberSession(sqlalchemy.orm.Session):
 
             diff = int(new_badge_count) - group.badges
             sorted_unassigned = sorted(group.floating, key=lambda a: a.registered, reverse=True)
-            ribbon_to_use = ','.join(map(str, listify(new_ribbon_type))) if new_ribbon_type else group.new_ribbon
+            ribbon_to_use = ','.join(map(str, new_ribbon_type if isinstance(new_ribbon_type, (list, tuple, set)) else [new_ribbon_type])) if new_ribbon_type else group.new_ribbon
 
             if int(new_badge_type) in c.PREASSIGNED_BADGE_TYPES and c.AFTER_PRINTED_BADGE_DEADLINE and diff > 0:
                 return 'Custom badges have already been ordered, so you will need to select a different badge type'
@@ -2144,7 +2144,7 @@ class UberSession(sqlalchemy.orm.Session):
             return True
 
         def set_relation_ids(self, instance, field, cls, value):
-            values = set(s for s in listify(value) if s and s != 'None')
+            values = set(s for s in ([value] if isinstance(value, str) else (value or [])) if s and s != 'None')
             relations = self.query(cls).filter(cls.id.in_(values)).all() if values else []
             setattr(instance, field, relations)
 

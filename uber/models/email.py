@@ -303,7 +303,7 @@ class Email(MagModel, BaseEmailMixin, table=True):
     @property
     def readable_fk_email_or_to(self):
         if self.fk:
-            return readable_join(listify(self.fk.email_to_address))
+            return readable_join([self.fk.email_to_address] if isinstance(self.fk.email_to_address, str) else (self.fk.email_to_address or []))
         return self.to
     
     @property

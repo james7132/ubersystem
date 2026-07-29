@@ -583,7 +583,7 @@ def options(options, default='""'):
 
     results = []
     for opt in options:
-        if len(listify(opt)) == 1:
+        if not isinstance(opt, (list, tuple)) or len(opt) == 1:
             opt = [opt, opt]
         val, desc = opt
         if isinstance(val, datetime):

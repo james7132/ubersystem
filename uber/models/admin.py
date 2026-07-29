@@ -167,7 +167,7 @@ class AdminAccount(MagModel, table=True):
 
     @access_groups_ids.setter
     def access_groups_ids(self, value):
-        values = set(s for s in listify(value) if s)
+        values = set(s for s in ([value] if isinstance(value, str) else (value or [])) if s)
         for group in list(self.access_groups):
             if group.id not in values:
                 # Manually remove the group to ensure the associated

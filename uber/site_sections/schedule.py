@@ -249,7 +249,7 @@ class Root:
                             assigned_panelist = AssignedPanelist(attendee_id=pa.attendee.id, event_id=event.id)
                             session.add(assigned_panelist)
 
-            new_panelist_ids = set(listify(panelists))
+            new_panelist_ids = set([panelists] if isinstance(panelists, str) else (panelists or []))
             old_panelist_ids = {ap.attendee_id for ap in event.assigned_panelists}
             for ap in event.assigned_panelists:
                 if ap.attendee_id not in new_panelist_ids:

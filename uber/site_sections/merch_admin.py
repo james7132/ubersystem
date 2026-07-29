@@ -167,7 +167,8 @@ class Root:
                                 attendee.got_merch = True
                                 shirt_key = 'shirt_{}'.format(attendee.badge_num)
                                 if shirt_key in shirt_sizes:
-                                    attendee.shirt = int(listify(shirt_sizes.get(shirt_key, c.SIZE_UNKNOWN))[0])
+                                    raw_shirt = shirt_sizes.get(shirt_key, c.SIZE_UNKNOWN)
+                                    attendee.shirt = int(raw_shirt[0] if isinstance(raw_shirt, (list, tuple)) else raw_shirt)
                                 picked_up.append('{a.name_and_badge_info}: {a.merch}'.format(a=attendee))
                                 session.add(MerchPickup(picked_up_by=picker_upper, picked_up_for=attendee))
                 session.commit()

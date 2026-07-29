@@ -431,7 +431,8 @@ class Root:
         if 'interests' not in params:
             raise HTTPRedirect('emails_by_interest?message={}', 'You must select at least one interest')
 
-        interests = [int(i) for i in listify(params['interests'])]
+        raw_interests = params['interests'] if isinstance(params['interests'], list) else [params['interests']]
+        interests = [int(i) for i in raw_interests]
         assert all(k in c.INTERESTS for k in interests)
 
         attendees = session.query(Attendee).filter_by(can_spam=True).order_by('email').all()

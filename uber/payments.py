@@ -54,7 +54,7 @@ class PreregCart:
     the payment process is started. This class helps manage them in the session instead.
     """
     def __init__(self, targets=()):
-        self._targets = listify(targets)
+        self._targets = list(targets) if isinstance(targets, (list, tuple, set)) else ([targets] if targets else [])
         self._current_cost = 0
 
     @classproperty
@@ -90,7 +90,7 @@ class PreregCart:
     def get_unpaid_promo_code_uses_count(cls, id, already_counted_attendee_ids=None):
         attendees_with_promo_code = set()
         if already_counted_attendee_ids:
-            attendees_with_promo_code.update(listify(already_counted_attendee_ids))
+            attendees_with_promo_code.update(already_counted_attendee_ids if isinstance(already_counted_attendee_ids, (list, tuple, set)) else [already_counted_attendee_ids])
 
         promo_code_count = 0
 

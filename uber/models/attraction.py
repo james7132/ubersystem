@@ -323,7 +323,8 @@ class Attraction(MagModel, AttractionMixin, table=True):
 
         query = subqueries[0].union(*subqueries[1:])
         if options:
-            query = query.options(*listify(options))
+            options_list = options if isinstance(options, (list, tuple)) else ([options] if options else [])
+            query = query.options(*options_list)
         query.order_by(AttractionSignup.id)
         return groupify(query, lambda x: x[0], lambda x: x[1])
 

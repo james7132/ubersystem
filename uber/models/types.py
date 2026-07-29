@@ -313,7 +313,8 @@ class UniqueList(TypeDecorator):
         before joining them with commas because the join function can't handle
         a list of integers.
         """
-        return ','.join(map(str, list(set(listify(value))))) if value else ''
+        items = value if isinstance(value, (list, tuple, set)) else [value]
+        return ','.join(map(str, list(set(items)))) if value else ''
 
 
 class MultiChoice(UniqueList):
@@ -343,7 +344,8 @@ class MultiChoice(UniqueList):
 
     def convert_if_labels(self, value):
         try:
-            int(listify(value)[0])
+            first_item = value[0] if isinstance(value, (list, tuple)) else value
+            int(first_item)
         except ValueError:
             # This is a string list, is it the labels?
             try:

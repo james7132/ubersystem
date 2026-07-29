@@ -350,10 +350,10 @@ class Root:
     @csrf_protected
     def assign(self, session, return_to, game_id=None, judge_id=None):
         if 'edit_game' in return_to:
-            what_assigned = "Judge" + ('s' if len(listify(game_id)) > 1 else '')
+            game_ids = [game_id] if isinstance(game_id, str) else (game_id or []); what_assigned = "Judge" + ('s' if len(game_ids) > 1 else '')
             return_to = return_to + '&message={}#judges'
         elif 'edit_judge' in return_to:
-            what_assigned = "Game" + ('s' if len(listify(judge_id)) > 1 else '')
+            judge_ids = [judge_id] if isinstance(judge_id, str) else (judge_id or []); what_assigned = "Game" + ('s' if len(judge_ids) > 1 else '')
             return_to = return_to + '&message={}#games'
 
         if game_id is None:
@@ -361,8 +361,9 @@ class Root:
         if judge_id is None:
             raise HTTPRedirect(return_to, 'Please select at least one judge to assign.')
 
-        for gid in listify(game_id):
-            for jid in listify(judge_id):
+        game_ids = [game_id] if isinstance(game_id, str) else (game_id or []); judge_ids = [judge_id] if isinstance(judge_id, str) else (judge_id or []);
+        for gid in game_ids:
+            for jid in judge_ids:
                 if not session.query(IndieGameReview).filter_by(game_id=gid, judge_id=jid).first():
                     session.add(IndieGameReview(game_id=gid, judge_id=jid))
         raise HTTPRedirect(return_to, f'{what_assigned} successfully assigned!')
@@ -370,10 +371,10 @@ class Root:
     @csrf_protected
     def remove(self, session, return_to, game_id=None, judge_id=None):
         if 'edit_game' in return_to:
-            what_removed = "Judge" + ('s' if len(listify(game_id)) > 1 else '')
+            game_ids = [game_id] if isinstance(game_id, str) else (game_id or []); what_removed = "Judge" + ('s' if len(game_ids) > 1 else '')
             return_to = return_to + '&message={}#judges'
         elif 'edit_judge' in return_to:
-            what_removed = "Game" + ('s' if len(listify(judge_id)) > 1 else '')
+            judge_ids = [judge_id] if isinstance(judge_id, str) else (judge_id or []); what_removed = "Game" + ('s' if len(judge_ids) > 1 else '')
             return_to = return_to + '&message={}#games'
 
         if game_id is None:
@@ -381,8 +382,9 @@ class Root:
         if judge_id is None:
             raise HTTPRedirect(return_to, 'Please select at least one judge to remove.')
 
-        for gid in listify(game_id):
-            for jid in listify(judge_id):
+        game_ids = [game_id] if isinstance(game_id, str) else (game_id or []); judge_ids = [judge_id] if isinstance(judge_id, str) else (judge_id or []);
+        for gid in game_ids:
+            for jid in judge_ids:
                 review = session.query(IndieGameReview).filter_by(game_id=gid, judge_id=jid).first()
                 if review:
                     session.delete(review)
@@ -401,7 +403,8 @@ class Root:
     def send_reviews(self, session, game_id, review_id=None):
         game = session.indie_game(id=game_id)
         for review in game.reviews:
-            if review.id in listify(review_id):
+            review_ids = [review_id] if isinstance(review_id, str) else (review_id or []);
+            if review.id in review_ids:
                 review.send_to_studio = True
             elif review.send_to_studio:
                 review.send_to_studio = False

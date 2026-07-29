@@ -19,7 +19,7 @@ class MenuItem:
         assert not submenu or not href, "menu items must not contain both a href and submenu"
 
         if submenu:
-            self.submenu = listify(submenu)
+            self.submenu = list(submenu) if isinstance(submenu, (list, tuple, set)) else [submenu]
         else:
             self.href = href
 

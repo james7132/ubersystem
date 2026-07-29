@@ -71,7 +71,7 @@ class EmailHandler:
         email_obj.ident = kwargs.get('ident', '')
         email_obj.automated_email = fixture_obj
 
-        email_obj.to, email_obj.cc, email_obj.bcc, email_obj.replyto = map(lambda x: ','.join(listify(x if x else [])),
+        email_obj.to, email_obj.cc, email_obj.bcc, email_obj.replyto = map(lambda x: ','.join([x] if isinstance(x, str) else (x or [])),
                                                                            [email_obj.to, email_obj.cc, email_obj.bcc, email_obj.replyto])
         
         return email_obj

@@ -1628,10 +1628,10 @@ class Attendee(MagModel, TakesPaymentMixin, table=True):
     @property
     def banned(self):
         if self.watch_list:
-            return listify(self.watch_list)
+            return self.watch_list if isinstance(self.watch_list, list) else ([self.watch_list] if self.watch_list else [])
 
         if self.is_new or self.badge_status not in [c.COMPLETED_STATUS, c.UNAPPROVED_DEALER_STATUS]:
-            return listify(self.watchlist_guess)
+            return self.watchlist_guess if isinstance(self.watchlist_guess, list) else ([self.watchlist_guess] if self.watchlist_guess else [])
 
     @property
     def badge(self):
