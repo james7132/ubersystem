@@ -37,62 +37,6 @@ from typing import NamedTuple, Optional, Any
 log = logging.getLogger(__name__)
 
 
-class ChecklistStatus(NamedTuple):
-    """Immutable status container for department checklist items.
-
-    Replaces dict instantiations {'conf': ..., 'relevant': ..., 'completed': ...}
-    to reduce memory allocation and provide strict typing for template access.
-    """
-    conf: Optional[Any] = None
-    relevant: bool = False
-    completed: Optional[Any] = None
-
-
-class StafferDropdownOption(NamedTuple):
-    """Immutable option container for staffer dropdown selections.
-
-    Replaces dict instantiations {'id': ..., 'full_name': ...} with an immutable
-    NamedTuple to save memory during batch query processing.
-    """
-    id: Any
-    full_name: str
-
-
-class SelectOption(NamedTuple):
-    """Immutable option container for dropdown select elements.
-
-    Replaces dict instantiations {'value': ..., 'label': ...} to save memory
-    and provide type hints for option rendering.
-    """
-    value: Any
-    label: str
-    alt_spellings: str = ""
-
-
-class APIResponse(NamedTuple):
-    """Structured response container for AJAX and API endpoints.
-
-    Replaces dict instantiations {'success': True, ...} or {'error': ...} to provide
-    type safety and consistent response signatures across API handlers.
-    """
-    success: bool = True
-    message: str = ""
-    data: Optional[Any] = None
-    error: Optional[Any] = None
-
-
-class DonationTierRecord(NamedTuple):
-    """Immutable record container for donation tiers and kick-in perks.
-
-    Replaces raw dict instantiations in config donation processing.
-    """
-    price: int
-    name: str = ""
-    description: str = ""
-    all_descriptions: list[tuple[str, str]] = []
-    value: int = 0
-
-
 # ======================================================================
 # String manipulation
 # ======================================================================

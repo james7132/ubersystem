@@ -22,6 +22,7 @@ from tempfile import NamedTemporaryFile
 from collections import defaultdict, OrderedDict
 from datetime import date, datetime, time, timedelta
 from hashlib import sha512
+from typing import NamedTuple
 from markupsafe import Markup
 from itertools import chain
 
@@ -33,6 +34,15 @@ from sqlalchemy.orm import joinedload, selectinload
 import uber
 
 log = logging.getLogger(__name__)
+
+
+class DonationTierRecord(NamedTuple):
+    """Record container for donation tiers and kick-in perks."""
+    price: int
+    name: str = ""
+    description: str = ""
+    all_descriptions: list[tuple[str, str]] = []
+    value: int = 0
 
 plugins_dir = pathlib.Path(__file__).parents[1] / "plugins"
 

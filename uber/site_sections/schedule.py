@@ -10,14 +10,23 @@ from dateutil import parser as dateparser
 from time import mktime
 from sqlalchemy.orm import joinedload, selectinload
 
+from typing import Any, NamedTuple, Optional
 from uber.config import c
 from uber.decorators import ajax, ajax_gettable, all_renderable, cached, csrf_protected, csv_file, render, schedule_view, site_mappable
 from uber.errors import HTTPRedirect
 from uber.forms import load_forms
 from uber.models import AssignedPanelist, Attendee, Event, EventLocation, PanelApplication, Department
-from uber.utils import check, localized_now, normalize_newlines, validate_model, load_locations_from_config, listify, APIResponse
+from uber.utils import check, localized_now, normalize_newlines, validate_model, load_locations_from_config, listify
 
 log = logging.getLogger(__name__)
+
+
+class APIResponse(NamedTuple):
+    """Structured response container for AJAX and API endpoints."""
+    success: bool = True
+    message: str = ""
+    data: Optional[Any] = None
+    error: Optional[Any] = None
 
 
 @all_renderable()

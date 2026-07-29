@@ -4,12 +4,18 @@ from dateutil import parser as dateparser
 
 from markupsafe import escape, Markup
 from wtforms.widgets import NumberInput, html_params, CheckboxInput, TextInput, Select, HiddenInput
-from typing import Any
+from typing import Any, NamedTuple
 from uber.config import c
 from uber.custom_tags import linebreaksbr
-from uber.utils import SelectOption
 
 log = logging.getLogger(__name__)
+
+
+class SelectOption(NamedTuple):
+    """Option container for dropdown select elements."""
+    value: Any
+    label: str
+    alt_spellings: str = ""
 
 
 class MultiCheckbox():

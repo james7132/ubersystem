@@ -12,7 +12,7 @@ from itertools import chain
 from pydantic import ConfigDict
 from uuid import uuid4
 from types import MethodType
-from typing import Any, ClassVar
+from typing import Any, ClassVar, NamedTuple, Optional
 
 import cherrypy
 import six
@@ -39,10 +39,23 @@ from uber.errors import HTTPRedirect
 from uber.decorators import presave_adjustment, suffix_property, cached_classproperty, classproperty
 from uber.models.types import Choice, MultiChoice, utcnow, UniqueList, DefaultField as Field
 from uber.utils import check_csrf, normalize_email_legacy, create_new_hash, DeptChecklistConf, \
-    RegistrationCode, listify, ChecklistStatus, StafferDropdownOption
+    RegistrationCode, listify
 from uber.payments import ReceiptManager
 
 log = logging.getLogger(__name__)
+
+
+class ChecklistStatus(NamedTuple):
+    """Status container for department checklist items."""
+    conf: Optional[Any] = None
+    relevant: bool = False
+    completed: Optional[Any] = None
+
+
+class StafferDropdownOption(NamedTuple):
+    """Option container for staffer dropdown selections."""
+    id: Any
+    full_name: str
 
 def _make_getter(model):
     def getter(
