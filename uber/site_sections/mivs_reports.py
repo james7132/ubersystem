@@ -1,12 +1,12 @@
 import os
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from uber.config import c
 from uber.custom_tags import humanize_timedelta
 from uber.decorators import all_renderable, csv_file, multifile_zipfile, xlsx_file
 from uber.files import FileService
-from uber.models import Group, IndieGame, IndieJudge, IndieStudio, GuestGroup
+from uber.models import AdminAccount, Group, IndieGame, IndieJudge, IndieStudio, GuestGroup
 from uber.utils import localized_now, normalize_newlines
 
 
@@ -15,7 +15,7 @@ class Root:
     @csv_file
     def social_media(self, out, session):
         out.writerow(['Studio', 'Website', 'Other Links'])
-        for game in session.indie_games().filter(IndieGame.showcase_type == c.MIVS):
+        for game in session.indie_games().filter(IndieGame.showcase_type == c.MIVS).options(joinedload(IndieGame.studio)):
             if game.confirmed:
                 out.writerow([
                     game.studio.name,
@@ -76,7 +76,7 @@ class Root:
         out.writerow(header_row)
 
         for studio in session.query(IndieStudio).join(IndieStudio.group
-                                                      ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS):
+                                                      ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS).options(selectinload(IndieStudio.games)):
             showcases = set([game.showcase_type_label for game in studio.games])
             row = [studio.name, ' / '.join(showcases)]
             for key, val in c.MIVS_CHECKLIST.items():
@@ -95,7 +95,7 @@ class Root:
                       'Brief Description', 'Full Description', 'Gameplay Video', 'Website', 'Steam Page',
                       'Other Social Media', 'Studio Contact Phone #'])
         for studio in session.query(IndieStudio).join(IndieStudio.group
-                                                      ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS):
+                                                      ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS).options(selectinload(IndieStudio.games)):
             for game in studio.confirmed_games:
                 promo_1_url, promo_2_url, header_url, thumbnail_url = '', '', '', ''
                 promo_images = FileService.get_existing_files(session, game, and_flags=['use_in_promo'], uselist=True)
@@ -120,7 +120,7 @@ class Root:
     def discussion_group_emails(self, out, session):
         out.writerow(['Studio', 'Emails', 'Last Updated'])
         for studio in session.query(IndieStudio).join(IndieStudio.group
-                                                      ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS):
+                                                      ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS).options(joinedload(IndieStudio.group).joinedload(Group.guest)):
             emails = []
             row = [studio.name]
             emails.extend(studio.group.guest.email)
@@ -136,7 +136,7 @@ class Root:
     def accepted_games_xlsx(self, out, session):
         rows = []
         for game in session.query(IndieGame).filter(IndieGame.showcase_type == c.MIVS,
-                                                    IndieGame.status == c.ACCEPTED):
+                                                    IndieGame.status == c.ACCEPTED).options(joinedload(IndieGame.studio)):
             screenshots = game.accepted_image_download_filenames()
             rows.append([
                 game.studio.name, game.studio.website, ' / '.join(game.studio.other_links.split(',')),
@@ -157,7 +157,7 @@ class Root:
         output = self.accepted_games_xlsx(set_headers=False)
         zip_file.writestr('mivs_accepted_games.xlsx', output)
         for game in session.query(IndieGame).filter(IndieGame.showcase_type == c.MIVS,
-                                                    IndieGame.status == c.ACCEPTED):
+                                                    IndieGame.status == c.ACCEPTED).options(joinedload(IndieGame.studio)):
             filenames = game.accepted_image_download_filenames()
             images = game.accepted_image_downloads()
             for filename, screenshot in zip(filenames, images):
@@ -186,7 +186,7 @@ class Root:
             'Staff Notes']
 
         for judge in session.query(IndieJudge).filter(IndieJudge.showcases.contains(c.MIVS)
-                                                      ).options(joinedload(IndieJudge.admin_account)):
+                                                      ).options(joinedload(IndieJudge.admin_account).joinedload(AdminAccount.attendee)):
             attendee = judge.admin_account.attendee
             rows.append([
                 attendee.first_name, attendee.last_name,

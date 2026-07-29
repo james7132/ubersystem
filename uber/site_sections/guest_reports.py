@@ -1,8 +1,7 @@
 import os
 
 from collections import defaultdict
-from sqlalchemy import or_
-from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm import joinedload, selectinload, subqueryload
 
 from uber.config import c
 from uber.custom_tags import time_day_local
@@ -38,7 +37,17 @@ class Root:
             'Travel Mode(s)', 'Travel Mode(s) Text', 'Travel Details',
             'Needs Rehearsal?',
         ])
-        for guest in [guest for guest in session.query(GuestGroup).all() if session.admin_can_see_guest_group(guest)]:
+        guest_query = session.query(GuestGroup).options(
+            joinedload(GuestGroup.group).joinedload(Group.leader).selectinload(Attendee.submitted_panels),
+            joinedload(GuestGroup.info),
+            joinedload(GuestGroup.bio),
+            joinedload(GuestGroup.autograph),
+            joinedload(GuestGroup.taxes),
+            joinedload(GuestGroup.merch),
+            joinedload(GuestGroup.charity),
+            joinedload(GuestGroup.travel_plans),
+        )
+        for guest in [guest for guest in guest_query.all() if session.admin_can_see_guest_group(guest)]:
             absolute_pic_url, absolute_stageplot_url = '', ''
             if guest.bio:
                 bio_pic_file = FileService.get_existing_files(session, guest.bio, and_flags=['bio_pic'])
@@ -77,7 +86,11 @@ class Root:
         out.writerow(['Guest Type', 'Group Name', 'Travel Mode', 'Travel Mode Text', 'Traveller', 'Companions',
                       'Luggage Needs', 'Contact Email', 'Contact Phone', 'Arrival Time',
                       'Arrival Details', 'Departure Time', 'Departure Details', 'Extra Details'])
-        for travel_plan in [plan for plan in session.query(GuestTravelPlans).all() if session.admin_can_see_guest_group(plan.guest)]:
+        plan_query = session.query(GuestTravelPlans).options(
+            joinedload(GuestTravelPlans.guest).joinedload(GuestGroup.group),
+            selectinload(GuestTravelPlans.detailed_travel_plans)
+        )
+        for travel_plan in [plan for plan in plan_query.all() if session.admin_can_see_guest_group(plan.guest)]:
             for plan in travel_plan.detailed_travel_plans:
                 content_row = [travel_plan.guest.group_type_label, travel_plan.guest.group.name]
                 content_row.extend([plan.mode_label, plan.mode_text, plan.traveller, plan.companions,
@@ -91,7 +104,10 @@ class Root:
     def panel_info_csv(self, out, session):
         out.writerow(['Guest', 'App Status', 'Name', 'Description', 'Schedule Description', 'Length',
                       'Department', 'Type of Panel', 'Location', 'Date/Time'])
-        for guest in [guest for guest in session.query(GuestGroup).all() if session.admin_can_see_guest_group(guest)]:
+        guest_panel_query = session.query(GuestGroup).options(
+            joinedload(GuestGroup.group).joinedload(Group.leader).selectinload(Attendee.submitted_panels)
+        )
+        for guest in [guest for guest in guest_panel_query.all() if session.admin_can_see_guest_group(guest)]:
             if guest.group and guest.group.leader:
                 for app in guest.group.leader.submitted_panels:
                     out.writerow([

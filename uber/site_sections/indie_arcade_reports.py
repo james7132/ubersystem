@@ -6,7 +6,7 @@ from uber.config import c
 from uber.custom_tags import humanize_timedelta
 from uber.decorators import all_renderable, csv_file, multifile_zipfile, xlsx_file
 from uber.files import FileService
-from uber.models import Group, IndieGame, IndieJudge, IndieStudio, GuestGroup
+from uber.models import AdminAccount, Group, IndieGame, IndieJudge, IndieStudio, GuestGroup
 from uber.utils import localized_now
 
 
@@ -23,7 +23,7 @@ class Root:
             'Registered', 'Accepted', 'Confirmation Deadline',
             'Photo Links', 'Average Score', 'Individual Scores'
         ])
-        for game in session.indie_games().filter(IndieGame.showcase_type == c.INDIE_ARCADE):
+        for game in session.indie_games().filter(IndieGame.showcase_type == c.INDIE_ARCADE).options(joinedload(IndieGame.primary_contact), joinedload(IndieGame.studio)):
             game_photos = FileService.get_existing_files(session, game, and_flags=['arcade_photo'], uselist=True)
             full_name = game.primary_contact.full_name if game.primary_contact else 'No Primary Contact'
             email = game.primary_contact.email if game.primary_contact else 'N/A'
@@ -64,7 +64,7 @@ class Root:
             'Email', 'Status', 'Staff Notes']
 
         for judge in session.query(IndieJudge).filter(IndieJudge.showcases.contains(c.INDIE_ARCADE)
-                                                      ).options(joinedload(IndieJudge.admin_account)):
+                                                      ).options(joinedload(IndieJudge.admin_account).joinedload(AdminAccount.attendee)):
             attendee = judge.admin_account.attendee
             rows.append([
                 attendee.first_name, attendee.last_name,
