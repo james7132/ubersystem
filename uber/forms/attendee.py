@@ -266,10 +266,11 @@ class AdminBadgeFlags(BadgeFlags):
     no_override = BooleanField('Let the system determine base badge price. (uncheck to override badge price)')
 
     def get_valid_groups():
+        from sqlalchemy.orm import load_only
         from uber.models import Group
         with Session() as session:
             groups_list = [(g.id, g.name + (f" ({g.status_label})" if g.is_dealer else ""))
-                           for g in session.query(Group).filter(Group.status != c.IMPORTED).order_by(Group.name).all()]
+                           for g in session.query(Group).options(load_only(Group.id, Group.name, Group.status, Group.is_dealer)).filter(Group.status != c.IMPORTED).order_by(Group.name).all()]
             return [('', "No Group")] + groups_list
 
 

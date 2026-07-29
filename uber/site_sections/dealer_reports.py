@@ -1,4 +1,5 @@
 from sqlalchemy import or_, and_
+from sqlalchemy.orm import joinedload
 
 from uber.config import c
 from uber.decorators import all_renderable, csv_file, xlsx_file, log_pageview
@@ -65,7 +66,7 @@ class Root:
             'What They Sell'
         ])
 
-        dealer_groups = session.query(Group).filter(Group.tables > 0).all()
+        dealer_groups = session.query(Group).options(joinedload(Group.leader)).filter(Group.tables > 0).all()
         for group in dealer_groups:
             full_name = group.leader.full_name if group.leader else ''
             out.writerow([
@@ -97,7 +98,7 @@ class Root:
             'Cost',
             'Badges'
         ])
-        dealer_groups = session.query(Group).filter(Group.is_dealer == True).all()  # noqa: E712
+        dealer_groups = session.query(Group).options(joinedload(Group.leader)).filter(Group.is_dealer == True).all()  # noqa: E712
         for group in dealer_groups:
             if group.status in c.DEALER_ACCEPTED_STATUSES:
                 full_name = group.leader.full_name if group.leader else ''
@@ -137,7 +138,7 @@ class Root:
             'Special Requests',
             ])
 
-        dealer_groups = session.query(Group).filter(Group.is_dealer == True).all()  # noqa: E712
+        dealer_groups = session.query(Group).options(joinedload(Group.leader)).filter(Group.is_dealer == True).all()  # noqa: E712
 
         def write_url_or_text(cell, is_url=False, last_cell=False):
             if is_url:
@@ -176,7 +177,7 @@ class Root:
 
     @xlsx_file
     def seller_comptroller_info(self, out, session):
-        dealer_groups = session.query(Group).filter(Group.tables > 0).all()
+        dealer_groups = session.query(Group).options(joinedload(Group.leader)).filter(Group.tables > 0).all()
         rows = []
         for group in dealer_groups:
             if group.status in c.DEALER_ACCEPTED_STATUSES and group.is_dealer:
