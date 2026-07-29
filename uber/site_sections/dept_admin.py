@@ -272,7 +272,7 @@ class Root:
 
         out.writerow(["Attendee name", "Start of overworked shift sequence",
                       "Length of shift sequence", "Departments overworked in"])
-        for attendee in session.query(Attendee).filter(Attendee.staffing == True).all():  # noqa: E712
+        for attendee in session.query(Attendee).filter(Attendee.staffing == True).options(selectinload(Attendee.shifts).joinedload(Shift.job)).all():  # noqa: E712
             minute_map = attendee.shift_minute_map
             for start_minute in minute_map:
                 # only look at start-of-sequence minutes
