@@ -91,15 +91,15 @@ def _make_jsonrpc_handler(services, debug=c.DEV_BOX, precall=lambda body: None):
     def _jsonrpc_handler(self=None):
         id = None
 
-        def error(status: int, code: int, message: str) -> dict[str, Any]:
+        def error(status: int, code: int, message: str) -> JSONRPCErrorPayload:
             err_details = JSONRPCErrorDetails(code=code, message=message)
-            response = JSONRPCErrorPayload(id=id, error=err_details)._asdict()
+            response = JSONRPCErrorPayload(id=id, error=err_details)
             log.debug('Returning error message: {}', repr(response).encode('utf-8'))
             cherrypy.response.status = status
             return response
 
-        def success(result: Any) -> dict[str, Any]:
-            response = JSONRPCResponsePayload(id=id, result=result)._asdict()
+        def success(result: Any) -> JSONRPCResponsePayload:
+            response = JSONRPCResponsePayload(id=id, result=result)
             log.debug('Returning success message: {}', {
                 'jsonrpc': '2.0', 'id': id, 'result': len(result) if is_listy(result) else str(result).encode('utf-8')})
             cherrypy.response.status = 200

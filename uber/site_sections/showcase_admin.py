@@ -120,9 +120,9 @@ class Root:
         all_errors = validate_model(session, forms, studio, is_admin=True)
 
         if all_errors:
-            return ShowcaseAdminResponse(success=False, error=all_errors)._asdict()
+            return ShowcaseAdminResponse(success=False, error=all_errors)
 
-        return ShowcaseAdminResponse(success=True)._asdict()
+        return ShowcaseAdminResponse(success=True)
 
     def studios(self, session, message=''):
         studios = session.query(IndieStudio).outerjoin(IndieStudio.games)
@@ -246,9 +246,9 @@ class Root:
         all_errors = validate_model(session, forms, judge, is_admin=True)
 
         if all_errors:
-            return ShowcaseAdminResponse(success=False, error=all_errors)._asdict()
+            return ShowcaseAdminResponse(success=False, error=all_errors)
 
-        return ShowcaseAdminResponse(success=True)._asdict()
+        return ShowcaseAdminResponse(success=True)
 
     def disqualify_judge(self, session, message='', id='', **params):
         judge = session.indie_judge(id)
@@ -341,7 +341,7 @@ class Root:
 
         if not form_list:
             if not game.showcase_type:
-                return ShowcaseAdminResponse(success=False, error="You can't save a game that has no showcase type.")._asdict()
+                return ShowcaseAdminResponse(success=False, error="You can't save a game that has no showcase type.")
             if game.showcase_type == c.MIVS:
                 form_list = ['MivsGameInfo', 'MivsDemoInfo', 'MivsConsents']
             elif game.showcase_type == c.INDIE_ARCADE:
@@ -355,9 +355,9 @@ class Root:
         all_errors = validate_model(session, forms, game, is_admin=True)
 
         if all_errors:
-            return ShowcaseAdminResponse(success=False, error=all_errors)._asdict()
+            return ShowcaseAdminResponse(success=False, error=all_errors)
 
-        return ShowcaseAdminResponse(success=True)._asdict()
+        return ShowcaseAdminResponse(success=True)
 
     @csrf_protected
     def assign(self, session, return_to, game_id=None, judge_id=None):

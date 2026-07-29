@@ -194,9 +194,9 @@ class Root:
         all_errors = validate_model(session, forms, location, is_admin=True)
 
         if all_errors:
-            return APIResponse(success=False, error=all_errors)._asdict()
+            return APIResponse(success=False, error=all_errors)
 
-        return APIResponse(success=True)._asdict()
+        return APIResponse(success=True)
     
     @csrf_protected
     def delete_location(self, session, id):
@@ -297,9 +297,9 @@ class Root:
         all_errors = validate_model(session, forms, event, is_admin=True)
 
         if all_errors:
-            return APIResponse(success=False, error=all_errors)._asdict()
+            return APIResponse(success=False, error=all_errors)
 
-        return APIResponse(success=True)._asdict()
+        return APIResponse(success=True)
 
     @csrf_protected
     def delete(self, session, id):

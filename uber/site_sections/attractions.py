@@ -189,20 +189,20 @@ class Root:
 
     @requires_account()
     @ajax
-    def verify_badge_num(self, session: Any, badge_num: str | int, **params: Any) -> dict[str, Any]:
+    def verify_badge_num(self, session: Any, badge_num: str | int, **params: Any) -> AttractionResponse:
         """Verify attendee badge number for attraction signups."""
         attendee = _attendee_for_badge_num(session, badge_num)
         if not attendee:
-            return AttractionResponse(success=False, error=f'Unrecognized badge number: {badge_num}')._asdict()
+            return AttractionResponse(success=False, error=f'Unrecognized badge number: {badge_num}')
 
         if attendee.attractions_opt_out:
-            return AttractionResponse(success=False, error='That attendee has disabled attraction signups')._asdict()
+            return AttractionResponse(success=False, error='That attendee has disabled attraction signups')
 
         return AttractionResponse(
             success=True,
             first_name=attendee.first_name,
             badge_num=attendee.badge_num,
-        )._asdict()
+        )
 
     @requires_account()
     @ajax
@@ -210,25 +210,25 @@ class Root:
                          last_name='', email='', zip_code='', **params):
         event = _model_for_id(session, AttractionEvent, id)
         if not event:
-            return AttractionResponse(success=False, error=f'Unrecognized event id: {id}')._asdict()
+            return AttractionResponse(success=False, error=f'Unrecognized event id: {id}')
 
         if badge_num or event.feature.badge_num_required:
             attendee = _attendee_for_badge_num(session, badge_num)
             if not attendee:
                 return AttractionResponse(
                     success=False, error=f'Unrecognized badge number: {badge_num}'
-                )._asdict()
+                )
         else:
             attendee = _attendee_for_info(session, first_name, last_name,
                                           email, zip_code)
             if not attendee:
-                return AttractionResponse(success=False, error='We could not find you! Please check your information.')._asdict()
+                return AttractionResponse(success=False, error='We could not find you! Please check your information.')
 
         if attendee.amount_unpaid:
-            return AttractionResponse(success=False, error='That attendee is not fully paid up.')._asdict()
+            return AttractionResponse(success=False, error='That attendee is not fully paid up.')
 
         if attendee.attractions_opt_out:
-            return AttractionResponse(success=False, error='That attendee has disabled attraction signups.')._asdict()
+            return AttractionResponse(success=False, error='That attendee has disabled attraction signups.')
 
         old_remaining_slots = event.remaining_slots
         on_waitlist = False
