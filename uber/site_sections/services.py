@@ -60,9 +60,9 @@ class Root:
             login_account.last_signed_in = now
             session.add(login_account)
         
-        if getattr(cherrypy.request, 'admin_account', None) and c.AT_THE_CON:
+        if admin_account_id and c.AT_THE_CON:
             raise HTTPRedirect(redirect_url or '../accounts/homepage')
-        elif getattr(cherrypy.request, 'attendee_account', None):
+        elif attendee_account_id:
             raise HTTPRedirect(redirect_url or '../preregistration/homepage')
     
     @not_site_mappable

@@ -50,8 +50,8 @@ class Root:
         presenters = set()
         for game in (session.query(IndieGame).filter(IndieGame.showcase_type == c.INDIE_ARCADE,
                                                      IndieGame.status == c.ACCEPTED).options(
-                                                         joinedload(IndieGame.studio).joinedload(IndieStudio.group))):
-            for attendee in getattr(game.studio.group, 'attendees', []):
+            group_attendees = game.studio.group.attendees if game.studio and game.studio.group else []
+            for attendee in group_attendees:
                 if not attendee.is_unassigned and attendee not in presenters:
                     presenters.add(attendee)
                     out.writerow([attendee.full_name, game.studio.name])

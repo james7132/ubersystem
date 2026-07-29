@@ -104,8 +104,8 @@ class OIDC(cherrypy.Tool):
                         session.add(attendee.admin_account)
             session.commit()
 
-            cherrypy.request.attendee_account = getattr(attendee_account, 'id', None)
-            cherrypy.request.admin_account = getattr(admin_account, 'id', None)
+            cherrypy.request.attendee_account = attendee_account.id if attendee_account else None
+            cherrypy.request.admin_account = admin_account.id if admin_account else None
         return attendee_account, admin_account
 
     def _fetch_key(self, kid):
@@ -215,8 +215,7 @@ class OIDC(cherrypy.Tool):
 
                     admin_account.access_groups.append(all_access_group)
                 admin_account.sso_id = sso_id
-            session.commit()
-            return attendee_account.id, getattr(admin_account, 'id', None)
+            return attendee_account.id, admin_account.id if admin_account else None
     
     def _exchange_code_for_tokens(self, code, redirect_uri=c.OIDC_REDIRECT_URL):
         """

@@ -254,7 +254,8 @@ class Root:
             else:
                 dev.comped = False
 
-            if not has_leader and not getattr(dev.matching_attendee, 'group_id', None):
+            matching_group_id = dev.matching_attendee.group_id if dev.matching_attendee else None
+            if not has_leader and not matching_group_id:
                 dev.leader = has_leader = True
             else:
                 dev.leader = False

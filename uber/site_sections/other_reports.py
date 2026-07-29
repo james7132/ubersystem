@@ -16,7 +16,7 @@ class Root:
         return {
             'guests': guests,
             'volunteers': volunteers,
-            'notes': filter(bool, [getattr(fr, 'freeform', '') for fr in all_fr]),
+            'notes': [fr.freeform for fr in all_fr if fr.freeform],
             'standard': {
                 c.FOOD_RESTRICTIONS[getattr(c, category)]: len([fr for fr in all_fr if getattr(fr, category)])
                 for category in c.FOOD_RESTRICTION_VARS
