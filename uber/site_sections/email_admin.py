@@ -473,8 +473,12 @@ class Root:
         if 'include_staff' in params:
             attendee_filter = or_(attendee_filter, Attendee.badge_type == c.STAFF_BADGE)
 
-        attendees = session.query(Attendee).filter(
-            base_filter, attendee_filter, *email_filter).all()
+        attendees = (
+            session.query(Attendee)
+            .options(load_only(Attendee.first_name, Attendee.last_name, Attendee.email, Attendee.zip_code))
+            .filter(base_filter, attendee_filter, *email_filter)
+            .all()
+        )
 
         out.writerow(["fullname", "email", "zipcode"])
         for a in attendees:
