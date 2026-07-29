@@ -9,7 +9,16 @@ from uber.errors import HTTPRedirect
 from uber.files import FileService
 from uber.forms import load_forms
 from uber.models import AdminAccount, Attendee, Email, IndieJudge, IndieGameReview, IndieStudio, IndieGame, PageViewTracking, Tracking
-from uber.utils import check, get_api_service_from_server, normalize_email_legacy, validate_model, listify
+from typing import Any, NamedTuple, Optional
+
+log = logging.getLogger(__name__)
+
+
+class ShowcaseAdminResponse(NamedTuple):
+    """Structured response container for showcase admin action endpoints."""
+    success: bool = True
+    message: str = ""
+    error: Optional[Any] = None
 
 
 def _process_showcase_type(showcase_type, message=''):
@@ -98,7 +107,8 @@ class Root:
         }
 
     @ajax
-    def validate_studio(self, session, form_list=[], **params):
+    def validate_studio(self, session: Any, form_list: list[str] | str | None = None, **params: Any) -> dict[str, Any]:
+        """Validate studio form data and return structured ShowcaseAdminResponse."""
         studio = session.indie_studio(params.get('id'))
 
         if not form_list:
@@ -110,9 +120,9 @@ class Root:
         all_errors = validate_model(session, forms, studio, is_admin=True)
 
         if all_errors:
-            return {"error": all_errors}
+            return ShowcaseAdminResponse(success=False, error=all_errors)._asdict()
 
-        return {"success": True}
+        return ShowcaseAdminResponse(success=True)._asdict()
 
     def studios(self, session, message=''):
         studios = session.query(IndieStudio).outerjoin(IndieStudio.games)
@@ -220,7 +230,8 @@ class Root:
         }
     
     @ajax
-    def validate_judge(self, session, form_list=[], **params):
+    def validate_judge(self, session: Any, form_list: list[str] | str | None = None, **params: Any) -> dict[str, Any]:
+        """Validate judge form data and return structured ShowcaseAdminResponse."""
         if params.get('id') in [None, '', 'None']:
             judge = IndieJudge()
         else:
@@ -235,9 +246,9 @@ class Root:
         all_errors = validate_model(session, forms, judge, is_admin=True)
 
         if all_errors:
-            return {"error": all_errors}
+            return ShowcaseAdminResponse(success=False, error=all_errors)._asdict()
 
-        return {"success": True}
+        return ShowcaseAdminResponse(success=True)._asdict()
 
     def disqualify_judge(self, session, message='', id='', **params):
         judge = session.indie_judge(id)
@@ -321,7 +332,8 @@ class Root:
         }
     
     @ajax
-    def validate_game(self, session, form_list=[], **params):
+    def validate_game(self, session: Any, form_list: list[str] | str | None = None, **params: Any) -> dict[str, Any]:
+        """Validate game form data and return structured ShowcaseAdminResponse."""
         if params.get('id') in [None, '', 'None']:
             game = IndieGame()
         else:
@@ -329,7 +341,7 @@ class Root:
 
         if not form_list:
             if not game.showcase_type:
-                return {"error": "You can't save a game that has no showcase type."}
+                return ShowcaseAdminResponse(success=False, error="You can't save a game that has no showcase type.")._asdict()
             if game.showcase_type == c.MIVS:
                 form_list = ['MivsGameInfo', 'MivsDemoInfo', 'MivsConsents']
             elif game.showcase_type == c.INDIE_ARCADE:
@@ -343,9 +355,9 @@ class Root:
         all_errors = validate_model(session, forms, game, is_admin=True)
 
         if all_errors:
-            return {"error": all_errors}
+            return ShowcaseAdminResponse(success=False, error=all_errors)._asdict()
 
-        return {"success": True}
+        return ShowcaseAdminResponse(success=True)._asdict()
 
     @csrf_protected
     def assign(self, session, return_to, game_id=None, judge_id=None):

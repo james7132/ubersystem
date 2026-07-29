@@ -6,11 +6,23 @@ from pytz import UTC
 from sqlalchemy import or_
 from sqlalchemy.orm import subqueryload
 
+from typing import Any, NamedTuple, Optional
 from uber.decorators import ajax, all_renderable, requires_account
 from uber.errors import HTTPRedirect
 from uber.models import Attendee, Attraction, AttractionFeature, AttractionEvent, AttractionSignup, BadgeInfo
 from uber.site_sections.preregistration import check_post_con
 from uber.utils import slugify
+
+log = logging.getLogger(__name__) if 'logging' in globals() else None
+
+
+class AttractionResponse(NamedTuple):
+    """Structured response container for attractions signup and verification endpoints."""
+    success: bool = True
+    message: str = ""
+    error: Optional[str] = None
+    first_name: Optional[str] = None
+    badge_num: Optional[int] = None
 
 def _attendee_for_badge_num(session, badge_num, options=None):
     from uber.barcode import get_badge_num_from_barcode
@@ -177,17 +189,20 @@ class Root:
 
     @requires_account()
     @ajax
-    def verify_badge_num(self, session, badge_num, **params):
+    def verify_badge_num(self, session: Any, badge_num: str | int, **params: Any) -> dict[str, Any]:
+        """Verify attendee badge number for attraction signups."""
         attendee = _attendee_for_badge_num(session, badge_num)
         if not attendee:
-            return {'error': 'Unrecognized badge number: {}'.format(badge_num)}
+            return AttractionResponse(success=False, error=f'Unrecognized badge number: {badge_num}')._asdict()
 
         if attendee.attractions_opt_out:
-            return {'error': 'That attendee has disabled attraction signups'}
+            return AttractionResponse(success=False, error='That attendee has disabled attraction signups')._asdict()
 
-        return {
-            'first_name': attendee.first_name,
-            'badge_num': attendee.badge_num}
+        return AttractionResponse(
+            success=True,
+            first_name=attendee.first_name,
+            badge_num=attendee.badge_num,
+        )._asdict()
 
     @requires_account()
     @ajax
@@ -195,25 +210,25 @@ class Root:
                          last_name='', email='', zip_code='', **params):
         event = _model_for_id(session, AttractionEvent, id)
         if not event:
-            return {'error': 'Unrecognized event id: {}'.format(id)}
+            return AttractionResponse(success=False, error=f'Unrecognized event id: {id}')._asdict()
 
         if badge_num or event.feature.badge_num_required:
             attendee = _attendee_for_badge_num(session, badge_num)
             if not attendee:
-                return {
-                    'error': 'Unrecognized badge number: {}'.format(badge_num)
-                }
+                return AttractionResponse(
+                    success=False, error=f'Unrecognized badge number: {badge_num}'
+                )._asdict()
         else:
             attendee = _attendee_for_info(session, first_name, last_name,
                                           email, zip_code)
             if not attendee:
-                return {'error': 'We could not find you! Please check your information.'}
+                return AttractionResponse(success=False, error='We could not find you! Please check your information.')._asdict()
 
         if attendee.amount_unpaid:
-            return {'error': 'That attendee is not fully paid up.'}
+            return AttractionResponse(success=False, error='That attendee is not fully paid up.')._asdict()
 
         if attendee.attractions_opt_out:
-            return {'error': 'That attendee has disabled attraction signups.'}
+            return AttractionResponse(success=False, error='That attendee has disabled attraction signups.')._asdict()
 
         old_remaining_slots = event.remaining_slots
         on_waitlist = False
