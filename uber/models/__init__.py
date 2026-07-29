@@ -1087,12 +1087,14 @@ class UberSession(sqlalchemy.orm.Session):
 
             return subqueries[0].union(*subqueries[1:])
 
-        def checklist_status(self, slug, department_id):
+        def checklist_status(self, slug: str, department_id: str | None) -> ChecklistStatus:
+            """Retrieve the checklist status for a given section slug and department ID."""
             attendee = self.admin_attendee()
             conf = DeptChecklistConf.instances.get(slug)
             if not conf:
                 raise ValueError(
-                    "Can't access dept checklist INI settings for section '{}', check your INI file".format(slug))
+                    f"Can't access dept checklist INI settings for section '{slug}', check your INI file"
+                )
 
             if not department_id:
                 return ChecklistStatus(conf=conf, relevant=False, completed=None)
@@ -1773,12 +1775,15 @@ class UberSession(sqlalchemy.orm.Session):
                     subqueryload(Job.shifts).subqueryload(Shift.attendee).subqueryload(Attendee.group)) \
                 .order_by(Job.start_time, Job.name)
 
-        def staffers_for_dropdown(self):
-            query = self.query(Attendee.id, Attendee.full_name).filter(Attendee.is_valid == True,
-                                                                       Attendee.staffing == True)
+        def staffers_for_dropdown(self) -> list[StafferDropdownOption]:
+            """Return a list of valid staffers formatted for UI dropdown options."""
+            query = self.query(Attendee.id, Attendee.full_name).filter(
+                Attendee.is_valid == True, Attendee.staffing == True
+            )
             return [
                 StafferDropdownOption(id=id, full_name=full_name.title())
-                for id, full_name in query.order_by(Attendee.full_name)]
+                for id, full_name in query.order_by(Attendee.full_name)
+            ]
 
         def dept_heads(self, department_id=None):
             if department_id:

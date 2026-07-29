@@ -169,7 +169,8 @@ class Root:
         }
     
     @ajax
-    def validate_location(self, session, form_list=[], **params):
+    def validate_location(self, session: Any, form_list: list[str] | str | None = None, **params: Any) -> dict[str, Any]:
+        """Validate location form data and return structured APIResponse."""
         if params.get('id') in [None, '', 'None']:
             location = EventLocation()
         else:
@@ -271,7 +272,8 @@ class Root:
         }
     
     @ajax
-    def validate_event(self, session, form_list=[], **params):
+    def validate_event(self, session: Any, form_list: list[str] | str | None = None, **params: Any) -> dict[str, Any]:
+        """Validate event form data and return structured APIResponse."""
         if params.get('id') in [None, '', 'None']:
             event = Event()
         else:
