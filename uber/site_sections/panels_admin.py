@@ -4,7 +4,7 @@ import logging
 import cherrypy
 import json
 from sqlalchemy import func, literal_column
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from uber.email import EmailService
 from uber.config import c
@@ -436,7 +436,7 @@ class Root:
             'Applied',
             'Panelists'])
 
-        for app in session.panel_apps():
+        for app in session.panel_apps().options(selectinload(PanelApplication.applicants)):
             panelists = []
             for panelist in app.applicants:
                 panelists.extend([
