@@ -214,7 +214,7 @@ class Root:
 
     @xlsx_file
     def seller_applications(self, out, session):
-        dealer_groups = session.query(Group).filter(Group.is_dealer).all()
+        dealer_groups = session.query(Group.id, Group.name, Group.registered).filter(Group.is_dealer == True).all()  # noqa: E712
 
         header_row = [
             'id',
@@ -231,17 +231,16 @@ class Root:
 
     @xlsx_file
     def waitlisted_group_info(self, out, session):
-        waitlisted_groups = session.query(Group).filter(Group.status == c.WAITLISTED).all()
+        waitlisted_groups = session.query(Group).options(joinedload(Group.leader)).filter(Group.status == c.WAITLISTED, Group.is_dealer == True).all()  # noqa: E712
         rows = []
         for group in waitlisted_groups:
-            if group.is_dealer:
-                rows.append([
-                    group.name,
-                    group.leader.full_name,
-                    group.email,
-                    group.website,
-                    group.physical_address
-                ])
+            rows.append([
+                group.name,
+                group.leader.full_name if group.leader else '',
+                group.email,
+                group.website,
+                group.physical_address
+            ])
         header_row = [
             'Group Name',
             'Group Leader Name',
@@ -253,7 +252,7 @@ class Root:
     @xlsx_file
     def seller_tax_info(self, out, session):
         rows = []
-        for group in session.query(Group):
+        for group in session.query(Group).options(joinedload(Group.leader)).filter(Group.is_dealer == True).all():  # noqa: E712
             name = group.leader.full_name if group.leader else ''
             phone = group.phone or (group.leader.cellphone if group.leader else '')
             if group.is_dealer:

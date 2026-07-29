@@ -10,8 +10,12 @@ class Root:
         all_fr = session.query(FoodRestrictions).all()
         guests = session.query(Attendee).filter_by(badge_type=c.GUEST_BADGE).count()
         volunteers = len([
-            a for a in session.query(Attendee).filter_by(staffing=True).all()
-            if a.badge_type == c.STAFF_BADGE or a.weighted_hours or not a.takes_shifts])
+            (badge_type, weighted_hours, takes_shifts)
+            for badge_type, weighted_hours, takes_shifts in session.query(
+                Attendee.badge_type, Attendee.weighted_hours, Attendee.takes_shifts
+            ).filter_by(staffing=True).all()
+            if badge_type == c.STAFF_BADGE or weighted_hours or not takes_shifts
+        ])
 
         return {
             'guests': guests,
