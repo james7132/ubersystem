@@ -4,8 +4,10 @@ from dateutil import parser as dateparser
 
 from markupsafe import escape, Markup
 from wtforms.widgets import NumberInput, html_params, CheckboxInput, TextInput, Select, HiddenInput
+from typing import Any
 from uber.config import c
 from uber.custom_tags import linebreaksbr
+from uber.utils import SelectOption
 
 log = logging.getLogger(__name__)
 
@@ -263,7 +265,7 @@ class UniqueList(TextInput):
     or a set of string fields. This widget handles both.
     """
 
-    def tagify_js(self, field, choices=None, **kwargs):
+    def tagify_js(self, field: Any, choices: list[SelectOption | tuple[str, str]] | None = None, **kwargs: Any) -> str:
         id = kwargs.pop('id', field.id)
         enforce = 'false'
         text_prop = 'value'
@@ -271,7 +273,7 @@ class UniqueList(TextInput):
         if hasattr(field, 'choices'):
             choices = choices or field.choices
             if isinstance(choices[0], tuple):
-                choices = [{'value': choice[0], 'label': choice[1]} for choice in choices]
+                choices = [SelectOption(value=choice[0], label=choice[1])._asdict() for choice in choices]
                 text_prop = 'label'
             if hasattr(field, 'validate_choice'):
                 enforce = 'true' if field.validate_choice == True else 'false'

@@ -15,7 +15,7 @@ from uber.decorators import ajax, ajax_gettable, all_renderable, cached, csrf_pr
 from uber.errors import HTTPRedirect
 from uber.forms import load_forms
 from uber.models import AssignedPanelist, Attendee, Event, EventLocation, PanelApplication, Department
-from uber.utils import check, localized_now, normalize_newlines, validate_model, load_locations_from_config, listify
+from uber.utils import check, localized_now, normalize_newlines, validate_model, load_locations_from_config, listify, APIResponse
 
 log = logging.getLogger(__name__)
 
@@ -184,9 +184,9 @@ class Root:
         all_errors = validate_model(session, forms, location, is_admin=True)
 
         if all_errors:
-            return {"error": all_errors}
+            return APIResponse(success=False, error=all_errors)._asdict()
 
-        return {"success": True}
+        return APIResponse(success=True)._asdict()
     
     @csrf_protected
     def delete_location(self, session, id):
@@ -286,9 +286,9 @@ class Root:
         all_errors = validate_model(session, forms, event, is_admin=True)
 
         if all_errors:
-            return {"error": all_errors}
+            return APIResponse(success=False, error=all_errors)._asdict()
 
-        return {"success": True}
+        return APIResponse(success=True)._asdict()
 
     @csrf_protected
     def delete(self, session, id):
