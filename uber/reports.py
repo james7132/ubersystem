@@ -1,4 +1,6 @@
 import logging
+from sqlalchemy.orm import joinedload
+
 from uber.barcode import generate_barcode_from_badge_num
 from uber.config import c
 from uber.models import Attendee, BadgeInfo
@@ -26,6 +28,7 @@ class PersonalizedBadgeReport(ReportBase):
 
     def run(self, out, session, *filters, order_by=None, badge_type_override=None):
         for a in (session.query(Attendee).join(BadgeInfo)
+                         .options(joinedload(Attendee.group))
                          .filter(Attendee.has_badge == True, *filters)  # noqa: E712
                          .order_by(order_by).all()):
 
