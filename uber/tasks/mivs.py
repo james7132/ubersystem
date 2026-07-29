@@ -1,6 +1,7 @@
+from collections import defaultdict
 from datetime import timedelta
 import logging
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, load_only
 
 from uber.email import EmailService
 from uber.config import c
@@ -18,11 +19,17 @@ __all__ = ['assign_all_games_showcases', 'mivs_assign_game_codes_to_judges', 'se
 def assign_all_games_showcases():
     if not c.PRE_CON:
         return
-    
+
     with Session() as session:
-        games_by_showcase = {}
-        for showcase in c.SHOWCASE_GAME_TYPES.keys():
-            games_by_showcase[showcase] = session.query(IndieGame).filter(IndieGame.showcase_type == showcase).all()
+        all_games = (
+            session.query(IndieGame)
+            .options(load_only(IndieGame.id, IndieGame.showcase_type))
+            .filter(IndieGame.showcase_type.in_(c.SHOWCASE_GAME_TYPES.keys()))
+            .all()
+        )
+        games_by_showcase = defaultdict(list)
+        for game in all_games:
+            games_by_showcase[game.showcase_type].append(game)
 
         for judge in session.query(IndieJudge).filter(IndieJudge.all_games_showcases != None,
                                                       IndieJudge.status == c.CONFIRMED).options(

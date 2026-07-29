@@ -2666,7 +2666,7 @@ class AttendeeAccount(MagModel, table=True):
 
     @property
     def has_dealer(self):
-        return any([a.is_dealer for a in self.valid_attendees])
+        return any(a.is_dealer for a in self.valid_attendees)
 
     def get_potential_room_group_members(self, staff=False):
         return [a for a in self.attendees if a.hotel_lottery_eligible and (
@@ -2701,7 +2701,7 @@ class AttendeeAccount(MagModel, table=True):
     
     @property
     def hotel_eligible_staff(self):
-        return any([a.badge_type == c.STAFF_BADGE for a in self.hotel_eligible_attendees])
+        return any(a.badge_type == c.STAFF_BADGE for a in self.hotel_eligible_attendees)
 
     @property
     def valid_attendees(self):

@@ -252,7 +252,7 @@ class ModelReceipt(MagModel, table=True):
 
     @property
     def has_at_con_payments(self):
-        return any([txn for txn in self.receipt_txns if txn.method == c.SQUARE])
+        return any(txn.method == c.SQUARE for txn in self.receipt_txns)
 
     @property
     def total_str(self):

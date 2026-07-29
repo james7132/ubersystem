@@ -361,7 +361,7 @@ class PanelApplicant(MagModel, table=True):
 
     @property
     def has_credentials(self):
-        return any([self.occupation, self.website, self.other_credentials])
+        return any((self.occupation, self.website, self.other_credentials))
 
     @property
     def full_name(self):

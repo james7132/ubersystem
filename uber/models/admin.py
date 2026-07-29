@@ -212,43 +212,43 @@ class AdminAccount(MagModel, table=True):
 
     @property
     def api_read(self):
-        return any([group.has_any_access('api', read_only=True) for group in self.access_groups])
+        return any(group.has_any_access('api', read_only=True) for group in self.access_groups)
 
     @property
     def api_update(self):
-        return any([group.has_access_level('api', AccessGroup.LIMITED) for group in self.access_groups])
+        return any(group.has_access_level('api', AccessGroup.LIMITED) for group in self.access_groups)
 
     @property
     def api_create(self):
-        return any([group.has_access_level('api', AccessGroup.CONTACT) for group in self.access_groups])
+        return any(group.has_access_level('api', AccessGroup.CONTACT) for group in self.access_groups)
 
     @property
     def api_delete(self):
-        return any([group.has_full_access('api') for group in self.access_groups])
+        return any(group.has_full_access('api') for group in self.access_groups)
 
     @property
     def full_dept_admin(self):
-        return any([group.has_full_access('dept_admin') for group in self.access_groups])
+        return any(group.has_full_access('dept_admin') for group in self.access_groups)
 
     @property
     def full_shifts_admin(self):
-        return any([group.has_full_access('shifts_admin') for group in self.access_groups])
+        return any(group.has_full_access('shifts_admin') for group in self.access_groups)
 
     @property
     def full_dept_checklist_admin(self):
-        return any([group.has_full_access('dept_checklist') for group in self.access_groups])
+        return any(group.has_full_access('dept_checklist') for group in self.access_groups)
 
     @property
     def full_attractions_admin(self):
-        return any([group.has_full_access('attractions_admin') for group in self.access_groups])
+        return any(group.has_full_access('attractions_admin') for group in self.access_groups)
 
     @property
     def full_email_admin(self):
-        return any([group.has_full_access('email_admin') for group in self.access_groups])
+        return any(group.has_full_access('email_admin') for group in self.access_groups)
 
     @property
     def full_registration_admin(self):
-        return any([group.has_full_access('registration') for group in self.access_groups])
+        return any(group.has_full_access('registration') for group in self.access_groups)
 
     def max_level_access(self, site_section_or_page, read_only=False):
         write_access_list = [int(group.access.get(site_section_or_page, 0)) for group in self.access_groups]

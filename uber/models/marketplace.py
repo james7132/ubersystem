@@ -77,13 +77,13 @@ class ArtistMarketplaceApplication(MagModel, table=True):
     def was_refunded(self):
         if not self.receipt_items:
             return False
-        return all([item.receipt_txn and item.receipt_txn.refunded for item in self.receipt_items])
+        return all(item.receipt_txn and item.receipt_txn.refunded for item in self.receipt_items)
 
     @property
     def amount_paid(self):
         if self.receipt_items:
-            return sum([item.amount for item in self.receipt_items if item.closed and (
-                not item.receipt_txn or not item.receipt_txn.refunded)])
+            return sum(item.amount for item in self.receipt_items if item.closed and (
+                not item.receipt_txn or not item.receipt_txn.refunded))
         return 0
     
     @property
