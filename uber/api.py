@@ -55,9 +55,27 @@ def force_json_in():
 
 cherrypy.tools.force_json_in = cherrypy.Tool('before_request_body', force_json_in, priority=30)
 
-def json_handler(*args, **kwargs):
-    value = cherrypy.serving.request._json_inner_handler(*args, **kwargs)
-    return json.dumps(value, cls=serializer).encode('utf-8')
+from typing import Any, NamedTuple, Optional, Union
+
+class JSONRPCErrorDetails(NamedTuple):
+    """Payload container for JSON-RPC 2.0 error details."""
+    code: int
+    message: str
+
+
+class JSONRPCErrorPayload(NamedTuple):
+    """Payload container for JSON-RPC 2.0 error responses."""
+    jsonrpc: str = "2.0"
+    id: Optional[Union[str, int]] = None
+    error: Optional[JSONRPCErrorDetails] = None
+
+
+class JSONRPCResponsePayload(NamedTuple):
+    """Payload container for JSON-RPC 2.0 success responses."""
+    jsonrpc: str = "2.0"
+    id: Optional[Union[str, int]] = None
+    result: Optional[Any] = None
+
 
 def _make_jsonrpc_handler(services, debug=c.DEV_BOX, precall=lambda body: None):
 
@@ -67,14 +85,15 @@ def _make_jsonrpc_handler(services, debug=c.DEV_BOX, precall=lambda body: None):
     def _jsonrpc_handler(self=None):
         id = None
 
-        def error(status, code, message):
-            response = {'jsonrpc': '2.0', 'id': id, 'error': {'code': code, 'message': message}}
+        def error(status: int, code: int, message: str) -> dict[str, Any]:
+            err_details = JSONRPCErrorDetails(code=code, message=message)
+            response = JSONRPCErrorPayload(id=id, error=err_details)._asdict()
             log.debug('Returning error message: {}', repr(response).encode('utf-8'))
             cherrypy.response.status = status
             return response
 
-        def success(result):
-            response = {'jsonrpc': '2.0', 'id': id, 'result': result}
+        def success(result: Any) -> dict[str, Any]:
+            response = JSONRPCResponsePayload(id=id, result=result)._asdict()
             log.debug('Returning success message: {}', {
                 'jsonrpc': '2.0', 'id': id, 'result': len(result) if is_listy(result) else str(result).encode('utf-8')})
             cherrypy.response.status = 200

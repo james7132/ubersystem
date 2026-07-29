@@ -18,9 +18,23 @@ from uber.utils import RegistrationCode, get_static_file_path
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.types import Integer, Uuid, DateTime
 from sqlalchemy.schema import UniqueConstraint, Index
-from typing import ClassVar
+from typing import ClassVar, NamedTuple, Optional, Any
 
 log = logging.getLogger(__name__)
+
+
+class Point2D(NamedTuple):
+    """Spatial 2D coordinate point for gallery panel layouts."""
+    x: float
+    y: float
+
+
+class PanelLocationJSON(NamedTuple):
+    """Location record container for art show panel JSON rendering."""
+    origin: Point2D
+    terminus: Point2D
+    usability: str
+    labels: dict[str, str]
 
 
 __all__ = ['ArtShowAgentCode', 'ArtShowApplication', 'ArtShowPiece', 'ArtShowPayment', 'ArtShowReceipt', 'ArtShowBidder',
@@ -599,16 +613,21 @@ class ArtShowPanel(MagModel, table=True):
     )
 
     @property
-    def panel_json(self):
-        origin = {'x': self.origin_x, 'y': self.origin_y}
-        terminus = {'x': self.terminus_x, 'y': self.terminus_y}
+    def panel_json(self) -> dict[str, Any]:
+        origin = Point2D(x=self.origin_x, y=self.origin_y)
+        terminus = Point2D(x=self.terminus_x, y=self.terminus_y)
+        labels = {}
         if self.origin_x == self.terminus_x:
             labels = {'l': self.start_label, 'r': self.end_label}
         elif self.origin_y == self.terminus_y:
             labels = {'u': self.start_label, 'd': self.end_label}
-        
-        return {'origin': origin, 'terminus': terminus,
-                'usability': self.directional_usability, 'labels': labels}
+
+        return PanelLocationJSON(
+            origin=origin,
+            terminus=terminus,
+            usability=self.directional_usability,
+            labels=labels,
+        )._asdict()
     
     @property
     def directional_usability(self):

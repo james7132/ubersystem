@@ -13,7 +13,16 @@ from uber.models import Attendee, ArtistMarketplaceApplication
 from uber.utils import check, validate_model
 from uber.payments import TransactionRequest, ReceiptManager, RefundRequest
 
+from typing import Any, NamedTuple, Optional
+
 log = logging.getLogger(__name__)
+
+
+class MarketplaceResponse(NamedTuple):
+    """Structured response container for marketplace application validation."""
+    success: bool = True
+    message: str = ""
+    error: Optional[Any] = None
 
 
 @all_renderable(public=True)
@@ -109,7 +118,8 @@ class Root:
     
     @ajax
     @requires_account(ArtistMarketplaceApplication)
-    def validate_marketplace_app(self, session, form_list=[], **params):
+    def validate_marketplace_app(self, session: Any, form_list: list[str] | str | None = None, **params: Any) -> dict[str, Any]:
+        """Validate marketplace application form data and return structured MarketplaceResponse."""
         if params.get('id') in [None, '', 'None']:
             app = ArtistMarketplaceApplication()
         else:
@@ -123,9 +133,9 @@ class Root:
 
         all_errors = validate_model(session, forms, app, is_admin=False)
         if all_errors:
-            return {"error": all_errors}
+            return MarketplaceResponse(success=False, error=all_errors)._asdict()
 
-        return {"success": True}
+        return MarketplaceResponse(success=True)._asdict()
 
     def confirmation(self, session, id):
         return {
