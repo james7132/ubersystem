@@ -361,9 +361,15 @@ class Root:
         if judge_id is None:
             raise HTTPRedirect(return_to, 'Please select at least one judge to assign.')
 
-        for gid in listify(game_id):
-            for jid in listify(judge_id):
-                if not session.query(IndieGameReview).filter_by(game_id=gid, judge_id=jid).first():
+        gids, jids = listify(game_id), listify(judge_id)
+        existing = set(
+            session.query(IndieGameReview.game_id, IndieGameReview.judge_id)
+            .filter(IndieGameReview.game_id.in_(gids), IndieGameReview.judge_id.in_(jids))
+            .all()
+        )
+        for gid in gids:
+            for jid in jids:
+                if (gid, jid) not in existing:
                     session.add(IndieGameReview(game_id=gid, judge_id=jid))
         raise HTTPRedirect(return_to, f'{what_assigned} successfully assigned!')
 
@@ -381,11 +387,11 @@ class Root:
         if judge_id is None:
             raise HTTPRedirect(return_to, 'Please select at least one judge to remove.')
 
-        for gid in listify(game_id):
-            for jid in listify(judge_id):
-                review = session.query(IndieGameReview).filter_by(game_id=gid, judge_id=jid).first()
-                if review:
-                    session.delete(review)
+        gids, jids = listify(game_id), listify(judge_id)
+        session.query(IndieGameReview).filter(
+            IndieGameReview.game_id.in_(gids),
+            IndieGameReview.judge_id.in_(jids)
+        ).delete(synchronize_session='fetch')
         raise HTTPRedirect(return_to, f'{what_removed} successfully removed.')
 
     @csrf_protected

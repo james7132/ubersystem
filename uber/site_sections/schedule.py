@@ -57,17 +57,15 @@ class Root:
 
         calname = '{}_{}_schedule'.format(c.EVENT_NAME, calname).lower().replace(' ', '_')
 
-        for location in locations:
-            for event in session.query(Event)\
-                    .filter_by(event_location_id=location)\
-                    .order_by('start_time').all():
-                icalendar.events.add(ics.Event(
-                    name=event.name,
-                    begin=event.start_time,
-                    end=(event.start_time + timedelta(minutes=event.duration)),
-                    description=normalize_newlines(event.public_description or event.description),
-                    created=event.created_info.when,
-                    location=event.location_name))
+        events = session.query(Event).filter(Event.event_location_id.in_(locations)).order_by('start_time').all()
+        for event in events:
+            icalendar.events.add(ics.Event(
+                name=event.name,
+                begin=event.start_time,
+                end=(event.start_time + timedelta(minutes=event.duration)),
+                description=normalize_newlines(event.public_description or event.description),
+                created=event.created_info.when,
+                location=event.location_name))
 
         cherrypy.response.headers['Content-Type'] = \
             'text/calendar; charset=utf-8'
@@ -121,21 +119,24 @@ class Root:
             now = c.EVENT_TIMEZONE.localize(datetime.combine(localized_now().date(), time(localized_now().hour)))
 
         current, upcoming = [], []
-        for location_id, name in c.SCHEDULE_LOCATION_OPTS:
-            approx = session.query(Event).join(Event.location).filter(
-                EventLocation.id == location_id,
-                Event.start_time >= now - timedelta(hours=6), Event.start_time <= now).all()
-            for event in approx:
-                if now in event.minutes:
-                    current.append(event)
+        approx = session.query(Event).filter(
+            Event.start_time >= now - timedelta(hours=6),
+            Event.start_time <= now
+        ).all()
+        for event in approx:
+            if now in event.minutes:
+                current.append(event)
 
-            next_events = session.query(Event).join(Event.location).filter(
-                EventLocation.id == location_id,
-                Event.start_time >= now + timedelta(minutes=30),
-                Event.start_time <= now + timedelta(hours=4)).order_by('start_time').all()
+        next_events_by_loc = defaultdict(list)
+        all_next_events = session.query(Event).filter(
+            Event.start_time >= now + timedelta(minutes=30),
+            Event.start_time <= now + timedelta(hours=4)
+        ).order_by('start_time').all()
+        for event in all_next_events:
+            next_events_by_loc[event.location_id].append(event)
 
-            if next_events:
-                upcoming.extend(event for event in next_events if event.start_time == next_events[0].start_time)
+        for loc_id, events in next_events_by_loc.items():
+            upcoming.extend(event for event in events if event.start_time == events[0].start_time)
 
         return {
             'now': now if when else localized_now(),
