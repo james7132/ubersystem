@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 import math
 import re
@@ -2724,7 +2725,10 @@ class AttendeeAccount(MagModel, table=True):
     def valid_badges_by_group(self):
         group_attendees = [attendee for attendee in self.valid_attendees if attendee.group and attendee.group.is_valid]
         if group_attendees:
-            return groupify(group_attendees, 'group')
+            res = defaultdict(list)
+        for a in group_attendees:
+            res[a.group].append(a)
+        return res
         return {}
 
     @property

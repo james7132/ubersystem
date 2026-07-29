@@ -1,3 +1,4 @@
+from collections import defaultdict
 import cherrypy
 from datetime import datetime, timedelta
 import logging
@@ -143,7 +144,9 @@ class Root:
             queued_email_counts[email.id] = all_queued_emails.filter(Email.status != c.SENT).count()
             sent_email_counts[email.id] = all_queued_emails.filter(Email.status == c.SENT).count()
 
-        emails_by_sender = groupify(emails, 'sender')
+        emails_by_sender = defaultdict(list)
+        for email in emails:
+            emails_by_sender[email.sender].append(email)
 
         if not checklist:
             checklist = {'conf': None, 'relevant': False, 'completed': None}

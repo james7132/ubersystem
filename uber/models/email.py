@@ -194,7 +194,10 @@ class AutomatedEmail(MagModel, BaseEmailMixin, table=True):
 
     @cached_property
     def emails_by_fk_id(self):
-        return groupify(self.emails, 'fk_id')
+        res = defaultdict(list)
+        for email in self.emails:
+            res[email.fk_id].append(email)
+        return res
 
     @hybrid_property
     def email_count(self):

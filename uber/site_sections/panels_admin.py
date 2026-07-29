@@ -154,7 +154,10 @@ class Root:
     def email_statuses(self, session):
         emails = session.query(AutomatedEmail).filter(AutomatedEmail.ident.in_(
             ['panel_accepted', 'panel_declined', 'panel_waitlisted', 'panel_scheduled']))
-        return {'emails': groupify(emails, 'ident')}
+        emails_by_ident = defaultdict(list)
+        for email in emails:
+            emails_by_ident[email.ident].append(email)
+        return {'emails': emails_by_ident}
 
     def assigned_to(self, session, id):
         attendee = session.attendee(id)

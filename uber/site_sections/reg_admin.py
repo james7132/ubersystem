@@ -1446,11 +1446,10 @@ class Root:
 
             if models and which_import == 'attendees':
                 attendees = models
-                attendees_by_name_email = groupify(attendees, lambda a: (
-                    a['first_name'].lower(),
-                    a['last_name'].lower(),
-                    normalize_email_legacy(a['email']),
-                ))
+                attendees_by_name_email = defaultdict(list)
+                for a in attendees:
+                    key = (a['first_name'].lower(), a['last_name'].lower(), normalize_email_legacy(a['email']))
+                    attendees_by_name_email[key].append(a)
 
                 filters = [
                     and_(
@@ -1475,7 +1474,9 @@ class Root:
 
             if models and which_import == 'groups':
                 groups = models
-                groups_by_name = groupify(groups, lambda g: g['name'])
+                groups_by_name = defaultdict(list)
+                for g in groups:
+                    groups_by_name[g['name']].append(g)
 
                 existing_groups = session.query(Group).filter(Group.name.in_(groups_by_name.keys())) \
                     .options(subqueryload(Group.attendees)).all()

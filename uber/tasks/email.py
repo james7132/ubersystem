@@ -72,7 +72,10 @@ def notify_admins_of_pending_emails():
                                            'depts_by_sender': depts_by_sender},
                                      replace_unsent=True)
 
-        return utils.groupify(pending_emails, 'sender', 'ident')
+        res = defaultdict(dict)
+    for email in pending_emails:
+        res[email.sender][email.ident] = email
+    return res
     
 
 @celery.task

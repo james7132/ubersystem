@@ -400,11 +400,17 @@ class Department(MagModel, table=True):
 
     @property
     def dept_roles_by_id(self):
-        return groupify(self.dept_roles, 'id')
+        res = defaultdict(list)
+        for r in self.dept_roles:
+            res[r.id].append(r)
+        return res
 
     @property
     def dept_roles_by_name(self):
-        return groupify(self.dept_roles, 'name')
+        res = defaultdict(list)
+        for r in self.dept_roles:
+            res[r.name].append(r)
+        return res
     
     @property
     def job_templates_choices(self):
@@ -412,11 +418,17 @@ class Department(MagModel, table=True):
     
     @property
     def job_templates_by_id(self):
-        return groupify(self.job_templates, 'id')
+        res = defaultdict(list)
+        for t in self.job_templates:
+            res[t.id].append(t)
+        return res
 
     @property
     def job_templates_by_name(self):
-        return groupify(self.job_templates, 'template_name')
+        res = defaultdict(list)
+        for t in self.job_templates:
+            res[t.template_name].append(t)
+        return res
 
 
 class Job(MagModel, table=True):

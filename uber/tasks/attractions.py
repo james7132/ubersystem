@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, timedelta
 
 import pytz
@@ -36,7 +37,9 @@ def attractions_check_notification_replies():
             session.query(AttractionNotificationReply.sid).filter(AttractionNotificationReply.sid.in_(sids)))
 
         attendees = session.query(Attendee).filter(Attendee.cellphone != '', Attendee.attraction_notifications.any())
-        attendees_by_phone = groupify(attendees, lambda a: normalize_phone(a.cellphone))
+        attendees_by_phone = defaultdict(list)
+    for a in attendees:
+        attendees_by_phone[normalize_phone(a.cellphone)].append(a)
 
         for message in filter(lambda m: m.sid not in existing_sids, messages):
             attraction_event_id = None

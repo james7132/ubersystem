@@ -527,7 +527,9 @@ def check_authnet_held_txns():
             txn.on_hold = True
             session.add(txn)
 
-        release_txns_by_charge_id = groupify(release_txns, 'charge_id')
+        release_txns_by_charge_id = defaultdict(list)
+        for txn in release_txns:
+            release_txns_by_charge_id[txn.charge_id].append(txn)
 
         for charge_id, txns in release_txns_by_charge_id.items():
             txn_status = TransactionRequest(session)
@@ -574,7 +576,9 @@ def sunset_empty_accounts():
 def import_attendee_accounts(accounts, admin_id, admin_name, target_server, api_token):
     already_queued = 0
     with Session() as session:
-        accounts_by_email = groupify(accounts, lambda a: normalize_email(a['email']))
+        accounts_by_email = defaultdict(list)
+        for a in accounts:
+            accounts_by_email[normalize_email(a['email'])].append(a)
 
         existing_accounts = session.query(AttendeeAccount).filter(
             AttendeeAccount.email.in_(accounts_by_email.keys())) \
