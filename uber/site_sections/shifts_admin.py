@@ -13,7 +13,7 @@ from uber.decorators import ajax, all_renderable, csrf_protected, csv_file, \
 from uber.errors import HTTPRedirect
 from uber.forms import load_forms
 from uber.models import Attendee, Department, DeptRole, Job, JobTemplate
-from uber.utils import check, localized_now, redirect_to_allowed_dept, validate_model, date_trunc_day
+from uber.utils import check, localized_now, redirect_to_allowed_dept, validate_model, date_trunc_day, ChecklistStatus
 
 log = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ class Root:
         try:
             checklist = session.checklist_status('creating_shifts', department_id)
         except ValueError:
-            checklist = {'conf': None, 'relevant': False, 'completed': None}
+            checklist = ChecklistStatus()
 
         return {
             'department_id': 'All' if department_id is None else department_id,
@@ -162,7 +162,7 @@ class Root:
         try:
             checklist = session.checklist_status('postcon_hours', department_id)
         except ValueError:
-            checklist = {'conf': None, 'relevant': False, 'completed': None}
+            checklist = ChecklistStatus()
 
         return {
             'message': message,
@@ -270,7 +270,7 @@ class Root:
         try:
             checklist = session.checklist_status('assigned_volunteers', department_id)
         except ValueError:
-            checklist = {'conf': None, 'relevant': False, 'completed': None}
+            checklist = ChecklistStatus()
 
         return {
             'counts': counts,

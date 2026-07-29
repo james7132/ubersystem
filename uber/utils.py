@@ -32,7 +32,30 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from uber.config import c, _config, signnow_sdk, threadlocal
 from uber.errors import CSRFException, HTTPRedirect
+from typing import NamedTuple, Optional, Any
+
 log = logging.getLogger(__name__)
+
+
+class ChecklistStatus(NamedTuple):
+    """Immutable status container for department checklist items.
+
+    Replaces dict instantiations {'conf': ..., 'relevant': ..., 'completed': ...}
+    to reduce memory allocation and provide strict typing for template access.
+    """
+    conf: Optional[Any] = None
+    relevant: bool = False
+    completed: Optional[Any] = None
+
+
+class StafferDropdownOption(NamedTuple):
+    """Immutable option container for staffer dropdown selections.
+
+    Replaces dict instantiations {'id': ..., 'full_name': ...} with an immutable
+    NamedTuple to save memory during batch query processing.
+    """
+    id: Any
+    full_name: str
 
 
 # ======================================================================

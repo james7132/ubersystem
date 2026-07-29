@@ -39,7 +39,7 @@ from uber.errors import HTTPRedirect
 from uber.decorators import presave_adjustment, suffix_property, cached_classproperty, classproperty
 from uber.models.types import Choice, MultiChoice, utcnow, UniqueList, DefaultField as Field
 from uber.utils import check_csrf, normalize_email_legacy, create_new_hash, DeptChecklistConf, \
-    RegistrationCode, listify
+    RegistrationCode, listify, ChecklistStatus, StafferDropdownOption
 from uber.payments import ReceiptManager
 
 log = logging.getLogger(__name__)
@@ -1095,23 +1095,23 @@ class UberSession(sqlalchemy.orm.Session):
                     "Can't access dept checklist INI settings for section '{}', check your INI file".format(slug))
 
             if not department_id:
-                return {'conf': conf, 'relevant': False, 'completed': None}
+                return ChecklistStatus(conf=conf, relevant=False, completed=None)
 
             department = self.get(Department, department_id, options=[
                 selectinload(Department.dept_checklist_items)
             ])
             if department:
-                return {
-                    'conf': conf,
-                    'relevant': attendee.can_admin_checklist_for(department),
-                    'completed': department.checklist_item_for_slug(conf.slug)
-                }
+                return ChecklistStatus(
+                    conf=conf,
+                    relevant=attendee.can_admin_checklist_for(department),
+                    completed=department.checklist_item_for_slug(conf.slug),
+                )
             else:
-                return {
-                    'conf': conf,
-                    'relevant': attendee.can_admin_checklist,
-                    'completed': attendee.checklist_item_for_slug(conf.slug)
-                }
+                return ChecklistStatus(
+                    conf=conf,
+                    relevant=attendee.can_admin_checklist,
+                    completed=attendee.checklist_item_for_slug(conf.slug),
+                )
 
         def jobs_for_signups(self, id, all=False):
             jobs = self.volunteer_from_id(id).possible
@@ -1777,7 +1777,7 @@ class UberSession(sqlalchemy.orm.Session):
             query = self.query(Attendee.id, Attendee.full_name).filter(Attendee.is_valid == True,
                                                                        Attendee.staffing == True)
             return [
-                {'id': id, 'full_name': full_name.title()}
+                StafferDropdownOption(id=id, full_name=full_name.title())
                 for id, full_name in query.order_by(Attendee.full_name)]
 
         def dept_heads(self, department_id=None):
