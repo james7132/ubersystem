@@ -78,7 +78,7 @@ class Root:
 
     def found_how(self, session):
         return {'all': sorted(
-            [a.found_how for a in session.query(Attendee).filter(Attendee.found_how != '').all()],
+            [val for (val,) in session.query(Attendee.found_how).filter(Attendee.found_how != '').all()],
             key=lambda s: s.lower())}
 
     @log_pageview

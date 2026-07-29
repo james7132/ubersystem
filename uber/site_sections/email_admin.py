@@ -5,6 +5,7 @@ import pytz
 import traceback
 
 from sqlalchemy import func, or_, any_
+from sqlalchemy.orm import load_only
 
 from uber.automated_emails import AutomatedEmailFixture
 from uber.config import c
@@ -434,7 +435,13 @@ class Root:
         interests = [int(i) for i in listify(params['interests'])]
         assert all(k in c.INTERESTS for k in interests)
 
-        attendees = session.query(Attendee).filter_by(can_spam=True).order_by('email').all()
+        attendees = (
+            session.query(Attendee)
+            .filter_by(can_spam=True)
+            .options(load_only(Attendee.first_name, Attendee.last_name, Attendee.email, Attendee.zip_code, Attendee.interests))
+            .order_by('email')
+            .all()
+        )
 
         out.writerow(["fullname", "email", "zipcode"])
 

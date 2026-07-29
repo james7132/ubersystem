@@ -250,10 +250,10 @@ class Root:
 
             zips = {}
             self.zips_counter = Counter()
-            attendees = session.query(Attendee).all()
-            for person in attendees:
-                if person.zip_code:
-                    self.zips_counter[person.zip_code] += 1
+            zip_counts = session.query(Attendee.zip_code, func.count(Attendee.id)).filter(
+                Attendee.zip_code != '', Attendee.zip_code != None).group_by(Attendee.zip_code).all()
+            for zip_code, count in zip_counts:
+                self.zips_counter[zip_code] = count
 
             for z in self.zips_counter.keys():
                 try:

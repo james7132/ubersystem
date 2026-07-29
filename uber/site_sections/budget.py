@@ -55,10 +55,11 @@ class Root:
     @log_pageview
     def index(self, session):
         receipt_items = session.query(ReceiptItem)
-        receipt_total = sum([item.amount for item in receipt_items.filter_by(txn_type=c.PAYMENT).all()]
-                            ) - sum([item.amount for item in receipt_items.filter_by(txn_type=c.REFUND).all()])
-        sales_total = sum([sale.cash * 100 for sale in session.query(Sale).all()])
-        arbitrary_charge_total = sum([charge.amount * 100 for charge in session.query(ArbitraryCharge).all()])
+        receipt_payment_total = session.query(func.sum(ReceiptItem.amount)).filter_by(txn_type=c.PAYMENT).scalar() or 0
+        receipt_refund_total = session.query(func.sum(ReceiptItem.amount)).filter_by(txn_type=c.REFUND).scalar() or 0
+        receipt_total = receipt_payment_total - receipt_refund_total
+        sales_total = (session.query(func.sum(Sale.cash)).scalar() or 0) * 100
+        arbitrary_charge_total = (session.query(func.sum(ArbitraryCharge.amount)).scalar() or 0) * 100
         return {
             'receipt_items': receipt_items.filter_by(txn_type=c.REFUND),
             'arbitrary_charges': session.query(ArbitraryCharge),

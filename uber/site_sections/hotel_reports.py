@@ -389,7 +389,7 @@ class Root:
 
         blank = OrderedDict([(field, '') for field in fields])
         out.writerow(fields)
-        for room in session.query(Room).order_by(Room.created).all():
+        for room in session.query(Room).options(joinedload(Room.assignments).joinedload(RoomAssignment.attendee)).order_by(Room.created).all():
             if room.assignments:
                 row = blank.copy()
                 row.update({
@@ -473,7 +473,7 @@ class Root:
             'Comments',
             'Emails',
         ])
-        for room in session.query(Room).order_by(Room.created).all():
+        for room in session.query(Room).options(joinedload(Room.assignments).joinedload(RoomAssignment.attendee)).order_by(Room.created).all():
             if room.assignments:
                 assignments = [ra.attendee for ra in room.assignments[:4]]
                 roommates = [
@@ -520,7 +520,7 @@ class Root:
 
         blank = OrderedDict([(field, '') for field in fields])
         out.writerow(fields)
-        for room in session.query(Room).order_by(Room.created).all():
+        for room in session.query(Room).options(joinedload(Room.assignments).joinedload(RoomAssignment.attendee)).order_by(Room.created).all():
             if room.assignments:
                 row = blank.copy()
                 row.update({

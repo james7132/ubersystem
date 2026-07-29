@@ -4,7 +4,7 @@ import logging
 
 import bcrypt
 import cherrypy
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload, selectinload, load_only
 from sqlalchemy.orm.exc import NoResultFound
 
 from uber.auth import OIDC
@@ -397,14 +397,28 @@ class Root:
     @csv_file
     def can_spam(self, out, session):
         out.writerow(["fullname", "email", "zipcode"])
-        for a in session.query(Attendee).filter_by(can_spam=True).order_by('email').all():
+        attendees = (
+            session.query(Attendee)
+            .filter_by(can_spam=True)
+            .options(load_only(Attendee.first_name, Attendee.last_name, Attendee.email, Attendee.zip_code))
+            .order_by('email')
+            .all()
+        )
+        for a in attendees:
             out.writerow([a.full_name, a.email, a.zip_code])
 
     # print out a CSV list of staffers (ignore can_spam for this since it's for internal staff mailing)
     @csv_file
     def staff_emails(self, out, session):
         out.writerow(["fullname", "email", "zipcode"])
-        for a in session.query(Attendee).filter_by(staffing=True, placeholder=False).order_by('email').all():
+        attendees = (
+            session.query(Attendee)
+            .filter_by(staffing=True, placeholder=False)
+            .options(load_only(Attendee.first_name, Attendee.last_name, Attendee.email, Attendee.zip_code))
+            .order_by('email')
+            .all()
+        )
+        for a in attendees:
             out.writerow([a.full_name, a.email, a.zip_code])
 
     @public
