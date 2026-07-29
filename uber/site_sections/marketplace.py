@@ -133,9 +133,9 @@ class Root:
 
         all_errors = validate_model(session, forms, app, is_admin=False)
         if all_errors:
-            return MarketplaceResponse(success=False, error=all_errors)._asdict()
+            return MarketplaceResponse(success=False, error=all_errors)
 
-        return MarketplaceResponse(success=True)._asdict()
+        return MarketplaceResponse(success=True)
 
     def confirmation(self, session, id):
         return {

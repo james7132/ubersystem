@@ -28,7 +28,7 @@ from uber.models import (AdminAccount, ApiToken, Attendee, AttendeeAccount, Attr
                          GuestGroup, Room, HotelRequests, RoomAssignment)
 from uber.models.badge_printing import PrintJob
 from uber.serializer import serializer
-from uber.utils import check, check_csrf, normalize_email_legacy, normalize_newlines, is_listy
+from uber.utils import check, check_csrf, normalize_email_legacy, normalize_newlines, is_listy, is_namedtuple_instance
 
 log = logging.getLogger(__name__)
 
@@ -54,6 +54,12 @@ def force_json_in():
             raise cherrypy.HTTPError(400, 'Invalid JSON document')
 
 cherrypy.tools.force_json_in = cherrypy.Tool('before_request_body', force_json_in, priority=30)
+
+def json_handler(*args, **kwargs):
+    value = cherrypy.serving.request._json_inner_handler(*args, **kwargs)
+    if is_namedtuple_instance(value):
+        value = value._asdict()
+    return json.dumps(value, cls=serializer).encode('utf-8')
 
 from typing import Any, NamedTuple, Optional, Union
 

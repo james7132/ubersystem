@@ -100,9 +100,9 @@ class Root:
         all_errors = validate_model(session, forms, app, is_admin=True)
 
         if all_errors:
-            return PanelAdminResponse(success=False, error=all_errors)._asdict()
+            return PanelAdminResponse(success=False, error=all_errors)
 
-        return PanelAdminResponse(success=True)._asdict()
+        return PanelAdminResponse(success=True)
 
     def form(self, session, message='', **params):
         if params.get('id') in [None, '', 'None']:
@@ -119,7 +119,7 @@ class Root:
         raise HTTPRedirect('app?id={}&message={}', app.id, 'Application updated.')
 
     @ajax
-    def validate_panelist(self, session: Any, form_list: list[str] | str | None = None, **params: Any) -> dict[str, Any]:
+    def validate_panelist(self, session: Any, form_list: list[str] | str | None = None, **params: Any) -> PanelAdminResponse:
         """Validate panelist form data and return structured PanelAdminResponse."""
         if params.get('id') in [None, '', 'None']:
             panelist = PanelApplicant()
@@ -137,9 +137,9 @@ class Root:
         all_errors = validate_model(session, forms, panelist, is_admin=True)
 
         if all_errors:
-            return PanelAdminResponse(success=False, error=all_errors)._asdict()
+            return PanelAdminResponse(success=False, error=all_errors)
 
-        return PanelAdminResponse(success=True)._asdict()
+        return PanelAdminResponse(success=True)
 
     def edit_panelist(self, session, **params):
         app = session.panel_application(params.get('app_id'))

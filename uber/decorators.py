@@ -31,7 +31,7 @@ from uber.barcode import get_badge_num_from_barcode
 from uber.config import c
 from uber.errors import CSRFException, HTTPRedirect
 from uber.jinja import JinjaEnv
-from uber.utils import check_csrf, report_critical_exception, ExcelWorksheetStreamWriter
+from uber.utils import check_csrf, report_critical_exception, ExcelWorksheetStreamWriter, is_namedtuple_instance
 
 log = logging.getLogger(__name__)
 
@@ -417,7 +417,10 @@ def ajax(func):
             message = "Your session login may have timed out. Try logging in again." if c.ATTENDEE_ACCOUNTS_ENABLED else \
                 "There was an issue submitting the form. Please refresh and try again."
             return json.dumps({'success': False, 'message': message, 'error': message}, cls=serializer).encode('utf-8')
-        return json.dumps(func(*args, **kwargs), cls=serializer).encode('utf-8')
+        res = func(*args, **kwargs)
+        if is_namedtuple_instance(res):
+            res = res._asdict()
+        return json.dumps(res, cls=serializer).encode('utf-8')
     returns_json.ajax = True
     return returns_json
 
@@ -442,7 +445,10 @@ def ajax_gettable(func):
     @wraps(func)
     def returns_json(*args, **kwargs):
         cherrypy.response.headers['Content-Type'] = 'application/json'
-        return json.dumps(func(*args, **kwargs), cls=serializer).encode('utf-8')
+        res = func(*args, **kwargs)
+        if is_namedtuple_instance(res):
+            res = res._asdict()
+        return json.dumps(res, cls=serializer).encode('utf-8')
     return returns_json
 
 
