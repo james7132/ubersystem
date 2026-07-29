@@ -187,12 +187,12 @@ def check_pending_badges():
 def check_unassigned_volunteers():
     if c.PRE_CON and (c.DEV_BOX or c.SEND_EMAILS) and c.REPORTS_EMAIL:
         with Session() as session:
-            unassigned = session.query(Attendee).filter(
+            unassigned = session.query(Attendee.id).filter(
                 Attendee.is_valid == True,  # noqa: E712
                 Attendee.staffing == True,  # noqa: E712
                 Attendee.badge_status != c.REFUNDED_STATUS,
                 Attendee.is_unassigned == False,  # noqa: E712
-                not_(Attendee.dept_memberships.any())).order_by(Attendee.full_name).all()  # noqa: E712
+                not_(Attendee.dept_memberships.any())).first()  # noqa: E712
             subject = c.EVENT_NAME + ' Unassigned Volunteer Report for ' + localized_now().strftime('%Y-%m-%d')
             if unassigned and session.no_email(subject):
                 EmailService.queue_email(session, 'daily_unassigned_report', to=c.VOLUNTEER_EMAIL)
@@ -216,12 +216,10 @@ def invalidate_at_door_badges():
         return
 
     with Session() as session:
-        pending_badges = session.query(Attendee).filter(Attendee.paid == c.PENDING,
-                                                        Attendee.badge_status == c.NEW_STATUS)
-        for badge in pending_badges:
-            badge.badge_status = c.INVALID_STATUS
-            session.add(badge)
-
+        session.query(Attendee).filter(
+            Attendee.paid == c.PENDING,
+            Attendee.badge_status == c.NEW_STATUS
+        ).update({Attendee.badge_status: c.INVALID_STATUS}, synchronize_session=False)
         session.commit()
 
 
@@ -231,14 +229,12 @@ def invalidate_dealer_badges():
         return
 
     with Session() as session:
-        pending_badges = session.query(Attendee).filter(Attendee.admin_notes.contains('Converted badge'),
-                                                        Attendee.placeholder,
-                                                        Attendee.paid == c.NOT_PAID,
-                                                        Attendee.badge_status != c.INVALID_STATUS)
-        for badge in pending_badges:
-            badge.badge_status = c.INVALID_STATUS
-            session.add(badge)
-
+        session.query(Attendee).filter(
+            Attendee.admin_notes.contains('Converted badge'),
+            Attendee.placeholder,
+            Attendee.paid == c.NOT_PAID,
+            Attendee.badge_status != c.INVALID_STATUS
+        ).update({Attendee.badge_status: c.INVALID_STATUS}, synchronize_session=False)
         session.commit()
 
 

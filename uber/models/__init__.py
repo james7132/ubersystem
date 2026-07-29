@@ -25,7 +25,7 @@ from sqlalchemy.event import listen
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import Query, joinedload, selectinload, subqueryload, contains_eager, declared_attr, sessionmaker, scoped_session
+from sqlalchemy.orm import Query, joinedload, load_only, selectinload, subqueryload, contains_eager, declared_attr, sessionmaker, scoped_session
 import sqlalchemy.orm
 from sqlalchemy.orm.attributes import get_history, instance_state
 from sqlalchemy.orm.collections import InstrumentedList
@@ -1759,7 +1759,7 @@ class UberSession(sqlalchemy.orm.Session):
             return self.all_attendees(only_staffing=True, pending=pending)
 
         def all_panelists(self):
-            return self.query(Attendee).filter(or_(
+            return self.query(Attendee).options(load_only(Attendee.id, Attendee.first_name, Attendee.last_name)).filter(or_(
                 Attendee.ribbon.contains(c.PANELIST_RIBBON),
                 Attendee.badge_type == c.GUEST_BADGE)).order_by(Attendee.full_name).all()
 
