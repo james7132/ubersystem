@@ -295,29 +295,29 @@ class Root:
 
         return {
             'group': group,
-            'changes': session.query(Tracking).filter(or_(
+            'changes': session.scalars(select(Tracking).filter(or_(
                 Tracking.links.like('%group({})%'.format(id)),
-                and_(Tracking.model == 'Group', Tracking.fk_id == id))).order_by(Tracking.when).all(),
-            'pageviews': session.query(PageViewTracking).filter(PageViewTracking.which == repr(group)
-                                                                ).order_by(PageViewTracking.when).all(),
+                and_(Tracking.model == 'Group', Tracking.fk_id == id))).order_by(Tracking.when)).all(),
+            'pageviews': session.scalars(select(PageViewTracking).filter(PageViewTracking.which == repr(group)
+                                                                         ).order_by(PageViewTracking.when)).all(),
         }
-    
+
     def emails(self, session, id):
         group = session.group(id)
         guest_emails = []
         leader_emails = []
 
         if group.guest:
-            guest_emails = session.query(Email).filter(Email.model == 'GuestGroup',
-                                                       Email.fk_id == group.guest.id).order_by(Email.generated).all()
+            guest_emails = session.scalars(select(Email).filter(Email.model == 'GuestGroup',
+                                                                Email.fk_id == group.guest.id).order_by(Email.generated)).all()
         if group.leader:
-            leader_emails = session.query(Email).filter(Email.model == 'Attendee',
-                                                       Email.fk_id == group.leader.id).order_by(Email.generated).all()
+            leader_emails = session.scalars(select(Email).filter(Email.model == 'Attendee',
+                                                                 Email.fk_id == group.leader.id).order_by(Email.generated)).all()
 
         return {
             'group': group,
-            'group_emails': session.query(Email).filter(Email.model == 'Group',
-                                                        Email.fk_id == id).order_by(Email.generated).all(),
+            'group_emails': session.scalars(select(Email).filter(Email.model == 'Group',
+                                                                 Email.fk_id == id).order_by(Email.generated)).all(),
             'guest_emails': guest_emails,
             'leader_emails': leader_emails,
             'depts_by_sender': EmailService.emails_from_depts(session),

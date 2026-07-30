@@ -21,8 +21,10 @@ class Root:
 
         image_data = defaultdict(dict)
         cl_updates_ids = [x.id for xs in cl_updates.values() for x in xs]
-        existing_headers = session.query(File).filter(File.fk_id.in_(cl_updates_ids), File.flags['guidebook_header'].astext == 'true')
-        existing_thumbnails = session.query(File).filter(File.fk_id.in_(cl_updates_ids), File.flags['guidebook_thumbnail'].astext == 'true')
+        existing_headers = session.scalars(select(File).filter(File.fk_id.in_(
+            cl_updates_ids), File.flags['guidebook_header'].astext == 'true')).all()
+        existing_thumbnails = session.scalars(select(File).filter(File.fk_id.in_(
+            cl_updates_ids), File.flags['guidebook_thumbnail'].astext == 'true')).all()
         for header in existing_headers:
             image_data[header.fk_id]['guidebook_header'] = header
         for thumbnail in existing_thumbnails:
@@ -45,11 +47,11 @@ class Root:
 
         if selected_model == 'schedule':
             model = Event
-            query = session.query(Event)
+            query = select(Event)
         else:
             query, _ = GuidebookUtils.get_guidebook_models(session, selected_model)
             model = GuidebookUtils.parse_guidebook_model(selected_model)
-        update_model = query.filter(model.id == id).first()
+        update_model = session.scalars(query.filter(model.id == id)).first()
 
         if not update_model:
             return {'success': False,
@@ -88,11 +90,11 @@ class Root:
         ))
 
         rows = []
-        query = session.query(Event).order_by('start_time')
+        query = select(Event).order_by(Event.start_time)
         if new_only:
             query = query.filter(Event.last_synced['guidebook'] == None)
 
-        for event in query.all():
+        for event in session.scalars(query).all():
             guidebook_fields = event.guidebook_data
             rows.append([
                 guidebook_fields['name'],

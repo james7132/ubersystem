@@ -35,9 +35,9 @@ class Root:
         }
 
     def app(self, session, id, message='', **params):
-        all_tags = session.query(
+        all_tags = session.execute(select(
             func.string_agg(PanelApplication.tags, literal_column("','"))
-        ).all()
+        )).all()
 
         app = session.panel_application(id)
         department = session.department(app.department) if app.department != str(c.PANELS) else None
@@ -48,20 +48,20 @@ class Root:
             panelist_forms = {app.submitter.id: load_forms(params, app.submitter, panelist_form_list)}
         else:
             panelist_forms = {}
-        
+
         for panelist in app.other_panelists:
             panelist_forms[panelist.id] = load_forms(params, panelist, panelist_form_list,
                                                      field_prefix=panelist.id)
-        
+
         panelist_forms['new'] = load_forms(params, PanelApplicant(), panelist_form_list,
                                            field_prefix='new')
-        
-        guest_groups = session.query(GuestGroup).filter(GuestGroup.group_type != c.MIVS).options(
-            joinedload(GuestGroup.group))
+
+        guest_groups = session.scalars(select(GuestGroup).filter(GuestGroup.group_type != c.MIVS).options(
+            joinedload(GuestGroup.group))).all()
         guests = [(guest.group.id,
                   '{} ({})'.format(guest.group.name, guest.group.leader.full_name))
-                for guest in guest_groups if guest.group and guest.group.leader
-        ]
+                  for guest in guest_groups if guest.group and guest.group.leader
+                  ]
 
         return {
             'message': message,
@@ -152,8 +152,8 @@ class Root:
                            app.id, panelist.full_name, 'created' if prefix == 'new' else 'updated')
 
     def email_statuses(self, session):
-        emails = session.query(AutomatedEmail).filter(AutomatedEmail.ident.in_(
-            ['panel_accepted', 'panel_declined', 'panel_waitlisted', 'panel_scheduled']))
+        emails = session.scalars(select(AutomatedEmail).filter(AutomatedEmail.ident.in_(
+            ['panel_accepted', 'panel_declined', 'panel_waitlisted', 'panel_scheduled']))).all()
         return {'emails': groupify(emails, 'ident')}
 
     def assigned_to(self, session, id):
@@ -273,8 +273,8 @@ class Root:
                 message = 'You must select an event'
             else:
                 for attendee in app.matched_attendees:
-                    assigned_panelist = session.query(AssignedPanelist).filter_by(
-                        event_id=app.event_id, attendee_id=attendee.id).first()
+                    assigned_panelist = session.scalars(select(AssignedPanelist).filter_by(
+                        event_id=app.event_id, attendee_id=attendee.id)).first()
 
                     if not assigned_panelist:
                         app.event.assigned_panelists.append(AssignedPanelist(attendee=attendee))
@@ -283,8 +283,8 @@ class Root:
         return {
             'app': app,
             'message': message,
-            'panels': session.query(Event).join(Event.location).join(
-                EventLocation.department).filter(Department.manages_panels == True).order_by('name')
+            'panels': session.scalars(select(Event).join(Event.location).join(
+                EventLocation.department).filter(Department.manages_panels == True).order_by('name')).all()
         }
 
     def badges(self, session):
@@ -306,8 +306,8 @@ class Root:
                 attendee.ribbon = add_opt(attendee.ribbon_ints, c.PANELIST_RIBBON)
 
             pa = session.panel_applicant(applicant_id)
-            applicants = session.query(PanelApplicant).filter_by(
-                first_name=pa.first_name, last_name=pa.last_name, email=pa.email)
+            applicants = session.scalars(select(PanelApplicant).filter_by(
+                first_name=pa.first_name, last_name=pa.last_name, email=pa.email)).all()
             for applicant in applicants:
                 ids.append(applicant.id)
                 applicant.attendee_id = attendee_id
@@ -339,8 +339,8 @@ class Root:
             )
             session.add(attendee)
 
-            applicants = session.query(PanelApplicant).filter_by(
-                first_name=pa.first_name, last_name=pa.last_name, email=pa.email)
+            applicants = session.scalars(select(PanelApplicant).filter_by(
+                first_name=pa.first_name, last_name=pa.last_name, email=pa.email)).all()
             for applicant in applicants:
                 ids.append(applicant.id)
                 applicant.attendee_id = attendee.id
@@ -364,8 +364,8 @@ class Root:
             return {'added': ids}
 
     def panel_feedback(self, session, event_id, **params):
-        feedback = session.query(EventFeedback).filter_by(
-            event_id=event_id, attendee_id=session.admin_attendee().id).first()
+        feedback = session.scalars(select(EventFeedback).filter_by(
+            event_id=event_id, attendee_id=session.admin_attendee().id)).first()
         if params or not feedback:
             feedback = session.event_feedback(params)
 
@@ -386,14 +386,14 @@ class Root:
 
     def feedback_report(self, session):
         feedback = defaultdict(list)
-        all_feedback = session.query(EventFeedback).options(
-            joinedload(EventFeedback.event), joinedload(EventFeedback.attendee))
+        all_feedback = session.scalars(select(EventFeedback).options(
+            joinedload(EventFeedback.event), joinedload(EventFeedback.attendee))).all()
         for fb in all_feedback:
             feedback[fb.event].append(fb)
 
         events = []
-        for event in session.query(Event).join(Event.location).join(
-                EventLocation.department).filter(Department.manages_panels == True).order_by('name'):
+        for event in session.scalars(select(Event).join(Event.location).join(
+                EventLocation.department).filter(Department.manages_panels == True).order_by('name')).all():
             events.append([event, feedback[event]])
 
         for event, fb in feedback.items():

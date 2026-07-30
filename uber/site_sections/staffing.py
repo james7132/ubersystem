@@ -286,14 +286,14 @@ class Root:
                 'title': department.name,
             })
         other_filters = [
-            {'id': 'public', 'title': "Public Shifts",},
-            ]
-        
+            {'id': 'public', 'title': "Public Shifts", },
+        ]
+
         requested_hotel_nights = volunteer.hotel_requests.nights_ints if volunteer.hotel_requests else []
 
         return {
             'attendee': volunteer,
-            'has_public_jobs': session.query(Job).filter(Job.is_public == True).first(),
+            'has_public_jobs': session.scalars(select(Job).filter(Job.is_public == True)).first(),
             'depts_with_roles': [membership.department.name for membership in volunteer.dept_memberships_with_role],
             'assigned_depts_list': [(dept.id, dept.name) for dept in volunteer.assigned_depts],
             'hours': volunteer.weighted_hours,
@@ -353,7 +353,8 @@ class Root:
     def get_assigned_jobs(self, session, id, **params):
         volunteer = session.volunteer_from_id(id)
         event_list = []
-        jobs = session.query(Job).filter(Job.shifts.any(attendee_id=volunteer.id)).options(joinedload(Job.shifts))
+        jobs = session.scalars(select(Job).filter(Job.shifts.any(
+            attendee_id=volunteer.id)).options(joinedload(Job.shifts))).all()
 
         for job in jobs:
             if job.is_public and job.department_id not in set(volunteer.assigned_depts_ids):

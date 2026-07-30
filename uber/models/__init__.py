@@ -44,14 +44,15 @@ from uber.payments import ReceiptManager
 
 log = logging.getLogger(__name__)
 
+
 def _make_getter(model):
     def getter(
             self, params=None, *, bools=(), checkgroups=(), allowed=(), restricted=False, ignore_csrf=False, **query):
 
         if query:
-            return self.query(model).filter_by(**query).one()
+            return self.scalars(select(model).filter_by(**query)).one()
         elif isinstance(params, str):
-            return self.query(model).filter_by(id=params).one()
+            return self.scalars(select(model).filter_by(id=params)).one()
         else:
             if params:
                 params = params.copy()
@@ -61,7 +62,7 @@ def _make_getter(model):
             if id == 'None':
                 inst = model()
             else:
-                inst = self.query(model).filter_by(id=id).one()
+                inst = self.scalars(select(model).filter_by(id=id)).one()
 
             if not ignore_csrf:
                 assert not {k for k in params if k not in allowed} or cherrypy.request.method == 'POST', 'POST required'
@@ -366,7 +367,7 @@ class MagModel(SQLModel):
         Returns all logged Stripe transactions with this model's ID.
         """
         from uber.models.commerce import ReceiptTransaction
-        return self.session.query(ReceiptTransaction).filter_by(fk_id=self.id).all()
+        return self.session.scalars(select(ReceiptTransaction).filter_by(fk_id=self.id)).all()
 
     @cached_classproperty
     def unrestricted(cls):
@@ -616,8 +617,8 @@ class MagModel(SQLModel):
 
     def get_tracking_by_instance(self, instance, action, last_only=True):
         from uber.models.tracking import Tracking
-        query = self.session.query(Tracking).filter_by(fk_id=instance.id, action=action).order_by(Tracking.when.desc())
-        return query.first() if last_only else query.all()
+        stmt = select(Tracking).filter_by(fk_id=instance.id, action=action).order_by(Tracking.when.desc())
+        return self.session.scalars(stmt).first() if last_only else self.session.scalars(stmt).all()
 
     def coerce_column_data(self, column, value):
         if isinstance(value, six.string_types):
@@ -876,13 +877,13 @@ class UberSession(sqlalchemy.orm.Session):
         def admin_attendee(self):
             if getattr(cherrypy, 'session', {}).get('account_id', getattr(cherrypy.request, 'admin_account', None)):
                 try:
-                    return self.query(Attendee).join(Attendee.admin_account).filter(
+                    return self.scalars(select(Attendee).join(Attendee.admin_account).filter(
                         AdminAccount.id == cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None))).options(
                             contains_eager(Attendee.admin_account)
-                        ).one()
+                    )).one()
                 except NoResultFound:
                     return
-                
+
         def kiosk_operator_attendee(self):
             if self.current_supervisor_admin and getattr(cherrypy, 'session', {}).get('kiosk_operator_id'):
                 try:
@@ -892,8 +893,10 @@ class UberSession(sqlalchemy.orm.Session):
 
         def current_attendee_account(self):
             if c.ATTENDEE_ACCOUNTS_ENABLED and getattr(cherrypy, 'session', {}).get('attendee_account_id', getattr(cherrypy.request, 'attendee_account', None)):
-                account_id = cherrypy.session.get('attendee_account_id', getattr(cherrypy.request, 'attendee_account', None))
-                account = self.query(AttendeeAccount).filter(AttendeeAccount.id == account_id).options(selectinload(AttendeeAccount.attendees)).first()
+                account_id = cherrypy.session.get('attendee_account_id', getattr(
+                    cherrypy.request, 'attendee_account', None))
+                account = self.scalars(select(AttendeeAccount).filter(AttendeeAccount.id ==
+                                       account_id).options(selectinload(AttendeeAccount.attendees))).first()
 
                 if not account:
                     cherrypy.session['attendee_account_id'] = ''
@@ -961,40 +964,40 @@ class UberSession(sqlalchemy.orm.Session):
             admin = self.current_admin_account()
 
             if admin.full_registration_admin:
-                return self.query(Group)
+                return select(Group)
 
-            subqueries = [self.query(Group).filter(Group.creator == admin.attendee)]
+            subqueries = [select(Group).filter(Group.creator == admin.attendee)]
 
             group_id = admin.attendee.group.id if admin.attendee.group else ''
             if group_id:
-                subqueries.append(self.query(Group).filter(Group.id == group_id))
+                subqueries.append(select(Group).filter(Group.id == group_id))
 
             if 'guest_admin' in admin.read_or_write_access_set:
-                subqueries.append(self.query(Group).join(
+                subqueries.append(select(Group).join(
                     GuestGroup, Group.id == GuestGroup.group_id).filter(
                         ~GuestGroup.group_type.in_([c.BAND, c.SIDE_STAGE, c.MIVS])))
 
             if 'band_admin' in admin.read_or_write_access_set:
-                subqueries.append(self.query(Group).join(
+                subqueries.append(select(Group).join(
                     GuestGroup, Group.id == GuestGroup.group_id).filter(
                         GuestGroup.group_type.in_([c.BAND, c.ROCK_ISLAND, c.SIDE_STAGE])))
-                subqueries.append(self.query(Group).join(Group.leader).filter(
+                subqueries.append(select(Group).join(Group.leader).filter(
                     Attendee.ribbon.contains(c.BAND)))
 
             if 'dealer_admin' in admin.read_or_write_access_set:
-                subqueries.append(self.query(Group).filter(Group.is_dealer))
-            
+                subqueries.append(select(Group).filter(Group.is_dealer))
+
             if 'showcase_admin' in admin.read_or_write_access_set:
-                subqueries.append(self.query(Group).join(
+                subqueries.append(select(Group).join(
                     GuestGroup, Group.id == GuestGroup.group_id).filter(
                         GuestGroup.group_type == c.MIVS))
-                subqueries.append(self.query(Group).join(Group.leader).filter(
+                subqueries.append(select(Group).join(Group.leader).filter(
                     Attendee.ribbon.contains(c.MIVS)))
 
             if 'shifts_admin' in admin.read_or_write_access_set:
-                subqueries.append(self.query(Group).join(Group.leader).filter(
+                subqueries.append(select(Group).join(Group.leader).filter(
                     Attendee.badge_type == c.CONTRACTOR_BADGE))
-                staff_groups = self.query(Group).join(Group.leader).filter(Attendee.badge_type == c.STAFF_BADGE)
+                staff_groups = select(Group).join(Group.leader).filter(Attendee.badge_type == c.STAFF_BADGE)
                 if admin.full_shifts_admin:
                     subqueries.append(staff_groups)
                 else:
@@ -1010,10 +1013,10 @@ class UberSession(sqlalchemy.orm.Session):
             based on different site sections. This matrix returns queries keyed by site section.
             """
             admin = self.current_admin_account()
-            return_dict = {'created': self.query(Attendee).filter(
+            return_dict = {'created': select(Attendee).filter(
                 or_(Attendee.creator == admin.attendee, Attendee.id == admin.attendee.id))}
 
-            return_dict['band_admin'] = self.query(Attendee).outerjoin(Group, Attendee.group_id == Group.id).join(
+            return_dict['band_admin'] = select(Attendee).outerjoin(Group, Attendee.group_id == Group.id).join(
                 GuestGroup, Group.id == GuestGroup.group_id).filter(
                     or_(Attendee.ribbon.contains(c.BAND),
                         and_(
@@ -1021,8 +1024,8 @@ class UberSession(sqlalchemy.orm.Session):
                             Group.id == Attendee.group_id,
                             GuestGroup.group_id == Group.id,
                             GuestGroup.group_type.in_([c.BAND, c.ROCK_ISLAND, c.SIDE_STAGE]))))
-            
-            return_dict['guest_admin'] = self.query(Attendee).outerjoin(Group, Attendee.group_id == Group.id).join(
+
+            return_dict['guest_admin'] = select(Attendee).outerjoin(Group, Attendee.group_id == Group.id).join(
                 GuestGroup, Group.id == GuestGroup.group_id).filter(
                     ~Attendee.ribbon.contains(c.BAND),
                     or_(Attendee.badge_type == c.GUEST_BADGE,
@@ -1032,17 +1035,17 @@ class UberSession(sqlalchemy.orm.Session):
                             GuestGroup.group_id == Group.id,
                             ~GuestGroup.group_type.in_([c.BAND, c.SIDE_STAGE, c.MIVS]))))
 
-            return_dict['panels_admin'] = self.query(Attendee).outerjoin(PanelApplicant).filter(
+            return_dict['panels_admin'] = select(Attendee).outerjoin(PanelApplicant).filter(
                                                  or_(Attendee.ribbon.contains(c.PANELIST_RIBBON),
                                                      Attendee.submitted_panels != None,  # noqa: E711
                                                      Attendee.assigned_panelists != None,  # noqa: E711
                                                      Attendee.panel_applicants != None,  # noqa: E711
                                                      Attendee.panel_feedback != None))  # noqa: E711
-            return_dict['dealer_admin'] = self.query(Attendee).join(Group,
-                                                                    Attendee.group_id == Group.id
-                                                                    ).filter(Attendee.is_dealer)
-            return_dict['mits_admin'] = self.query(Attendee).join(MITSApplicant).filter(Attendee.mits_applicants)
-            return_dict['showcase_admin'] = self.query(Attendee).outerjoin(Group, Attendee.group_id == Group.id).join(
+            return_dict['dealer_admin'] = select(Attendee).join(Group,
+                                                                Attendee.group_id == Group.id
+                                                                ).filter(Attendee.is_dealer)
+            return_dict['mits_admin'] = select(Attendee).join(MITSApplicant).filter(Attendee.mits_applicants)
+            return_dict['showcase_admin'] = select(Attendee).outerjoin(Group, Attendee.group_id == Group.id).join(
                 GuestGroup, Group.id == GuestGroup.group_id).filter(
                     or_(Attendee.ribbon.contains(c.MIVS),
                         and_(
@@ -1050,7 +1053,7 @@ class UberSession(sqlalchemy.orm.Session):
                             Group.id == Attendee.group_id,
                             GuestGroup.group_id == Group.id,
                             GuestGroup.group_type == c.MIVS)))
-            return_dict['art_show_admin'] = self.query(Attendee
+            return_dict['art_show_admin'] = select(Attendee
                                                        ).outerjoin(
                                                            ArtShowApplication,
                                                            or_(ArtShowApplication.attendee_id == Attendee.id)
@@ -1063,8 +1066,8 @@ class UberSession(sqlalchemy.orm.Session):
                                                             ArtShowAgentCode.attendee_id == Attendee.id,
                                                             ArtShowAgentCode.cancelled == None  # noqa: E711
                                                         )
-            return_dict['marketplace_admin'] = self.query(Attendee).join(ArtistMarketplaceApplication)
-            return_dict['hotel_lottery_admin'] = self.query(Attendee).join(LotteryApplication)
+            return_dict['marketplace_admin'] = select(Attendee).join(ArtistMarketplaceApplication)
+            return_dict['hotel_lottery_admin'] = select(Attendee).join(LotteryApplication)
             return return_dict
 
         def viewable_attendees(self):
@@ -1072,7 +1075,7 @@ class UberSession(sqlalchemy.orm.Session):
             admin = self.current_admin_account()
 
             if admin.full_registration_admin:
-                return self.query(Attendee)
+                return select(Attendee)
 
             subqueries = [self.access_query_matrix()['created']]
 
@@ -1082,7 +1085,7 @@ class UberSession(sqlalchemy.orm.Session):
 
             if admin.full_shifts_admin:
                 subqueries.append(
-                    self.query(Attendee).filter(Attendee.staffing)
+                    select(Attendee).filter(Attendee.staffing)
                 )
 
             return subqueries[0].union(*subqueries[1:])
@@ -1164,14 +1167,14 @@ class UberSession(sqlalchemy.orm.Session):
                 elif isinstance(attendee.birthdate, date):
                     or_clauses.append(WatchList.birthdate == attendee.birthdate)
 
-            return self.query(WatchList).filter(and_(
+            return self.scalars(select(WatchList).filter(and_(
                 or_(func.lower(WatchList.first_names).contains(attendee.first_name.lower()),
                     func.lower(WatchList.last_name) == attendee.last_name.lower()),
                 or_(*or_clauses),
-                WatchList.active == active)).all()  # noqa: E712
+                WatchList.active == active))).all()  # noqa: E712
 
         def guess_watchentry_attendees(self, entry):
-            return self.query(Attendee).filter(
+            return self.scalars(select(Attendee).filter(
                 or_(func.lower(Attendee.first_name).in_(entry.first_name_list),
                     func.lower(Attendee.last_name) == entry.last_name.lower()),
                 or_(and_(
@@ -1183,31 +1186,33 @@ class UberSession(sqlalchemy.orm.Session):
                         Attendee.birthdate == entry.birthdate
                         ),
                     ),
-                Attendee.watchlist_id == None).all()  # noqa: E711
+                Attendee.watchlist_id == None)).all()  # noqa: E711
 
         def get_attendee_account_by_email(self, email):
-            return self.query(AttendeeAccount).filter_by(normalized_email=normalize_email_legacy(email)).one()
+            return self.scalars(select(AttendeeAccount).filter_by(normalized_email=normalize_email_legacy(email))).one()
 
         def get_admin_account_by_email(self, email):
             from uber.utils import normalize_email_legacy
-            admin_attendees = self.query(AdminAccount
-                                         ).join(Attendee).filter(Attendee.normalized_email == normalize_email_legacy(email))
-            if admin_attendees.count() > 1:
-                return admin_attendees.filter(Attendee.is_valid == True).one()
-            return admin_attendees.one()
+            stmt = select(AdminAccount).join(Attendee).filter(
+                Attendee.normalized_email == normalize_email_legacy(email))
+            admin_attendees = self.scalars(stmt).all()
+            if len(admin_attendees) > 1:
+                return self.scalars(stmt.filter(Attendee.is_valid == True)).one()
+            return self.scalars(stmt).one()
 
         def no_email(self, subject):
-            return not self.query(Email).filter_by(subject=subject).all()
+            return not self.scalars(select(Email).filter_by(subject=subject)).all()
 
         def lookup_attendee(self, first_name, last_name, email, zip_code=''):
-            attendees = self.query(Attendee).iexact(
-                first_name=first_name,
-                last_name=last_name,
-                zip_code=zip_code
-            ).filter(
+            stmt = select(Attendee).filter(
+                func.lower(Attendee.first_name) == func.lower(first_name),
+                func.lower(Attendee.last_name) == func.lower(last_name),
                 Attendee.normalized_email == normalize_email_legacy(email),
                 Attendee.is_valid == True  # noqa: E712
             )
+            if zip_code:
+                stmt = stmt.filter(func.lower(Attendee.zip_code) == func.lower(zip_code))
+            attendees = self.scalars(stmt).all()
 
             if attendees:
                 statuses = defaultdict(lambda: six.MAXSIZE, {
@@ -1286,8 +1291,8 @@ class UberSession(sqlalchemy.orm.Session):
                 account.attendees.append(attendee)
 
         def match_attendee_to_account(self, attendee):
-            existing_account = self.query(AttendeeAccount
-                                          ).filter_by(normalized_email=normalize_email_legacy(attendee.email)).first()
+            existing_account = self.scalars(select(AttendeeAccount
+                                                   ).filter_by(normalized_email=normalize_email_legacy(attendee.email))).first()
             if existing_account:
                 self.add_attendee_to_account(attendee, existing_account)
 
@@ -1297,8 +1302,8 @@ class UberSession(sqlalchemy.orm.Session):
             if not reg_station_id:
                 return "Workstation ID not set!", None
 
-            workstation_assignment = self.query(WorkstationAssignment
-                                                ).filter_by(reg_station_id=int(reg_station_id)).first()
+            workstation_assignment = self.scalars(select(WorkstationAssignment
+                                                         ).filter_by(reg_station_id=int(reg_station_id))).first()
 
             if not workstation_assignment:
                 return "This workstation does not have anything assigned, \
@@ -1316,12 +1321,12 @@ class UberSession(sqlalchemy.orm.Session):
         def get_receipt_by_model(self, model, include_closed=False, who='', create_if_none="", options=[]):
             if not model:
                 return
-            receipt_select = self.query(ModelReceipt).filter_by(owner_id=model.id, owner_model=model.__class__.__name__)
+            receipt_select = select(ModelReceipt).filter_by(owner_id=model.id, owner_model=model.__class__.__name__)
             if not include_closed:
                 receipt_select = receipt_select.filter(ModelReceipt.closed == None)  # noqa: E711
             if options:
                 receipt_select = receipt_select.options(*options)
-            receipt = receipt_select.first()
+            receipt = self.scalars(receipt_select).first()
 
             if not receipt and create_if_none:
                 receipt, receipt_items = ReceiptManager.create_new_receipt(model, who=who, create_model=True)
@@ -1384,36 +1389,36 @@ class UberSession(sqlalchemy.orm.Session):
 
             settlements = {}
 
-            counts_base_query = self.query(TerminalSettlement.batch_timestamp,
-                                           func.count(TerminalSettlement.batch_timestamp))
+            counts_base_query = select(TerminalSettlement.batch_timestamp,
+                                       func.count(TerminalSettlement.batch_timestamp))
 
-            settlements['completed'] = counts_base_query.filter(or_(TerminalSettlement.error != '',
-                                                                    TerminalSettlement.response != {})).group_by(
-                                                                        TerminalSettlement.batch_timestamp).order_by(
-                                                                        TerminalSettlement.batch_timestamp
-                                                                        ).all()
+            settlements['completed'] = self.execute(counts_base_query.filter(or_(TerminalSettlement.error != '',
+                                                                                 TerminalSettlement.response != {})).group_by(
+                TerminalSettlement.batch_timestamp).order_by(
+                TerminalSettlement.batch_timestamp
+            )).all()
 
-            settlements['succeeded'] = dict(counts_base_query.filter(TerminalSettlement.error == '',
-                                                                     TerminalSettlement.response != {}).group_by(
-                                                                         TerminalSettlement.batch_timestamp).all())
+            settlements['succeeded'] = dict(self.execute(counts_base_query.filter(TerminalSettlement.error == '',
+                                                                                  TerminalSettlement.response != {}).group_by(
+                TerminalSettlement.batch_timestamp)).all())
 
-            settlements['in_progress'] = self.query(TerminalSettlement.batch_timestamp,
-                                                    TerminalSettlement.batch_who,
-                                                    TerminalSettlement.workstation_num,
-                                                    TerminalSettlement.terminal_id
-                                                    ).filter(TerminalSettlement.error == '',
-                                                             TerminalSettlement.response == {}).all()
+            settlements['in_progress'] = self.execute(select(TerminalSettlement.batch_timestamp,
+                                                             TerminalSettlement.batch_who,
+                                                             TerminalSettlement.workstation_num,
+                                                             TerminalSettlement.terminal_id
+                                                             ).filter(TerminalSettlement.error == '',
+                                                                      TerminalSettlement.response == {})).all()
 
             settlements['errors'] = {}
-            settlements['batch_info'] = dict(self.query(TerminalSettlement.batch_timestamp,
-                                                        TerminalSettlement.batch_who).distinct().all())
+            settlements['batch_info'] = dict(self.execute(select(TerminalSettlement.batch_timestamp,
+                                                                 TerminalSettlement.batch_who).distinct()).all())
 
             for timestamp, who in settlements['batch_info'].items():
-                settlements['errors'][timestamp] = self.query(TerminalSettlement.workstation_num,
-                                                              TerminalSettlement.terminal_id,
-                                                              TerminalSettlement.error).filter(
-                                                                  TerminalSettlement.batch_timestamp == timestamp,
-                                                                  TerminalSettlement.error != '').all()
+                settlements['errors'][timestamp] = self.execute(select(TerminalSettlement.workstation_num,
+                                                                       TerminalSettlement.terminal_id,
+                                                                       TerminalSettlement.error).filter(
+                    TerminalSettlement.batch_timestamp == timestamp,
+                    TerminalSettlement.error != '')).all()
 
             return settlements
 
@@ -1441,7 +1446,7 @@ class UberSession(sqlalchemy.orm.Session):
             return attendee, ''
 
         def lookup_agent_code(self, code):
-            return self.query(ArtShowApplication).filter_by(agent_code=code).all()
+            return self.scalars(select(ArtShowApplication).filter_by(agent_code=code)).all()
 
         def add_promo_code_to_attendee(self, attendee, code, used_codes=defaultdict(int)):
             """
@@ -1533,7 +1538,7 @@ class UberSession(sqlalchemy.orm.Session):
             else:
                 clause = clause.or_(model.id == promo_code_id)
 
-            return self.query(model).filter(clause).order_by(model.normalized_code.desc()).first()
+            return self.scalars(select(model).filter(clause).order_by(model.normalized_code.desc())).first()
 
         def create_promo_code_group(self, attendee, name, badges, cost=None):
             pc_group = PromoCodeGroup(name=name, buyer=attendee)
@@ -1589,7 +1594,7 @@ class UberSession(sqlalchemy.orm.Session):
                 if not attendee_fields.get(field) and field != 'ribbon_labels':
                     errors.append("Field missing: {}.".format(field))
 
-            if self.query(PrintJob).filter_by(attendee_id=attendee.id, printed=None, errors="").first():
+            if self.scalars(select(PrintJob).filter_by(attendee_id=attendee.id, printed=None, errors="")).first():
                 errors.append("Badge is already queued to print.")
 
             if errors:
@@ -1649,22 +1654,21 @@ class UberSession(sqlalchemy.orm.Session):
                 self.commit()
 
             return errors
-        
+
         def get_next_badge_num(self, badge_type):
             """
             Returns the next open badge number for a given badge type.
 
             Args:
                 badge_type: Which badge type to select an open badge number within.
-
             """
             lower_bound, upper_bound = c.BADGE_RANGES[badge_type]
 
-            return self.query(BadgeInfo).filter(BadgeInfo.attendee_id == None,
-                                                BadgeInfo.ident >= lower_bound,
-                                                BadgeInfo.ident <= upper_bound
-                                                ).order_by(BadgeInfo.attendee_id).order_by(
-                                                    BadgeInfo.ident).limit(1).first()
+            return self.scalars(select(BadgeInfo).filter(BadgeInfo.attendee_id == None,
+                                                         BadgeInfo.ident >= lower_bound,
+                                                         BadgeInfo.ident <= upper_bound
+                                                         ).order_by(BadgeInfo.attendee_id).order_by(
+                BadgeInfo.ident).limit(1)).first()
 
         def update_badge(self, attendee):
             """
@@ -1697,7 +1701,8 @@ class UberSession(sqlalchemy.orm.Session):
                 self.add(attendee.active_badge)
 
             # If someone has two active badge numbers, we don't want to give them a replacement for the second badge number
-            num_badges = self.query(BadgeInfo).filter(BadgeInfo.attendee_id == attendee.id, BadgeInfo.active == True).count()
+            num_badges = len(self.scalars(select(BadgeInfo).filter(
+                BadgeInfo.attendee_id == attendee.id, BadgeInfo.active == True)).all())
 
             if needs_badge_num(attendee) and num_badges < 2 and (
                     attendee.badge_type not in c.PREASSIGNED_BADGE_TYPES
@@ -1711,19 +1716,19 @@ class UberSession(sqlalchemy.orm.Session):
                 self.add(new_badge)
 
         def get_next_badge_to_print(self, printer_id=''):
-            query = self.query(PrintJob).join(Tracking, PrintJob.id == Tracking.fk_id).filter(
+            stmt = select(PrintJob).join(Tracking, PrintJob.id == Tracking.fk_id).filter(
                     PrintJob.printed == None, PrintJob.ready == True,  # noqa: E711
                     PrintJob.errors == '', PrintJob.printer_id == printer_id)
 
-            badge = query.order_by(Tracking.when.desc()).with_for_update().first()
+            badge = self.scalars(stmt.order_by(Tracking.when.desc()).with_for_update()).first()
 
             return badge
 
         def valid_attendees(self):
-            return self.query(Attendee).filter(Attendee.is_valid == True)  # noqa: E712
+            return select(Attendee).filter(Attendee.is_valid == True)  # noqa: E712
 
         def attendees_with_badges(self):
-            return self.query(Attendee).filter(Attendee.has_badge == True)  # noqa: E712
+            return select(Attendee).filter(Attendee.has_badge == True)  # noqa: E712
 
         def all_attendees(self, only_staffing=False, pending=False):
             """
@@ -1746,7 +1751,7 @@ class UberSession(sqlalchemy.orm.Session):
 
             badge_filter = Attendee.badge_status.in_(badge_statuses)
 
-            return self.query(Attendee) \
+            return select(Attendee) \
                 .filter(badge_filter, *staffing_filter) \
                 .options(
                     subqueryload(Attendee.dept_memberships),
@@ -1759,14 +1764,14 @@ class UberSession(sqlalchemy.orm.Session):
             return self.all_attendees(only_staffing=True, pending=pending)
 
         def all_panelists(self):
-            return self.query(Attendee).filter(or_(
+            return self.scalars(select(Attendee).filter(or_(
                 Attendee.ribbon.contains(c.PANELIST_RIBBON),
-                Attendee.badge_type == c.GUEST_BADGE)).order_by(Attendee.full_name).all()
+                Attendee.badge_type == c.GUEST_BADGE)).order_by(Attendee.full_name)).all()
 
         def jobs(self, department_id=None):
             job_filter = {'department_id': department_id} if department_id else {}
 
-            return self.query(Job).filter_by(**job_filter) \
+            return select(Job).filter_by(**job_filter) \
                 .options(
                     subqueryload(Job.department),
                     subqueryload(Job.required_roles),
@@ -1774,17 +1779,17 @@ class UberSession(sqlalchemy.orm.Session):
                 .order_by(Job.start_time, Job.name)
 
         def staffers_for_dropdown(self):
-            query = self.query(Attendee.id, Attendee.full_name).filter(Attendee.is_valid == True,
-                                                                       Attendee.staffing == True)
+            stmt = select(Attendee.id, Attendee.full_name).filter(Attendee.is_valid == True,
+                                                                  Attendee.staffing == True)
             return [
                 {'id': id, 'full_name': full_name.title()}
-                for id, full_name in query.order_by(Attendee.full_name)]
+                for id, full_name in self.execute(stmt.order_by(Attendee.full_name))]
 
         def dept_heads(self, department_id=None):
             if department_id:
                 return self.get(Department, department_id).dept_heads
-            return self.query(Attendee).filter(Attendee.dept_memberships.any(is_dept_head=True)) \
-                .order_by(Attendee.full_name).all()
+            return self.scalars(select(Attendee).filter(Attendee.dept_memberships.any(is_dept_head=True))
+                                .order_by(Attendee.full_name)).all()
 
         def match_to_group(self, attendee, group):
             available = [a for a in group.attendees if a.is_unassigned]
@@ -1846,11 +1851,11 @@ class UberSession(sqlalchemy.orm.Session):
 
         def index_attendees(self):
             # Returns a base attendee query with extra joins for the index page
-            attendees = self.query(Attendee).outerjoin(Group,
-                                                       Attendee.group_id == Group.id
-                                                       ).outerjoin(BadgePickupGroup
-                                                       ).outerjoin(PromoCode
-                                                                   ).outerjoin(PromoCodeGroup)
+            attendees = select(Attendee).outerjoin(Group,
+                                                   Attendee.group_id == Group.id
+                                                   ).outerjoin(BadgePickupGroup
+                                                               ).outerjoin(PromoCode
+                                                                           ).outerjoin(PromoCodeGroup)
             if c.NUMBERED_BADGES:
                 attendees = attendees.outerjoin(BadgeInfo, Attendee.active_badge)
             return attendees
@@ -2111,7 +2116,7 @@ class UberSession(sqlalchemy.orm.Session):
             Returns:
                 bool: True if success, False if failure
             """
-            if self.query(AdminAccount).first() is not None:
+            if self.scalars(select(AdminAccount)).first() is not None:
                 return False
 
             attendee = Attendee(
@@ -2145,7 +2150,7 @@ class UberSession(sqlalchemy.orm.Session):
 
         def set_relation_ids(self, instance, field, cls, value):
             values = set(s for s in listify(value) if s and s != 'None')
-            relations = self.query(cls).filter(cls.id.in_(values)).all() if values else []
+            relations = self.scalars(select(cls).filter(cls.id.in_(values))).all() if values else []
             setattr(instance, field, relations)
 
         def bulk_insert(self, models):
@@ -2196,12 +2201,14 @@ class UberSession(sqlalchemy.orm.Session):
         # ========================
 
         def logged_in_judge(self):
-            account_id = getattr(cherrypy, 'session', {}).get('account_id', getattr(cherrypy.request, 'admin_account', None))
+            account_id = getattr(cherrypy, 'session', {}).get(
+                'account_id', getattr(cherrypy.request, 'admin_account', None))
             if not account_id:
-                raise HTTPRedirect('../landing/index?message=', 'You are not logged in or you do not have judge access.')
+                raise HTTPRedirect('../landing/index?message=',
+                                   'You are not logged in or you do not have judge access.')
             try:
-                return self.query(IndieJudge).join(IndieJudge.admin_account).filter(
-                    AdminAccount.id == account_id).one()
+                return self.scalars(select(IndieJudge).join(IndieJudge.admin_account).filter(
+                    AdminAccount.id == account_id)).one()
             except NoResultFound:
                 raise HTTPRedirect(
                     '../accounts/homepage?message={}',
@@ -2225,11 +2232,11 @@ class UberSession(sqlalchemy.orm.Session):
             self.commit()
 
         def indie_judges(self):
-            return self.query(IndieJudge).join(IndieJudge.admin_account).join(AdminAccount.attendee) \
+            return select(IndieJudge).join(IndieJudge.admin_account).join(AdminAccount.attendee) \
                 .order_by(Attendee.full_name)
 
         def indie_games(self):
-            return self.query(IndieGame).join(IndieStudio).options(
+            return select(IndieGame).join(IndieStudio).options(
                 joinedload(IndieGame.studio), joinedload(IndieGame.reviews)).order_by(IndieStudio.name, IndieGame.title)
 
         # =========================
@@ -2272,7 +2279,7 @@ class UberSession(sqlalchemy.orm.Session):
                 deleted_filter = []
             else:
                 deleted_filter = [MITSTeam.deleted == False]  # noqa: E712
-            return self.query(MITSTeam).filter(*deleted_filter).options(
+            return select(MITSTeam).filter(*deleted_filter).options(
                 joinedload(MITSTeam.applicants).subqueryload(MITSApplicant.attendee),
                 joinedload(MITSTeam.games),
                 joinedload(MITSTeam.schedule),
@@ -2283,10 +2290,10 @@ class UberSession(sqlalchemy.orm.Session):
         # =========================
 
         def panel_apps(self):
-            return self.query(PanelApplication).order_by('applied')
+            return select(PanelApplication).order_by('applied')
 
         def panel_applicants(self):
-            return self.query(PanelApplicant).options(joinedload(PanelApplicant.applications)) \
+            return select(PanelApplicant).options(joinedload(PanelApplicant.applications)) \
                 .order_by('first_name', 'last_name')
 
     @classmethod

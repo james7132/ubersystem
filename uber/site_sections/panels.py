@@ -78,9 +78,9 @@ class Root:
                 form.populate_obj(panelist)
 
             if not attendee_id:
-                dupe_panelist = session.query(PanelApplicant).filter(
+                dupe_panelist = session.scalars(select(PanelApplicant).filter(
                     PanelApplicant.submitter == True, PanelApplicant.first_name == panelist.first_name,
-                    PanelApplicant.last_name == panelist.last_name, PanelApplicant.email == panelist.email).first()
+                    PanelApplicant.last_name == panelist.last_name, PanelApplicant.email == panelist.email)).first()
                 if dupe_panelist:
                     dupe_panelist.cellphone = panelist.cellphone
                     panelist = dupe_panelist

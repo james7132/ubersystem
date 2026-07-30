@@ -78,7 +78,7 @@ def read_only_makes_sense(group):
 def duplicate_admin(account):
     if account.is_new:
         with Session() as session:
-            if session.query(AdminAccount).filter_by(attendee_id=account.attendee_id).all():
+            if session.scalars(select(AdminAccount).filter_by(attendee_id=account.attendee_id)).all():
                 return 'That attendee already has an admin account'
 
 
@@ -341,7 +341,7 @@ def showcase_valid_url(studio):
 @validation.IndieStudio
 def showcase_unique_name(studio):
     with Session() as session:
-        if session.query(IndieStudio).filter(IndieStudio.name == studio.name, IndieStudio.id != studio.id).count():
+        if len(session.scalars(select(IndieStudio).filter(IndieStudio.name == studio.name, IndieStudio.id != studio.id)).all()):
             return "That studio name is already taken."
 
 
@@ -495,14 +495,16 @@ Attraction.required = [
     ('description', 'Description')
 ]
 
+
 @validation.Attraction
 def slug_not_existing(attraction):
     with Session() as session:
         slug = slugify(attraction.name)
-        if session.query(Attraction).filter(Attraction.id != attraction.id,
-                                            Attraction.slug == slug).first():
+        if session.scalars(select(Attraction).filter(Attraction.id != attraction.id,
+                                                     Attraction.slug == slug)).first():
             return f"Another attraction has an identical URL to this one ({slug}). \
                 Please make sure this attraction's name is different from others, not including punctuation."
+
 
 AttractionFeature.required = [
     ('name', 'Name'),
@@ -514,8 +516,8 @@ AttractionFeature.required = [
 def slug_not_existing(feature):
     with Session() as session:
         slug = slugify(feature.name)
-        if session.query(AttractionFeature).filter(AttractionFeature.id != feature.id,
-                                                   AttractionFeature.slug == slug).first():
+        if session.scalars(select(AttractionFeature).filter(AttractionFeature.id != feature.id,
+                                                            AttractionFeature.slug == slug)).first():
             return f"Another attraction feature has an identical URL to this one ({slug}). \
                 Please make sure this feature's name is different from others, not including punctuation."
 
@@ -661,10 +663,10 @@ def validate_phone(travel_plan):
 def artist_id_dupe(app):
     if app.artist_id and (app.is_new or app.artist_id != app.orig_value_of('artist_id')):
         with Session() as session:
-            dupe = session.query(ArtShowApplication).filter(or_(
+            dupe = session.scalars(select(ArtShowApplication).filter(or_(
                 ArtShowApplication.artist_id == app.artist_id,
                 ArtShowApplication.artist_id_ad == app.artist_id),
-                ArtShowApplication.id != app.id).first()
+                ArtShowApplication.id != app.id)).first()
             if dupe:
                 return ('artist_id',
                         f"{dupe.display_name}'s {c.ART_SHOW_APP_TERM} already has the code {app.artist_id}!")
@@ -674,10 +676,10 @@ def artist_id_dupe(app):
 def artist_id_ad_dupe(app):
     if app.artist_id_ad and (app.is_new or app.artist_id_ad != app.orig_value_of('artist_id_ad')):
         with Session() as session:
-            dupe = session.query(ArtShowApplication).filter(or_(
+            dupe = session.scalars(select(ArtShowApplication).filter(or_(
                 ArtShowApplication.artist_id == app.artist_id_ad,
                 ArtShowApplication.artist_id_ad == app.artist_id_ad),
-                ArtShowApplication.id != app.id).first()
+                ArtShowApplication.id != app.id)).first()
             if dupe:
                 return ('artist_id_ad',
                         f"{dupe.display_name}'s {c.ART_SHOW_APP_TERM} already has the mature code {app.artist_id_ad}!")
@@ -693,8 +695,9 @@ def need_some_space(app):
 @validation.ArtShowPiece
 def no_duplicate_piece_names(piece):
     with Session() as session:
-        if session.query(ArtShowPiece).iexact(name=piece.name).filter(
-            ArtShowPiece.id != piece.id, ArtShowPiece.app_id == piece.app_id).all():
+        if session.scalars(select(ArtShowPiece).filter(
+                func.lower(ArtShowPiece.name) == piece.name.lower(),
+                ArtShowPiece.id != piece.id, ArtShowPiece.app_id == piece.app_id)).all():
             return ('name', "You already have a piece with that name.")
 
 
@@ -712,9 +715,9 @@ def check_in_gallery(piece):
 def bidder_num_dupe(bidder):
     if bidder.bidder_num and (bidder.is_new or bidder.bidder_num != bidder.orig_value_of('bidder_num')):
         with Session() as session:
-            bidder_num_dupe = session.query(ArtShowBidder).filter(
+            bidder_num_dupe = session.scalars(select(ArtShowBidder).filter(
                 ArtShowBidder.id != bidder.id,
-                ArtShowBidder.bidder_num_stripped == ArtShowBidder.strip_bidder_num(bidder.bidder_num)).first()
+                ArtShowBidder.bidder_num_stripped == ArtShowBidder.strip_bidder_num(bidder.bidder_num))).first()
             if bidder_num_dupe:
                 return ('bidder_num',
                         f"The bidder number {bidder_num_dupe.bidder_num[2:]} already belongs to bidder {bidder_num_dupe.bidder_num}.")

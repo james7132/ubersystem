@@ -46,13 +46,13 @@ class OIDC(cherrypy.Tool):
     def process_account_claim_token(cls, session, account_claim_token, sso_id=None, existing_account=None, dry_run=False):
         # Validates and processes our SSO account claim token, including merging with an existing account if there is one
         message = ''
-        attendee_account = session.query(AttendeeAccount).join(AttendeeAccount.password_reset).filter(
-                PasswordReset.token == account_claim_token).first()
-        admin_account = session.query(AdminAccount).join(AdminAccount.password_reset).filter(
-                PasswordReset.token == account_claim_token).first()
-        
+        attendee_account = session.scalars(select(AttendeeAccount).join(AttendeeAccount.password_reset).filter(
+            PasswordReset.token == account_claim_token)).first()
+        admin_account = session.scalars(select(AdminAccount).join(AdminAccount.password_reset).filter(
+            PasswordReset.token == account_claim_token)).first()
+
         accounts_pluralized = 'these accounts' if attendee_account and admin_account else 'this account'
-        
+
         if attendee_account and attendee_account.sso_id:
             session.delete(attendee_account.password_reset)
             if sso_id and sso_id == attendee_account.sso_id:
@@ -162,13 +162,13 @@ class OIDC(cherrypy.Tool):
         except:
             traceback.print_exc()
             return None
-        
+
     def _get_admin_account_for_claims(self, claims):
         if not claims or not claims.get('sub', None):
             return
 
         with Session() as session:
-            account = session.query(AdminAccount).filter(AdminAccount.sso_id == claims['sub']).first()
+            account = session.scalars(select(AdminAccount).filter(AdminAccount.sso_id == claims['sub'])).first()
             return account.id if account else None
 
     def _get_attendee_account_for_claims(self, claims):
@@ -176,7 +176,7 @@ class OIDC(cherrypy.Tool):
             return None
 
         with Session() as session:
-            account = session.query(AttendeeAccount).filter(AttendeeAccount.sso_id == claims['sub']).first()
+            account = session.scalars(select(AttendeeAccount).filter(AttendeeAccount.sso_id == claims['sub'])).first()
             return account.id if account else None
 
     def _init_accounts_from_claims(self, claims):
@@ -192,12 +192,12 @@ class OIDC(cherrypy.Tool):
             if email and c.DEV_BOX and ('staff' in roles or 'all-access' in roles):
                 # If it's the first login from this account on a test server, and we're staff,
                 # auto-provision an attendee and admin account
-                matching_attendee = session.query(Attendee).filter_by(
-                    is_valid=True, normalized_email=normalize_email_legacy(email)).first()
+                matching_attendee = session.scalars(select(Attendee).filter_by(
+                    is_valid=True, normalized_email=normalize_email_legacy(email))).first()
                 if not matching_attendee:
                     matching_attendee = Attendee(placeholder=True, email=email,
-                                                first_name=claims.get('given_name', 'Test'),
-                                                last_name=claims.get('family_name', 'Staff'))
+                                                 first_name=claims.get('given_name', 'Test'),
+                                                 last_name=claims.get('family_name', 'Staff'))
                     session.add(matching_attendee)
                 session.add_attendee_to_account(matching_attendee, attendee_account)
                 session.commit()
@@ -205,7 +205,7 @@ class OIDC(cherrypy.Tool):
                 admin_account = matching_attendee.admin_account
                 if not admin_account:
                     admin_account, pwd = session.create_admin_account(matching_attendee, generate_pwd=False)
-                    all_access_group = session.query(AccessGroup).filter_by(name="All Access").first()
+                    all_access_group = session.scalars(select(AccessGroup).filter_by(name="All Access")).first()
                     if not all_access_group:
                         all_access_group = AccessGroup(
                             name='All Access',

@@ -35,9 +35,9 @@ def valid_password(password, account):
 @all_renderable()
 class Root:
     def index(self, session, message=''):
-        attendee_attrs = session.query(Attendee.id, Attendee.last_first, Attendee.badge_type, BadgeInfo.ident) \
+        attendee_attrs = session.execute(select(Attendee.id, Attendee.last_first, Attendee.badge_type, BadgeInfo.ident)
             .outerjoin(Attendee.active_badge).filter(Attendee.first_name != '', Attendee.is_valid == True,  # noqa: E712
-                                                     Attendee.badge_status != c.WATCHED_STATUS).order_by(Attendee.last_first.asc())
+                                                     Attendee.badge_status != c.WATCHED_STATUS).order_by(Attendee.last_first.asc())).all()
 
         attendees = [
             {
@@ -50,10 +50,10 @@ class Root:
 
         return {
             'message':  message,
-            'accounts': (session.query(AdminAccount)
+            'accounts': (session.scalars(select(AdminAccount)
                          .join(Attendee)
                          .options(joinedload(AdminAccount.attendee).selectinload(Attendee.assigned_depts))
-                         .order_by(Attendee.last_first).all()),
+                         .order_by(Attendee.last_first)).all()),
             'all_attendees': attendees,
         }
 
@@ -241,8 +241,8 @@ class Root:
             raise HTTPRedirect('login?message={}', message, save_location=True)
 
         reg_station_id = cherrypy.session.get('reg_station', '')
-        workstation_assignment = session.query(WorkstationAssignment).filter_by(
-            reg_station_id=reg_station_id or -1).first()
+        workstation_assignment = session.scalars(select(WorkstationAssignment).filter_by(
+            reg_station_id=reg_station_id or -1)).first()
 
         return {
             'message': message,
@@ -346,7 +346,8 @@ class Root:
 
         if updater_password is not None:
             new_password = new_password.strip()
-            updater_account = session.admin_account(cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None)))
+            updater_account = session.admin_account(cherrypy.session.get(
+                'account_id', getattr(cherrypy.request, 'admin_account', None)))
             if not new_password:
                 message = 'New password is required'
             elif not valid_password(updater_password, updater_account):
@@ -379,7 +380,8 @@ class Root:
 
         if old_password is not None:
             new_password = new_password.strip()
-            account = session.admin_account(cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None)))
+            account = session.admin_account(cherrypy.session.get(
+                'account_id', getattr(cherrypy.request, 'admin_account', None)))
             if not new_password:
                 message = 'New password is required'
             elif not valid_password(old_password, account):
@@ -397,14 +399,14 @@ class Root:
     @csv_file
     def can_spam(self, out, session):
         out.writerow(["fullname", "email", "zipcode"])
-        for a in session.query(Attendee).filter_by(can_spam=True).order_by('email').all():
+        for a in session.scalars(select(Attendee).filter_by(can_spam=True).order_by(Attendee.email)).all():
             out.writerow([a.full_name, a.email, a.zip_code])
 
     # print out a CSV list of staffers (ignore can_spam for this since it's for internal staff mailing)
     @csv_file
     def staff_emails(self, out, session):
         out.writerow(["fullname", "email", "zipcode"])
-        for a in session.query(Attendee).filter_by(staffing=True, placeholder=False).order_by('email').all():
+        for a in session.scalars(select(Attendee).filter_by(staffing=True, placeholder=False).order_by(Attendee.email)).all():
             out.writerow([a.full_name, a.email, a.zip_code])
 
     @public

@@ -158,7 +158,7 @@ def resave_all_attendees_and_groups():
             except Exception:
                 pass
         print("Re-saving all groups....")
-        for g in session.query(Group).all():
+        for g in session.scalars(select(Group)).all():
             try:
                 g.presave_adjustments()
                 session.add(g)
@@ -180,7 +180,7 @@ def insert_admin():
 @entry_point
 def has_admin():
     with Session() as session:
-        if session.query(AdminAccount).first() is None:
+        if session.scalars(select(AdminAccount)).first() is None:
             print('Could not find any admin accounts', file=sys.stderr)
             sys.exit(1)
         else:
@@ -205,12 +205,12 @@ def reset_uber_db():
 def decline_and_convert_dealer_groups():
     from uber.site_sections.groups import decline_and_convert_dealer_group
     with Session() as session:
-        groups = session.query(Group) \
-            .filter(Group.tables > 0, Group.status == c.WAITLISTED) \
-            .options(
-                subqueryload(Group.attendees).subqueryload(Attendee.admin_account),
-                subqueryload(Group.attendees).subqueryload(Attendee.shifts)) \
-            .order_by(Group.name, Group.id).all()
+        groups = session.scalars(select(Group)
+                                 .filter(Group.tables > 0, Group.status == c.WAITLISTED)
+                                 .options(
+            subqueryload(Group.attendees).subqueryload(Attendee.admin_account),
+            subqueryload(Group.attendees).subqueryload(Attendee.shifts))
+            .order_by(Group.name, Group.id)).all()
 
         for group in groups:
             print('{}: {}'.format(

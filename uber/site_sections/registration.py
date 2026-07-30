@@ -130,12 +130,12 @@ class Root:
             page = 1
 
         reg_station_id = cherrypy.session.get('reg_station', '')
-        workstation_assignment = session.query(WorkstationAssignment
-                                               ).filter_by(reg_station_id=reg_station_id or -1).first()
+        workstation_assignment = session.scalars(select(WorkstationAssignment)
+                                                 .filter_by(reg_station_id=reg_station_id or -1)).first()
 
         status_list = [c.NEW_STATUS, c.COMPLETED_STATUS, c.WATCHED_STATUS, c.UNAPPROVED_DEALER_STATUS]
         filter = [Attendee.badge_status.in_(status_list)] if not invalid else []
-        total_count = session.query(Attendee.id).filter(*filter).count()
+        total_count = session.scalars(select(func.count(Attendee.id)).filter(*filter)).one()
         count = 0
         search_text = search_text.strip()
         if search_text:
@@ -183,7 +183,7 @@ class Root:
             'order':          Order(order),
             'search_count':   count,
             'attendee_count': total_count,
-            'checkin_count':  session.query(Attendee).filter(Attendee.checked_in != None).count(),  # noqa: E711
+            'checkin_count':  session.scalars(select(func.count(Attendee.id)).filter(Attendee.checked_in != None)).one(),  # noqa: E711
             'attendee':       session.attendee(uploaded_id, allow_invalid=True) if uploaded_id else None,
             'reg_station_id':    reg_station_id,
             'workstation_assignment': workstation_assignment,
@@ -266,15 +266,15 @@ class Root:
         attendee = load_attendee(session, params)
 
         reg_station_id = cherrypy.session.get('reg_station', '')
-        workstation_assignment = session.query(WorkstationAssignment
-                                               ).filter_by(reg_station_id=reg_station_id or -1).first()
-        
+        workstation_assignment = session.scalars(select(WorkstationAssignment)
+                                                 .filter_by(reg_station_id=reg_station_id or -1)).first()
+
         matching_account = None
         attendee_claimed = None
         if c.ATTENDEE_ACCOUNTS_ENABLED and c.LOCAL_ACCOUNTS_DISABLED and not attendee.is_new and attendee.is_valid:
             if not attendee.managers:
-                matching_account = session.query(AttendeeAccount).filter(
-                    AttendeeAccount.normalized_email == normalize_email_legacy(attendee.email)).first()
+                matching_account = session.scalars(select(AttendeeAccount).filter(
+                    AttendeeAccount.normalized_email == normalize_email_legacy(attendee.email))).first()
             attendee_claimed = any([account for account in attendee.managers if account.sso_claimed])
 
         if cherrypy.request.method == 'POST':
@@ -332,12 +332,12 @@ class Root:
             'forms': forms,
             'return_to':  return_to,
             'no_badge_num': params.get('no_badge_num'),
-            'group_opts': session.query(Group.id, Group.name).order_by(Group.name).all(),
+            'group_opts': session.execute(select(Group.id, Group.name).order_by(Group.name)).all(),
             'unassigned': {
                 group_id: unassigned
-                for group_id, unassigned in session.query(Attendee.group_id, func.count('*')).filter(
+                for group_id, unassigned in session.execute(select(Attendee.group_id, func.count('*')).filter(
                     Attendee.group_id != None,  # noqa: E711
-                    Attendee.first_name == '').group_by(Attendee.group_id).all()},
+                    Attendee.first_name == '').group_by(Attendee.group_id)).all()},
             'payment_enabled': True if reg_station_id else False,
             'reg_station_id': reg_station_id,
             'workstation_assignment': workstation_assignment,
@@ -352,13 +352,13 @@ class Root:
             return {'success': False, 'message': "This attendee already has an account."}
         if not attendee.email:
             return {'success': False, 'message': "This attendee does not have an email address to create an account from."}
-        matching_account = session.query(AttendeeAccount).filter(
-            AttendeeAccount.normalized_email == normalize_email_legacy(attendee.email)).first()
+        matching_account = session.scalars(select(AttendeeAccount).filter(
+            AttendeeAccount.normalized_email == normalize_email_legacy(attendee.email))).first()
         if matching_account:
             return {'success': False, 'message': f"An account with the email {attendee.email} already exists."}
         if attendee.has_sso_email and not c.LOCAL_ACCOUNTS_DISABLED:
             return {'success': False, 'message': f"This attendee will receive an account the first time they log in."}
-        
+
         create_new_account(session, attendee)
         session.commit()
         return {'success': True, 'message': "New account email sent!"}
@@ -366,12 +366,12 @@ class Root:
     @ajax
     @attendee_view
     def check_account_email(self, session, account_email, **params):
-        existing_account = session.query(AttendeeAccount).filter(
-            AttendeeAccount.normalized_email == normalize_email_legacy(account_email)).first()
+        existing_account = session.scalars(select(AttendeeAccount).filter(
+            AttendeeAccount.normalized_email == normalize_email_legacy(account_email))).first()
         if not existing_account:
             return {'success': False, 'message': f"There is no account under the email {account_email}."}
         return {'success': True, 'account_id': existing_account.id}
-    
+
     @ajax
     @attendee_view
     def add_existing_account(self, session, id, account_id, email=False, **params):
@@ -459,19 +459,20 @@ class Root:
         if not intent_id:
             return {'success': False, 'message': f"System error: the last terminal transactions has no receipt info."}
 
-        tracker = session.query(TxnRequestTracking).filter(TxnRequestTracking.incr_id == intent_id[4:-1]).first()
+        tracker = session.scalars(select(TxnRequestTracking).filter(
+            TxnRequestTracking.incr_id == intent_id[4:-1])).first()
         if not tracker:
             return {'success': False, 'message': f"System error: no tracking data found for intent {intent_id}."}
 
         if tracker.fk_id != model_id:
             return {'success': False, 'message': f"The last transaction on the terminal does not match this {model_name}."}
 
-        matching_txns = session.query(ReceiptTransaction).filter_by(intent_id=intent_id)
+        matching_txns = session.scalars(select(ReceiptTransaction).filter_by(intent_id=intent_id)).all()
 
         if tracker.internal_error and not tracker.resolved:
-            txn = matching_txns.first()
+            txn = matching_txns[0] if matching_txns else None
             if not txn:
-                return {'success': True} # They'll end up with the error from poll_terminal_payment
+                return {'success': True}  # They'll end up with the error from poll_terminal_payment
             req = SpinTerminalRequest(session, terminal_id, amount=txn.txn_total, tracker=tracker, ref_id=intent_id)
             response = req.check_txn_status()
             if response:
@@ -526,7 +527,7 @@ class Root:
 
         if error_message:
             if intent_id and not response:
-                matching_txns = session.query(ReceiptTransaction).filter_by(intent_id=intent_id)
+                matching_txns = session.scalars(select(ReceiptTransaction).filter_by(intent_id=intent_id)).all()
                 for txn in matching_txns:
                     txn.cancelled = datetime.now()
                     session.add(txn)
@@ -541,25 +542,25 @@ class Root:
                 return {
                     'error': "We could not find which payment this transaction was for. "
                     "You may need a manager to log it manually."
-                    }
+                }
             c.REDIS_STORE.hset(c.REDIS_PREFIX + 'spin_terminal_txns:' + terminal_id, 'recorded', "true")
             return {'success': True, 'intent_id': intent_id}
 
     def promo_code_groups(self, session, message=''):
-        groups = session.query(PromoCodeGroup).order_by(PromoCodeGroup.name).all()
+        groups = session.scalars(select(PromoCodeGroup).order_by(PromoCodeGroup.name)).all()
         used_counts = {
             group_id: count for group_id, count in
-            session.query(PromoCode.group_id, func.count(PromoCode.id))
-            .filter(Attendee.promo_code_id == PromoCode.id,
-                    PromoCode.group_id == PromoCodeGroup.id).group_by(PromoCode.group_id)
+            session.execute(select(PromoCode.group_id, func.count(PromoCode.id))
+                            .filter(Attendee.promo_code_id == PromoCode.id,
+                                    PromoCode.group_id == PromoCodeGroup.id).group_by(PromoCode.group_id)).all()
         }
         total_costs = {
             group_id: total for group_id, total in
-            session.query(PromoCode.group_id, func.sum(PromoCode.cost)).group_by(PromoCode.group_id)
+            session.execute(select(PromoCode.group_id, func.sum(PromoCode.cost)).group_by(PromoCode.group_id)).all()
         }
         total_counts = {
             group_id: count for group_id, count in
-            session.query(PromoCode.group_id, func.count('*')).group_by(PromoCode.group_id)
+            session.execute(select(PromoCode.group_id, func.count('*')).group_by(PromoCode.group_id)).all()
         }
         return {
             'groups': groups,
@@ -576,9 +577,9 @@ class Root:
         group = session.promo_code_group(params)
         badges_are_free = params.get('badges_are_free')
         buyer_id = params.get('buyer_id')
-        attendee_attrs = session.query(Attendee.id, Attendee.last_first, Attendee.badge_type, BadgeInfo.ident) \
-            .outerjoin(Attendee.active_badge).filter(Attendee.first_name != '',
-                                                     Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]))
+        attendee_attrs = session.execute(select(Attendee.id, Attendee.last_first, Attendee.badge_type, BadgeInfo.ident)
+                                         .outerjoin(Attendee.active_badge).filter(Attendee.first_name != '',
+                                                                                  Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]))).all()
         attendees = [
             (id, '{} - {}{}'.format(name.title(), c.BADGES[badge_type], ' #{}'.format(badge_num) if badge_num else ''))
             for id, name, badge_type, badge_num in attendee_attrs]
@@ -677,21 +678,21 @@ class Root:
         attendee = session.attendee(id, allow_invalid=True)
         return {
             'attendee':  attendee,
-            'changes': session.query(Tracking).filter(
+            'changes': session.scalars(select(Tracking).filter(
                 or_(and_(Tracking.links.like('%attendee({})%'.format(id))),
-                    and_(Tracking.model == 'Attendee', Tracking.fk_id == id))).order_by(Tracking.when).all(),
-            'pageviews': session.query(PageViewTracking).filter(PageViewTracking.which == repr(attendee)
-                                                                ).order_by(PageViewTracking.when).all(),
+                    and_(Tracking.model == 'Attendee', Tracking.fk_id == id))).order_by(Tracking.when)).all(),
+            'pageviews': session.scalars(select(PageViewTracking).filter(PageViewTracking.which == repr(attendee)
+                                                                         ).order_by(PageViewTracking.when)).all(),
         }
-    
+
     @log_pageview
     def emails(self, session, id):
         attendee = session.attendee(id, allow_invalid=True)
         return {
             'attendee':  attendee,
-            'emails': session.query(Email).filter(Email.fk_id == id).order_by(Email.generated).all(),
-            'other_emails': session.query(Email).filter(Email.to == attendee.email,
-                                                        Email.fk_id != id).order_by(Email.generated).all(),
+            'emails': session.scalars(select(Email).filter(Email.fk_id == id).order_by(Email.generated)).all(),
+            'other_emails': session.scalars(select(Email).filter(Email.to == attendee.email,
+                                                                 Email.fk_id != id).order_by(Email.generated)).all(),
             'depts_by_sender': EmailService.emails_from_depts(session),
         }
 
@@ -755,8 +756,8 @@ class Root:
             return {'success': False, 'message': 'You must set a printer ID.'}
 
         reg_station_id = cherrypy.session.get('reg_station', '')
-        workstation_assignment = session.query(WorkstationAssignment).filter_by(
-            reg_station_id=reg_station_id or -1).first()
+        workstation_assignment = session.scalars(select(WorkstationAssignment).filter_by(
+            reg_station_id=reg_station_id or -1)).first()
 
         if attendee.age_now_or_at_con < 18 and not workstation_assignment:
             return {'success': False,
@@ -770,10 +771,10 @@ class Root:
 
         session.commit()
         if attendee.age_now_or_at_con < 18 and printer_id == workstation_assignment.printer_id:
-            if session.query(PrintJob).filter(PrintJob.printer_id == printer_id,
+            if session.scalars(select(PrintJob).filter(PrintJob.printer_id == printer_id,
                                               PrintJob.ready == True,
                                               PrintJob.printed == None,  # noqa: E711
-                                              PrintJob.errors == '').all():
+                                              PrintJob.errors == '')).all():
                 return {'success': False,
                         'message': "This is a minor badge and there are still standard badges waiting to "
                         "print on this printer. Please try again soon or set a different printer ID."}
@@ -910,13 +911,13 @@ class Root:
         session.commit()
 
         if attendee.paid == c.PAID_BY_GROUP and not attendee.group_id:
-            valid_groups = session.query(Group).options(joinedload(Group.leader)).filter(
+            valid_groups = session.scalars(select(Group).options(joinedload(Group.leader)).filter(
                 Group.status != c.WAITLISTED,
                 Group.id.in_(
-                    session.query(Attendee.group_id)
+                    select(Attendee.group_id)
                     .filter(Attendee.group_id != None, Attendee.first_name == '')  # noqa: E711
                     .distinct().subquery()
-                )).order_by(Group.name)  # noqa: E711
+                )).order_by(Group.name)).all()  # noqa: E711
 
             groups = [(
                 group.id,
@@ -937,8 +938,8 @@ class Root:
     def check_in_group_form(self, session, id):
         pickup_group = session.badge_pickup_group(id)
         reg_station_id = cherrypy.session.get('reg_station', '')
-        workstation_assignment = session.query(WorkstationAssignment).filter_by(
-            reg_station_id=reg_station_id or -1).first()
+        workstation_assignment = session.scalars(select(WorkstationAssignment).filter_by(
+            reg_station_id=reg_station_id or -1)).first()
         total_cost = 0
         for attendee in pickup_group.check_inable_attendees:
             receipt = session.get_receipt_by_model(attendee, create_if_none="DEFAULT")
@@ -1067,17 +1068,17 @@ class Root:
             except NoResultFound:
                 return {'success': False, 'message': f"Cannot find attendee for ID {id}! Please refresh and try again."}
             ticket.attendees.append(attendee)
-        
+
         session.add(ticket)
         session.commit()
 
         return {'success': True, 'message': "Escalation ticket created."}
 
     def recent(self, session):
-        return {'attendees': session.query(Attendee)
-                                    .options(joinedload(Attendee.group))
-                                    .order_by(Attendee.registered.desc())
-                                    .limit(1000)}
+        return {'attendees': session.scalars(select(Attendee)
+                                             .options(joinedload(Attendee.group))
+                                             .order_by(Attendee.registered.desc())
+                                             .limit(1000)).all()}
 
     def lost_badge(self, session, id):
         a = session.attendee(id, allow_invalid=True)
@@ -1232,7 +1233,7 @@ class Root:
     def comments(self, session, order='last_name'):
         return {
             'order': Order(order),
-            'attendees': session.query(Attendee).filter(Attendee.comments != '').order_by(order).all()
+            'attendees': session.scalars(select(Attendee).filter(Attendee.comments != '').order_by(order)).all()
         }
 
     def new(self, session, show_all='', message='', checked_in=''):
@@ -1249,10 +1250,10 @@ class Root:
             'message':    message,
             'show_all':   show_all,
             'checked_in': checked_in,
-            'recent':     session.query(Attendee).filter(Attendee.checked_in == None,  # noqa: E711
+            'recent':     session.scalars(select(Attendee).filter(Attendee.checked_in == None,  # noqa: E711
                                                          Attendee.first_name != '',
                                                          Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]),
-                                                         *restrict_to).order_by(Attendee.registered.desc()).all(),
+                                                         *restrict_to).order_by(Attendee.registered.desc())).all(),
         }  # noqa: E711
 
     @not_site_mappable
@@ -1290,7 +1291,8 @@ class Root:
         if not params.get('printer_id'):
             raise HTTPRedirect("index?message={}", "Please include a printer ID.")
 
-        workstation_assignment = session.query(WorkstationAssignment).filter_by(reg_station_id=reg_station_id).first()
+        workstation_assignment = session.scalars(
+            select(WorkstationAssignment).filter_by(reg_station_id=reg_station_id)).first()
 
         if not workstation_assignment:
             workstation_assignment = WorkstationAssignment(reg_station_id=reg_station_id)
@@ -1398,12 +1400,12 @@ class Root:
             end = c.EVENT_TIMEZONE.localize(
                 datetime.strptime('{endday} {endhour}:{endminute}'.format(**params), '%Y-%m-%d %H:%M'))
 
-            sales = session.query(Sale).filter(
-                Sale.reg_station == params['reg_station'], Sale.when > start, Sale.when <= end).all()
+            sales = session.scalars(select(Sale).filter(
+                Sale.reg_station == params['reg_station'], Sale.when > start, Sale.when <= end)).all()
 
-            attendees = session.query(Attendee).filter(
+            attendees = session.scalars(select(Attendee).filter(
                 Attendee.reg_station == params['reg_station'], Attendee.amount_paid > 0,
-                Attendee.registered > start, Attendee.registered <= end).all()
+                Attendee.registered > start, Attendee.registered <= end)).all()
 
             params['sales'] = sales
             params['attendees'] = attendees
@@ -1419,13 +1421,14 @@ class Root:
             params['endminute'] = localized_now().strftime('%M')
 
         # list all reg stations associated with attendees and sales
-        stations_attendees = session.query(Attendee.reg_station).filter(
+        stations_attendees = select(Attendee.reg_station).filter(
             Attendee.reg_station != None, Attendee.reg_station > 0)  # noqa: E711
 
-        stations_sales = session.query(Sale.reg_station).filter(
+        stations_sales = select(Sale.reg_station).filter(
             Sale.reg_station != None, Sale.reg_station > 0)  # noqa: E711
 
-        stations = [r for (r,) in stations_attendees.union(stations_sales).distinct().order_by(Attendee.reg_station)]
+        stations = [r for (r,) in session.execute(stations_attendees.union(
+            stations_sales).distinct().order_by(Attendee.reg_station)).all()]
         params['reg_stations'] = stations
         params.setdefault('reg_station', stations[0] if stations else 0)
         return params
@@ -1451,7 +1454,7 @@ class Root:
         elif tracking_type == 'action':
             model = Tracking
 
-        feed = session.query(model).filter(*filters).order_by(model.when.desc())
+        feed = select(model).filter(*filters).order_by(model.when.desc())
         what = what.strip()
         if who:
             feed = feed.filter_by(who=who)
@@ -1472,11 +1475,11 @@ class Root:
             'what': what,
             'page': page,
             'action': action,
-            'count': feed.limit(10000).count(),
+            'count': session.scalars(select(func.count()).select_from(feed.limit(10000).subquery())).one(),
             'feed': get_page(page, feed),
             'action_opts': c.TRACKING_OPTS,
             'who_opts': [
-                who for [who] in session.query(model).distinct().order_by(model.who).values(model.who)]
+                who for (who,) in session.execute(select(model.who).distinct().order_by(model.who)).all()]
         }
 
     @csrf_protected
@@ -1515,14 +1518,14 @@ class Root:
             'order': Order(order),
             'message': message,
             'taken_hours': sum([s.weighted_hours - s.nonshift_minutes / 60 for s in staffers], 0.0),
-            'total_hours': sum([j.weighted_hours * j.slots for j in session.query(Job).all()], 0.0),
+            'total_hours': sum([j.weighted_hours * j.slots for j in session.scalars(select(Job)).all()], 0.0),
             'staffers': sorted(staffers, reverse=order.startswith('-'), key=lambda s: getattr(s, order.lstrip('-')))
         }
 
     def review(self, session):
-        return {'attendees': session.query(Attendee)
-                                    .filter(Attendee.for_review != '')
-                                    .order_by(Attendee.full_name).all()}
+        return {'attendees': session.scalars(select(Attendee)
+                                             .filter(Attendee.for_review != '')
+                                             .order_by(Attendee.full_name)).all()}
 
     @site_mappable
     def discount(self, session, message='', **params):
@@ -1551,9 +1554,9 @@ class Root:
 
     def inactive(self, session):
         return {
-            'attendees': session.query(Attendee)
-                                .filter(~Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]))
-                                .order_by(Attendee.badge_status, Attendee.full_name).all()
+            'attendees': session.scalars(select(Attendee)
+                                         .filter(~Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]))
+                                         .order_by(Attendee.badge_status, Attendee.full_name)).all()
         }
 
     @public
@@ -1591,7 +1594,7 @@ class Root:
             'attendee': attendee,
             'forms': forms,
             'tab_view': tab_view,
-            'group_opts': session.query(Group.id, Group.name).order_by(Group.name).all(),
+            'group_opts': session.execute(select(Group.id, Group.name).order_by(Group.name)).all(),
         }
 
         if 'attendee_data' in cherrypy.url():
@@ -1606,13 +1609,13 @@ class Root:
 
         return {
             'attendee': attendee,
-            'changes': session.query(Tracking).filter(
+            'changes': session.scalars(select(Tracking).filter(
                 or_(and_(Tracking.links.like('%attendee({})%'.format(id)),
-                         Tracking.model == 'Attendee', Tracking.fk_id == id))).order_by(Tracking.when).all(),
-            'pageviews': session.query(PageViewTracking).filter(PageViewTracking.which == repr(attendee)
-                                                                ).order_by(PageViewTracking.when).all(),
+                         Tracking.model == 'Attendee', Tracking.fk_id == id))).order_by(Tracking.when)).all(),
+            'pageviews': session.scalars(select(PageViewTracking).filter(PageViewTracking.which == repr(attendee)
+                                                                         ).order_by(PageViewTracking.when)).all(),
         }
-    
+
     @log_pageview
     @attendee_view
     def attendee_emails(self, session, id, **params):
@@ -1620,19 +1623,19 @@ class Root:
 
         return {
             'attendee': attendee,
-            'emails': session.query(Email).filter(Email.model == 'Attendee',
-                                                  Email.fk_id == id).order_by(Email.generated).all(),
-            'other_emails': session.query(Email).filter(Email.to == attendee.email,
-                                                        Email.fk_id != id).order_by(Email.generated).all(),
+            'emails': session.scalars(select(Email).filter(Email.model == 'Attendee',
+                                                           Email.fk_id == id).order_by(Email.generated)).all(),
+            'other_emails': session.scalars(select(Email).filter(Email.to == attendee.email,
+                                                                 Email.fk_id != id).order_by(Email.generated)).all(),
         }
 
     @attendee_view
     @cherrypy.expose(['shifts'])
     def attendee_shifts(self, session, id, **params):
-        attendee = session.query(Attendee).filter(Attendee.id == id).options(
+        attendee = session.scalars(select(Attendee).filter(Attendee.id == id).options(
             joinedload(Attendee.shifts),
             selectinload(Attendee.dept_membership_requests),
-            selectinload(Attendee.dept_memberships_with_dept_role)).first()
+            selectinload(Attendee.dept_memberships_with_dept_role))).first()
         attrs = Shift.to_dict_default_attrs + ['worked_label']
 
         return_dict = {
@@ -1692,8 +1695,8 @@ class Root:
 
     def pending_badges(self, session, message=''):
         return {
-            'pending_badges': session.query(Attendee)
-            .filter_by(badge_status=c.PENDING_STATUS).filter(Attendee.paid != c.PENDING),
+            'pending_badges': session.scalars(select(Attendee)
+                                              .filter_by(badge_status=c.PENDING_STATUS).filter(Attendee.paid != c.PENDING)).all(),
             'message': message,
         }
 
@@ -1737,7 +1740,7 @@ class Root:
 
     def printed_name_problems(self, session):
         problem_name_ids = c.REDIS_STORE.smembers(c.REDIS_PREFIX + 'problem_name_ids')
-        attendees = session.query(Attendee).filter(Attendee.id.in_(problem_name_ids))
+        attendees = session.scalars(select(Attendee).filter(Attendee.id.in_(problem_name_ids))).all()
 
         return {
             'attendees': attendees,

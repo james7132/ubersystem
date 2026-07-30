@@ -15,12 +15,12 @@ log = logging.getLogger(__name__)
 
 
 def _inconsistent_shoulder_shifts(session):
-    query = session.query(Attendee).join(HotelRequests) \
+    query = session.scalars(select(Attendee).join(HotelRequests)
         .options(
             subqueryload(Attendee.depts_where_working),
             subqueryload(Attendee.shifts).subqueryload(Shift.job).subqueryload(Job.department),
-            subqueryload(Attendee.hotel_requests)) \
-        .filter(HotelRequests.approved == True).order_by(Attendee.full_name, Attendee.id)  # noqa: E712
+            subqueryload(Attendee.hotel_requests))
+        .filter(HotelRequests.approved == True).order_by(Attendee.full_name, Attendee.id)).all()  # noqa: E712
 
     shoulder_nights_missing_shifts = defaultdict(lambda: defaultdict(list))
 
@@ -46,10 +46,10 @@ def _inconsistent_shoulder_shifts(session):
 
 
 def _attendee_hotel_nights(session):
-    query = session.query(Attendee).filter(Attendee.assigned_depts.any()).options(
+    query = session.scalars(select(Attendee).filter(Attendee.assigned_depts.any()).options(
         subqueryload(Attendee.depts_where_working),
         subqueryload(Attendee.shifts).subqueryload(Shift.job).subqueryload(Job.department),
-        subqueryload(Attendee.hotel_requests)).order_by(Attendee.full_name, Attendee.id)
+        subqueryload(Attendee.hotel_requests)).order_by(Attendee.full_name, Attendee.id)).all()
 
     attendee_hotel_nights = []
 
@@ -143,8 +143,8 @@ class Root:
     # TODO: handle people who didn't request setup / teardown but who were assigned to a setup / teardown room
     def setup_teardown(self, session):
         attendees = []
-        hotel_requests = session.query(HotelRequests).filter_by(approved=True).options(
-            joinedload(HotelRequests.attendee).subqueryload(Attendee.shifts).joinedload(Shift.job))
+        hotel_requests = session.scalars(select(HotelRequests).filter_by(approved=True).options(
+            joinedload(HotelRequests.attendee).subqueryload(Attendee.shifts).joinedload(Shift.job))).all()
 
         for hr in hotel_requests:
             badge_new_or_complete = hr.attendee.badge_status in [c.NEW_STATUS, c.COMPLETED_STATUS]
@@ -311,12 +311,12 @@ class Root:
     @csv_file
     def ordered(self, out, session):
         reqs = [
-            hr for hr in session.query(HotelRequests).options(joinedload(HotelRequests.attendee)).all()
+            hr for hr in session.scalars(select(HotelRequests).options(joinedload(HotelRequests.attendee))).all()
             if hr.nights and hr.attendee.badge_status in (c.NEW_STATUS, c.COMPLETED_STATUS)]
 
         assigned = {
-            ra.attendee for ra in session.query(RoomAssignment).options(
-                joinedload(RoomAssignment.attendee), joinedload(RoomAssignment.room)).all()}
+            ra.attendee for ra in session.scalars(select(RoomAssignment).options(
+                joinedload(RoomAssignment.attendee), joinedload(RoomAssignment.room))).all()}
 
         unassigned = {hr.attendee for hr in reqs if hr.attendee not in assigned}
 
@@ -358,7 +358,7 @@ class Root:
             'Special Needs'])
 
         # TODO: for better efficiency, a multi-level joinedload would be preferable here
-        for room in session.query(Room).options(joinedload(Room.assignments)).all():
+        for room in session.scalars(select(Room).options(joinedload(Room.assignments))).all():
             for i in range(3):
                 out.writerow([])
             out.writerow([
@@ -389,7 +389,7 @@ class Root:
 
         blank = OrderedDict([(field, '') for field in fields])
         out.writerow(fields)
-        for room in session.query(Room).order_by(Room.created).all():
+        for room in session.scalars(select(Room).order_by(Room.created)).all():
             if room.assignments:
                 row = blank.copy()
                 row.update({
@@ -473,23 +473,23 @@ class Root:
             'Comments',
             'Emails',
         ])
-        for room in session.query(Room).order_by(Room.created).all():
+        for room in session.scalars(select(Room).order_by(Room.created)).all():
             if room.assignments:
                 assignments = [ra.attendee for ra in room.assignments[:4]]
                 roommates = [
-                                [a.legal_last_name, a.legal_first_name]
-                                for a in assignments[1:]] + [['', '']] * (4 - len(assignments))
+                    [a.legal_last_name, a.legal_first_name]
+                    for a in assignments[1:]] + [['', '']] * (4 - len(assignments))
 
                 last_name = assignments[0].legal_last_name
                 first_name = assignments[0].legal_first_name
                 arrival = room.check_in_date.strftime('%-m/%-d/%Y')
                 departure = room.check_out_date.strftime('%-m/%-d/%Y')
                 out.writerow([
-                                 last_name,  # Last Name
-                                 first_name,  # First Name
-                                 arrival,  # Arrival
-                                 departure,  # Departure
-                                 '',  # Hide
+                    last_name,  # Last Name
+                    first_name,  # First Name
+                    arrival,  # Arrival
+                    departure,  # Departure
+                    '',  # Hide
                                  'Q2',  # Room Type ('Q2' is 2 queen beds, 'K1' is 1 king bed)
                                  '',  # Hide
                                  len(assignments),  # Number of Adults
@@ -520,7 +520,7 @@ class Root:
 
         blank = OrderedDict([(field, '') for field in fields])
         out.writerow(fields)
-        for room in session.query(Room).order_by(Room.created).all():
+        for room in session.scalars(select(Room).order_by(Room.created)).all():
             if room.assignments:
                 row = blank.copy()
                 row.update({
@@ -544,25 +544,25 @@ class Root:
 
     @csv_file
     def attendee_hotel_pins(self, out, session):
-        hotel_query = session.query(Attendee).filter(Attendee.email != '', Attendee.is_valid == True,  # noqa: E712
+        hotel_query = select(Attendee).filter(Attendee.email != '', Attendee.is_valid == True,  # noqa: E712
                                                      ~Attendee.badge_status.in_([c.REFUNDED_STATUS,
                                                                                  c.NOT_ATTENDING,
                                                                                  c.DEFERRED_STATUS]),
                                                      or_(Attendee.badge_type != c.STAFF_BADGE,
                                                          Attendee.hotel_eligible == True))  # noqa: E712
 
-        attendees_without_hotel_pin = hotel_query.filter(or_(
+        attendees_without_hotel_pin = session.scalars(hotel_query.filter(or_(
             Attendee.hotel_pin == None,  # noqa: E711
             Attendee.hotel_pin == '',
-        )).all()  # noqa: E711
+        ))).all()  # noqa: E711
 
         if attendees_without_hotel_pin:
-            hotel_pin_rows = session.query(Attendee.hotel_pin).filter(
+            hotel_pin_rows = session.scalars(select(Attendee.hotel_pin).filter(
                 Attendee.hotel_pin != None,  # noqa: E711
                 Attendee.hotel_pin != '',
-            ).all()  # noqa: E711
+            )).all()  # noqa: E711
 
-            hotel_pins = set(map(lambda r: r[0], hotel_pin_rows))
+            hotel_pins = set(hotel_pin_rows)
             for a in attendees_without_hotel_pin:
                 new_hotel_pin = _generate_hotel_pin()
                 while new_hotel_pin in hotel_pins:
@@ -578,7 +578,7 @@ class Root:
         out.writerow(headers)
         added = set()
 
-        hotel_results = sorted(hotel_query.all(), key=lambda a: a.legal_name or a.full_name)
+        hotel_results = sorted(session.scalars(hotel_query).all(), key=lambda a: a.legal_name or a.full_name)
 
         for a in hotel_results:
             row = [a.legal_first_name, a.legal_last_name, a.email, a.hotel_pin]

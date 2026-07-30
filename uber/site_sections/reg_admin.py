@@ -112,7 +112,8 @@ def comped_receipt_item(item):
 def assign_account_by_email(session, attendee, account_email):
     from uber.site_sections.preregistration import set_up_new_account
 
-    account = session.query(AttendeeAccount).filter_by(normalized_email=normalize_email_legacy(account_email)).first()
+    account = session.scalars(select(AttendeeAccount).filter_by(
+        normalized_email=normalize_email_legacy(account_email))).first()
 
     if c.ONE_MANAGER_PER_BADGE and attendee.managers:
         # It's too confusing for an admin to move someone to a new account and still see them on their old account
@@ -136,7 +137,7 @@ class Root:
         if c.DEV_BOX and not int(page):
             page = 1
 
-        all_processor_txns = session.query(ReceiptTransaction).filter(or_(
+        all_processor_txns = select(ReceiptTransaction).filter(or_(
             ReceiptTransaction.intent_id != '',
             ReceiptTransaction.charge_id != '',
             ReceiptTransaction.refund_id != ''))
@@ -144,23 +145,27 @@ class Root:
             all_processor_txns = all_processor_txns.filter(ReceiptTransaction.on_hold == True)
         elif not closed:
             all_processor_txns = all_processor_txns.join(ModelReceipt).filter(ModelReceipt.closed == None)
-        total_count = all_processor_txns.count()
-        payment_count = all_processor_txns.filter(ReceiptTransaction.amount > 0).count()
-        refund_count = all_processor_txns.filter(ReceiptTransaction.amount < 0).count()
+        total_count = session.scalars(select(func.count()).select_from(all_processor_txns.subquery())).one()
+        payment_count = session.scalars(select(func.count()).select_from(
+            all_processor_txns.filter(ReceiptTransaction.amount > 0).subquery())).one()
+        refund_count = session.scalars(select(func.count()).select_from(
+            all_processor_txns.filter(ReceiptTransaction.amount < 0).subquery())).one()
         count = 0
         search_text = search_text.strip()
         if search_text:
             search_results, message = _search(all_processor_txns, search_text)
-            if search_results and search_results.count():
+            search_count = session.scalars(select(func.count()).select_from(
+                search_results.subquery())).one() if search_results is not None else 0
+            if search_results is not None and search_count:
                 receipt_txns = search_results
-                count = receipt_txns.count()
+                count = search_count
                 if count == total_count:
                     message = 'Every transaction matched this search.'
             elif not message:
                 message = 'No matches found.'
         if not count:
             receipt_txns = all_processor_txns.outerjoin(ReceiptTransaction.receipt_info)
-            count = receipt_txns.count()
+            count = session.scalars(select(func.count()).select_from(receipt_txns.subquery())).one()
 
         receipt_txns = receipt_txns.order(order)
 
@@ -190,16 +195,16 @@ class Root:
                 c.SQUARE: "SPIn" if c.SPIN_TERMINAL_AUTH_KEY else "Square",
                 c.MANUAL: "Stripe"},
         }
-    
+
     def escalation_tickets(self, session, message='', closed=''):
-        escalation_tickets = session.query(EscalationTicket)
+        escalation_tickets = select(EscalationTicket)
         if not closed:
             escalation_tickets = escalation_tickets.filter(EscalationTicket.resolved == None)
         return {
             'message': message,
             'closed': closed,
-            'total_count': escalation_tickets.count(),
-            'tickets': escalation_tickets.options(joinedload(EscalationTicket.attendees))
+            'total_count': session.scalars(select(func.count()).select_from(escalation_tickets.subquery())).one(),
+            'tickets': session.scalars(escalation_tickets.options(joinedload(EscalationTicket.attendees))).all()
         }
 
     @ajax
@@ -263,11 +268,11 @@ class Root:
 
         receipt = session.get_receipt_by_model(model, options=options)
         if receipt:
-            receipt.changes = session.query(Tracking).filter(
+            receipt.changes = session.scalars(select(Tracking).filter(
                 or_(Tracking.links.like('%model_receipt({})%'
                                         .format(receipt.id)),
                     and_(Tracking.model == 'ModelReceipt',
-                    Tracking.fk_id == receipt.id))).order_by(Tracking.when).all()
+                    Tracking.fk_id == receipt.id))).order_by(Tracking.when)).all()
             if receipt.current_receipt_amount < 0:
                 refund_amount = receipt.current_receipt_amount * -1
                 for txn in receipt.refundable_txns:
@@ -278,23 +283,23 @@ class Root:
         if isinstance(model, Attendee):
             other_receipt = session.get_receipt_by_model(model.art_show_application, options=options)
             if other_receipt:
-                other_receipt.changes = session.query(Tracking).filter(
+                other_receipt.changes = session.scalars(select(Tracking).filter(
                     or_(Tracking.links.like('%model_receipt({})%'
                                             .format(other_receipt.id)),
                         and_(Tracking.model == 'ModelReceipt',
-                        Tracking.fk_id == other_receipt.id))).order_by(Tracking.when).all()
+                        Tracking.fk_id == other_receipt.id))).order_by(Tracking.when)).all()
                 other_receipts.add(other_receipt)
 
         closed_receipts = set()
-        closed_receipt_query = session.query(ModelReceipt).filter(ModelReceipt.owner_id == id,
+        closed_receipt_query = session.scalars(select(ModelReceipt).filter(ModelReceipt.owner_id == id,
                                                              ModelReceipt.owner_model == model.__class__.__name__,
-                                                             ModelReceipt.closed != None).options(*options)  # noqa: E711
+                                                             ModelReceipt.closed != None).options(*options)).all()  # noqa: E711
         for closed_receipt in closed_receipt_query:
-            closed_receipt.changes = session.query(Tracking).filter(
+            closed_receipt.changes = session.scalars(select(Tracking).filter(
                 or_(Tracking.links.like('%model_receipt({})%'
                                         .format(closed_receipt.id)),
                     and_(Tracking.model == 'ModelReceipt',
-                    Tracking.fk_id == closed_receipt.id))).order_by(Tracking.when).all()
+                    Tracking.fk_id == closed_receipt.id))).order_by(Tracking.when)).all()
             closed_receipts.add(closed_receipt)
 
         return {
@@ -480,8 +485,8 @@ class Root:
 
             if refund.refund_str == 'voided':
                 # We had to void the payment so we need to update all other matching transactions and their receipts
-                matching_txns = session.query(ReceiptTransaction).filter_by(
-                    intent_id=item.receipt_txn.intent_id).filter(ReceiptTransaction.id != item.receipt_txn.id)
+                matching_txns = session.scalars(select(ReceiptTransaction).filter_by(
+                    intent_id=item.receipt_txn.intent_id).filter(ReceiptTransaction.id != item.receipt_txn.id)).all()
                 for txn in matching_txns:
                     session.add(txn)
                     txn.refunded = txn.amount
@@ -1015,29 +1020,31 @@ class Root:
 
     def attendee_accounts(self, session, message='', page='1', search_text='', order='email', empty='1'):
         filter = [AttendeeAccount.attendees] if not empty else []
-        total_count = session.query(AttendeeAccount.id).filter(*filter).count()
+        total_count = session.scalars(select(func.count(AttendeeAccount.id)).filter(*filter)).one()
 
         count = 0
         search_text = search_text.strip()
         if search_text:
-            search_results = session.query(AttendeeAccount).outerjoin(AttendeeAccount.attendees).filter(*filter).filter(or_(
+            search_results = select(AttendeeAccount).outerjoin(AttendeeAccount.attendees).filter(*filter).filter(or_(
                 AttendeeAccount.email.ilike('%' + search_text + '%'),
                 Attendee.first_name.ilike('%' + search_text + '%'),
                 Attendee.last_name.ilike('%' + search_text + '%'),
                 Attendee.legal_name.ilike('%' + search_text + '%'),
                 Attendee.email.ilike('%' + search_text + '%'),
             ))
-            if search_results and search_results.count():
+            search_count = session.scalars(select(func.count()).select_from(
+                search_results.subquery())).one() if search_results is not None else 0
+            if search_results is not None and search_count:
                 accounts = search_results
-                count = accounts.count()
+                count = search_count
                 if count == total_count:
                     message = 'Every attendee account matched this search.'
             elif not message:
                 message = 'No matches found.'
         if not count:
-            accounts = session.query(AttendeeAccount).outerjoin(AttendeeAccount.attendees).filter(*filter)
-            count = accounts.count()
-        
+            accounts = select(AttendeeAccount).outerjoin(AttendeeAccount.attendees).filter(*filter)
+            count = session.scalars(select(func.count()).select_from(accounts.subquery())).one()
+
         accounts = accounts.order(order)
 
         page = int(page)
@@ -1073,7 +1080,7 @@ class Root:
 
     @site_mappable
     def orphaned_attendees(self, session, message='', **params):
-        attendees = session.query(Attendee).filter(~Attendee.managers.any())
+        attendees = select(Attendee).filter(~Attendee.managers.any())
 
         for domain in c.SSO_EMAIL_DOMAINS:
             attendees = attendees.filter(~Attendee.email.ilike(f"%{domain}%"))
@@ -1105,7 +1112,7 @@ class Root:
 
         return {
             'message': message,
-            'attendees': attendees.options(joinedload(Attendee.group)).all(),
+            'attendees': session.scalars(attendees.options(joinedload(Attendee.group))).all(),
             'show_all': params.get('show_all', ''),
         }
 
@@ -1149,7 +1156,7 @@ class Root:
         return " ".join(messages)
 
     def add_all_accounts(self, session, show_all='', email_contains='', **params):
-        attendees = session.query(Attendee).filter(~Attendee.managers.any())
+        attendees = select(Attendee).filter(~Attendee.managers.any())
 
         if not show_all:
             attendees = attendees.filter_by(is_valid=True, is_unassigned=False)
@@ -1159,7 +1166,7 @@ class Root:
         new_account = 0
         assigned = 0
 
-        for attendee in attendees:
+        for attendee in session.scalars(attendees).all():
             message = assign_account_by_email(session, attendee, attendee.email)
             if 'New account' in message:
                 new_account += 1
@@ -1177,7 +1184,8 @@ class Root:
     def payment_pending_attendees(self, session):
         possibles = session.possible_match_list()
         attendees = []
-        pending = session.query(Attendee).filter_by(paid=c.PENDING).filter(Attendee.badge_status != c.INVALID_STATUS)
+        pending = session.scalars(select(Attendee).filter_by(
+            paid=c.PENDING).filter(Attendee.badge_status != c.INVALID_STATUS)).all()
         for attendee in pending:
             attendees.append([attendee, set(possibles[attendee.email.lower()] +
                                             possibles[attendee.first_name, attendee.last_name])])
@@ -1228,7 +1236,7 @@ class Root:
 
             for new_params in new_workstation_params:
                 reg_station_id = new_params['reg_station_id']
-                if session.query(WorkstationAssignment).filter_by(reg_station_id=reg_station_id or -1).first():
+                if session.scalars(select(WorkstationAssignment).filter_by(reg_station_id=reg_station_id or -1)).first():
                     skipped_reg_stations.append(new_params['reg_station_id'])
                 else:
                     if new_params.get('terminal_id'):
@@ -1253,7 +1261,7 @@ class Root:
             raise HTTPRedirect('manage_workstations?message={}', f"Workstations updated.{extra_warning}")
 
         return {
-            'workstation_assignments': session.query(WorkstationAssignment).all(),
+            'workstation_assignments': session.scalars(select(WorkstationAssignment)).all(),
             'settlements': session.get_terminal_settlements(),
             'message': message,
         }
@@ -1309,7 +1317,7 @@ class Root:
 
         for id in id_list:
             terminal_id = ""
-            workstation_assignment = session.query(WorkstationAssignment).filter_by(reg_station_id=id).first()
+            workstation_assignment = session.scalars(select(WorkstationAssignment).filter_by(reg_station_id=id)).first()
             if not workstation_assignment:
                 pass
             elif not workstation_assignment.terminal_id:
@@ -1377,8 +1385,8 @@ class Root:
             if normalize_email_legacy(normalized_new_email) == normalize_email_legacy(account.normalized_email):
                 message = "That is already the email address for this account!"
             else:
-                existing_account = session.query(AttendeeAccount).filter_by(
-                    normalized_email=normalize_email_legacy(normalized_new_email)).first()
+                existing_account = session.scalars(select(AttendeeAccount).filter_by(
+                    normalized_email=normalize_email_legacy(normalized_new_email))).first()
                 if existing_account:
                     message = "That account already exists. You can instead reassign this account's attendees."
                 else:
@@ -1391,7 +1399,7 @@ class Root:
 
         other_purchased_badges = []
         attendee_ids = [a.id for a in account.valid_attendees]
-        for purchaser_receipt in session.query(ModelReceipt).join(ReceiptItem).filter(ReceiptItem.purchaser_id == account.id):
+        for purchaser_receipt in session.scalars(select(ModelReceipt).join(ReceiptItem).filter(ReceiptItem.purchaser_id == account.id)).all():
             if purchaser_receipt.owner_id not in attendee_ids:
                 other_purchased_badges.append(session.get_model_by_receipt(purchaser_receipt))
 
@@ -1461,7 +1469,7 @@ class Root:
                     for first, last, email in attendees_by_name_email.keys()
                 ]
 
-                existing_attendees = session.query(Attendee).filter(or_(*filters)).all()
+                existing_attendees = session.scalars(select(Attendee).filter(or_(*filters))).all()
                 for attendee in existing_attendees:
                     existing_key = (attendee.first_name.lower(), attendee.last_name.lower(), attendee.normalized_email)
                     attendees_by_name_email.pop(existing_key, {})
@@ -1477,8 +1485,8 @@ class Root:
                 groups = models
                 groups_by_name = groupify(groups, lambda g: g['name'])
 
-                existing_groups = session.query(Group).filter(Group.name.in_(groups_by_name.keys())) \
-                    .options(subqueryload(Group.attendees)).all()
+                existing_groups = session.scalars(select(Group).filter(Group.name.in_(groups_by_name.keys()))
+                                                  .options(subqueryload(Group.attendees))).all()
                 for group in existing_groups:
                     existing_key = group.name
                     groups_by_name.pop(existing_key, {})
@@ -1516,11 +1524,11 @@ class Root:
         attendee_ids = attendee_ids if isinstance(attendee_ids, list) else [attendee_ids]
 
         for id in attendee_ids:
-            existing_import = session.query(ApiJob).filter(ApiJob.job_name == "attendee_import",
+            existing_import = session.scalars(select(func.count()).select_from(ApiJob).filter(ApiJob.job_name == "attendee_import",
                                                            ApiJob.query == id,
                                                            ApiJob.cancelled == None,  # noqa: E711
                                                            ApiJob.completed == None,  # noqa: E711
-                                                           ApiJob.errors == '').count()
+                                                           ApiJob.errors == '')).one()
             if existing_import:
                 already_queued += 1
             else:
@@ -1574,11 +1582,11 @@ class Root:
         group_ids = group_ids if isinstance(group_ids, list) else [group_ids]
 
         for id in group_ids:
-            existing_import = session.query(ApiJob).filter(ApiJob.job_name == "group_import",
+            existing_import = session.scalars(select(func.count()).select_from(ApiJob).filter(ApiJob.job_name == "group_import",
                                                            ApiJob.query == id,
                                                            ApiJob.completed == None,  # noqa: E711
                                                            ApiJob.cancelled == None,  # noqa: E711
-                                                           ApiJob.errors == '').count()
+                                                           ApiJob.errors == '')).one()
             if existing_import:
                 already_queued += 1
             else:

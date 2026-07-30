@@ -56,7 +56,8 @@ def log_pageview(func):
     def with_check(*args, **kwargs):
         with uber.models.Session() as session:
             try:
-                session.admin_account(cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None)))
+                session.admin_account(cherrypy.session.get(
+                    'account_id', getattr(cherrypy.request, 'admin_account', None)))
             except Exception:
                 pass  # no tracking for non-admins yet
             else:
@@ -204,7 +205,7 @@ def check_can_edit_dept(session, department_id=None, inherent_role=None, overrid
         if department_id:
             dh_filter.append(DeptMembership.department_id == department_id)
 
-        is_dept_admin = session.query(AdminAccount).filter(*dh_filter).first()
+        is_dept_admin = session.scalars(select(AdminAccount).filter(*dh_filter)).first()
         if not is_dept_admin:
             if department_id:
                 department = session.get(Department, department_id)
@@ -228,7 +229,8 @@ def requires_account(models=None):
                 return func(*args, **kwargs)
             with uber.models.Session() as session:
                 admin_account_id = cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None))
-                attendee_account_id = cherrypy.session.get('attendee_account_id', getattr(cherrypy.request, 'attendee_account', None))
+                attendee_account_id = cherrypy.session.get(
+                    'attendee_account_id', getattr(cherrypy.request, 'attendee_account', None))
                 message = ''
                 if c.LOCAL_ACCOUNTS_DISABLED and admin_account_id is None and attendee_account_id is None:
                     ajax_or_redirect(func, '../accounts/login?message=', message, True)
@@ -358,13 +360,14 @@ def requires_email_admin(inherent_role=None):
                 with uber.models.Session() as session:
                     id = kwargs.get('id')
                     if not id:
-                        email = session.query(AutomatedEmail).filter(AutomatedEmail.ident == kwargs.get('ident')).first()
+                        email = session.scalars(select(AutomatedEmail).filter(
+                            AutomatedEmail.ident == kwargs.get('ident'))).first()
                     else:
                         email = session.get(AutomatedEmail, id)
                     if not email:
                         session.commit()
                         return func(*args, **kwargs)
-                    
+
                     depts_tuples = EmailService.depts_from_email(session, email.sender)
                     if not depts_tuples:
                         message = "You must have full email admin permissions to manage this email."
@@ -903,7 +906,8 @@ def restricted(func):
             return func(*args, **kwargs)
 
         admin_account_id = cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None))
-        attendee_account_id = cherrypy.session.get('attendee_account_id', getattr(cherrypy.request, 'attendee_account', None))
+        attendee_account_id = cherrypy.session.get(
+            'attendee_account_id', getattr(cherrypy.request, 'attendee_account', None))
         if not admin_account_id and not attendee_account_id:
             ajax_or_redirect(func, '../accounts/login?message=', "You are not logged in.", True)
 
@@ -931,7 +935,8 @@ def restricted(func):
 
         elif getattr(func, 'any_admin_access', None):
             with uber.models.Session() as session:
-                account = session.admin_account(cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None)))
+                account = session.admin_account(cherrypy.session.get(
+                    'account_id', getattr(cherrypy.request, 'admin_account', None)))
                 if not account.access_groups:
                     return "You do not have any admin accesses."
         else:

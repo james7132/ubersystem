@@ -7,10 +7,10 @@ from uber.models import Attendee, FoodRestrictions, GuestCharity
 @all_renderable()
 class Root:
     def food_restrictions(self, session):
-        all_fr = session.query(FoodRestrictions).all()
-        guests = session.query(Attendee).filter_by(badge_type=c.GUEST_BADGE).count()
+        all_fr = session.scalars(select(FoodRestrictions)).all()
+        guests = session.scalars(select(func.count()).select_from(Attendee).filter_by(badge_type=c.GUEST_BADGE)).one()
         volunteers = len([
-            a for a in session.query(Attendee).filter_by(staffing=True).all()
+            a for a in session.scalars(select(Attendee).filter_by(staffing=True)).all()
             if a.badge_type == c.STAFF_BADGE or a.weighted_hours or not a.takes_shifts])
 
         return {
@@ -69,15 +69,15 @@ class Root:
 
     def guest_donations(self, session):
         return {
-            'donation_offers': session.query(GuestCharity).filter(GuestCharity.desc != '')
+            'donation_offers': session.scalars(select(GuestCharity).filter(GuestCharity.desc != '')).all()
         }
 
     @csv_file
     @site_mappable(download=True)
     def requested_accessibility_services(self, out, session):
         out.writerow(['Registered', 'Badge #', 'Full Name', 'Badge Type', 'Email', 'Comments'])
-        query = session.query(Attendee).filter_by(requested_accessibility_services=True)
-        for person in query.all():
+        query = session.scalars(select(Attendee).filter_by(requested_accessibility_services=True)).all()
+        for person in query:
             out.writerow([
                 person.registered_local.strftime('%Y-%m-%d %H:%M'),
                 person.badge_num, person.full_name, person.badge_type_label,

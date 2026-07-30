@@ -27,7 +27,7 @@ class Root:
     def index(self, session, message='', showcase_type='all', show_all=False):
         games = session.indie_games()
         judges = session.indie_judges()
-        studios = session.query(IndieStudio).outerjoin(IndieStudio.games)
+        studios = session.scalars(select(IndieStudio).outerjoin(IndieStudio.games)).all()
         message, showcase_type = _process_showcase_type(showcase_type, message)
 
         if showcase_type != 'all':
@@ -71,17 +71,17 @@ class Root:
             'studio': studio,
             'forms': forms,
         }
-    
+
     def studio_history(self, session, id, message='', **params):
         studio = session.get(IndieStudio, id)
 
         return {
             'studio': studio,
-            'changes': session.query(Tracking).filter(or_(
+            'changes': session.scalars(select(Tracking).filter(or_(
                 Tracking.links.like('%indie_studio({})%'.format(id)),
-                and_(Tracking.model == 'IndieStudio', Tracking.fk_id == id))).order_by(Tracking.when).all(),
+                and_(Tracking.model == 'IndieStudio', Tracking.fk_id == id))).order_by(Tracking.when)).all(),
         }
-    
+
     def studio_emails(self, session, id, message='', **params):
         studio = session.get(IndieStudio, id)
 
@@ -89,12 +89,12 @@ class Root:
             'message': message,
             'studio': studio,
             'depts_by_sender': EmailService.emails_from_depts(session),
-            'studio_emails': session.query(Email).filter(Email.model == 'IndieStudio',
-                                                         Email.fk_id == id).order_by(Email.generated).all(),
-            'game_emails': session.query(Email).filter(Email.model == 'IndieGame',
-                                                       Email.fk_id.in_([game.id for game in studio.games])).order_by(Email.generated).all(),
-            'dev_emails': session.query(Email).filter(Email.model == 'IndieDeveloper',
-                                                      Email.fk_id.in_([dev.id for dev in studio.developers])).order_by(Email.generated).all(),
+            'studio_emails': session.scalars(select(Email).filter(Email.model == 'IndieStudio',
+                                                                  Email.fk_id == id).order_by(Email.generated)).all(),
+            'game_emails': session.scalars(select(Email).filter(Email.model == 'IndieGame',
+                                                                Email.fk_id.in_([game.id for game in studio.games])).order_by(Email.generated)).all(),
+            'dev_emails': session.scalars(select(Email).filter(Email.model == 'IndieDeveloper',
+                                                               Email.fk_id.in_([dev.id for dev in studio.developers])).order_by(Email.generated)).all(),
         }
 
     @ajax
@@ -115,7 +115,7 @@ class Root:
         return {"success": True}
 
     def studios(self, session, message=''):
-        studios = session.query(IndieStudio).outerjoin(IndieStudio.games)
+        studios = session.scalars(select(IndieStudio).outerjoin(IndieStudio.games)).all()
         primary_contact_emails = []
         for studio in studios:
             for contact in studio.primary_contacts:
@@ -147,7 +147,7 @@ class Root:
 
             # only match on last name and email, to prevent nickname issues; this could cause
             # problems if we had two judges with the same last name AND the same email address
-            attendee = session.query(Attendee).filter_by(last_name=last_name, email=email).first()
+            attendee = session.scalars(select(Attendee).filter_by(last_name=last_name, email=email)).first()
             index_link = f'index?showcase_type={showcase_type}&message=' + '{}#judges'
             if attendee and attendee.admin_account:
                 if attendee.admin_account.judge:
@@ -211,14 +211,14 @@ class Root:
             'matching': matching,
             'nonmatching': nonmatching,
             'matching_genre': matching_genre,
-            'changes': session.query(Tracking).filter(or_(
+            'changes': session.scalars(select(Tracking).filter(or_(
                 Tracking.links.like('%indie_judge({})%'.format(id)),
-                and_(Tracking.model == 'IndieJudge', Tracking.fk_id == id))).order_by(Tracking.when).all(),
-            'emails': session.query(Email).filter(Email.model == 'IndieJudge',
-                                                  Email.fk_id == judge.id).order_by(Email.generated).all(),
+                and_(Tracking.model == 'IndieJudge', Tracking.fk_id == id))).order_by(Tracking.when)).all(),
+            'emails': session.scalars(select(Email).filter(Email.model == 'IndieJudge',
+                                                           Email.fk_id == judge.id).order_by(Email.generated)).all(),
             'depts_by_sender': EmailService.emails_from_depts(session),
         }
-    
+
     @ajax
     def validate_judge(self, session, form_list=[], **params):
         if params.get('id') in [None, '', 'None']:
@@ -261,10 +261,10 @@ class Root:
     def judges_owed_refunds(self, session):
         return {
             'judges': [
-                a for a in session.query(Attendee).join(Attendee.admin_account)
+                a for a in session.scalars(select(Attendee).join(Attendee.admin_account)
                 .filter(AdminAccount.judge != None)  # noqa: E711
                 .options(joinedload(Attendee.group))
-                .order_by(Attendee.full_name) if a.paid_for_badge and not a.has_been_refunded
+                .order_by(Attendee.full_name)).all() if a.paid_for_badge and not a.has_been_refunded
             ]}
 
     def edit_game(self, session, id, message='', **params):
@@ -312,14 +312,14 @@ class Root:
             'matching': matching,
             'matching_genre': matching_genre,
             'nonmatching': nonmatching,
-            'changes': session.query(Tracking).filter(or_(
+            'changes': session.scalars(select(Tracking).filter(or_(
                 Tracking.links.like('%indie_game({})%'.format(id)),
-                and_(Tracking.model == 'IndieGame', Tracking.fk_id == id))).order_by(Tracking.when).all(),
-            'emails': session.query(Email).filter(Email.model == 'IndieGame',
-                                                  Email.fk_id == game.id).order_by(Email.generated).all(),
+                and_(Tracking.model == 'IndieGame', Tracking.fk_id == id))).order_by(Tracking.when)).all(),
+            'emails': session.scalars(select(Email).filter(Email.model == 'IndieGame',
+                                                           Email.fk_id == game.id).order_by(Email.generated)).all(),
             'depts_by_sender': EmailService.emails_from_depts(session),
         }
-    
+
     @ajax
     def validate_game(self, session, form_list=[], **params):
         if params.get('id') in [None, '', 'None']:
@@ -363,7 +363,7 @@ class Root:
 
         for gid in listify(game_id):
             for jid in listify(judge_id):
-                if not session.query(IndieGameReview).filter_by(game_id=gid, judge_id=jid).first():
+                if not session.scalars(select(IndieGameReview).filter_by(game_id=gid, judge_id=jid)).first():
                     session.add(IndieGameReview(game_id=gid, judge_id=jid))
         raise HTTPRedirect(return_to, f'{what_assigned} successfully assigned!')
 
@@ -383,7 +383,7 @@ class Root:
 
         for gid in listify(game_id):
             for jid in listify(judge_id):
-                review = session.query(IndieGameReview).filter_by(game_id=gid, judge_id=jid).first()
+                review = session.scalars(select(IndieGameReview).filter_by(game_id=gid, judge_id=jid)).first()
                 if review:
                     session.delete(review)
         raise HTTPRedirect(return_to, f'{what_removed} successfully removed.')
@@ -452,10 +452,10 @@ class Root:
                      'href': href_base.format(target_url, judge['id'])
                      }
 
-                existing_attendee = session.query(Attendee).filter(
+                existing_attendee = session.scalars(select(Attendee).filter(
                     func.lower(Attendee.first_name) == attendee['first_name'].lower(),
                     func.lower(Attendee.last_name) == attendee['last_name'].lower(),
-                    Attendee.normalized_email == normalize_email_legacy(attendee['email'])).first()
+                    Attendee.normalized_email == normalize_email_legacy(attendee['email']))).first()
                 if existing_attendee and existing_attendee.admin_account and existing_attendee.admin_account.judge:
                     d['existing_judge'] = existing_attendee.admin_account.judge
                     existing_judges.append(d)
@@ -502,10 +502,10 @@ class Root:
             new_judge.status = c.UNCONFIRMED
             new_judge.no_game_submission = None
 
-            existing_attendee = session.query(Attendee).filter(
+            existing_attendee = session.scalars(select(Attendee).filter(
                 func.lower(Attendee.first_name) == old_attendee['first_name'].lower(),
                 func.lower(Attendee.last_name) == old_attendee['last_name'].lower(),
-                Attendee.normalized_email == normalize_email_legacy(old_attendee['email'])).first()
+                Attendee.normalized_email == normalize_email_legacy(old_attendee['email']))).first()
             if existing_attendee and existing_attendee.admin_account and existing_attendee.admin_account.judge:
                 continue
             elif existing_attendee:

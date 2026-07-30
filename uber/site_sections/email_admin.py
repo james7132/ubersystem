@@ -53,7 +53,7 @@ class Root:
     @requires_email_admin()
     @reconcile_fixtures
     def index(self, session, message='', page='1', search_text='', status=[], subject=False, **params):
-        emails = session.query(Email)
+        emails = select(Email)
         search_text = search_text.strip()
         automated_email = None
 
@@ -63,11 +63,11 @@ class Root:
 
         if status:
             emails = emails.filter(Email.status.in_([int(s) for s in status]))
-        
+
         ident = params.get('ident')
         if ident:
             emails = emails.filter(Email.ident == ident)
-            automated_email = session.query(AutomatedEmail).filter(AutomatedEmail.ident == ident).first()
+            automated_email = session.scalars(select(AutomatedEmail).filter(AutomatedEmail.ident == ident)).first()
 
         if ident and 'send_after' not in params:
             send_after = True
@@ -84,12 +84,14 @@ class Root:
             else:
                 emails = emails.icontains(Email.to, search_text)
 
+        all_emails = session.scalars(emails.order_by(Email.generated.desc())).all()
+
         return {
             'message': message,
             'page': page,
             'automated_email': automated_email,
-            'emails': get_page(page, emails.order_by(Email.generated.desc())),
-            'count': emails.count(),
+            'emails': get_page(page, all_emails),
+            'count': len(all_emails),
             'search_text': search_text if not subject else '',
             'subject_search_text': search_text if subject else '',
             'department_id': params.get('department_id', ''),
@@ -122,7 +124,7 @@ class Root:
                 raise HTTPRedirect(
                     '../dept_checklist/index?department_id={}&message={}', department_id, message)
 
-        emails = session.query(AutomatedEmail).filter(AutomatedEmail.subject != '', AutomatedEmail.sender != '')
+        emails = select(AutomatedEmail).filter(AutomatedEmail.subject != '', AutomatedEmail.sender != '')
         email_depts = [str(d.department_id) for d in session.admin_attendee().dept_memberships_with_inherent_role]
         emails, depts_by_sender = filter_emails_by_dept_id(session, AutomatedEmail, emails,
                                                            params.get('department_id', ''), email_depts)
@@ -130,7 +132,7 @@ class Root:
         if policy:
             emails = emails.filter(AutomatedEmail.policy == int(policy))
 
-        emails = sorted(emails.all(), key=lambda e: list(AutomatedEmail._fixtures.keys()).index(e.ident)
+        emails = sorted(session.scalars(emails).all(), key=lambda e: list(AutomatedEmail._fixtures.keys()).index(e.ident)
                         if e.ident in AutomatedEmail._fixtures.keys() else 99999999)
 
         for fixture in AutomatedEmail._fixtures.values():
@@ -139,9 +141,9 @@ class Root:
 
         queued_email_counts, sent_email_counts = {}, {}
         for email in emails:
-            all_queued_emails = session.query(Email.id).filter(Email.automated_email_id == email.id)
-            queued_email_counts[email.id] = all_queued_emails.filter(Email.status != c.SENT).count()
-            sent_email_counts[email.id] = all_queued_emails.filter(Email.status == c.SENT).count()
+            all_queued_emails = select(Email.id).filter(Email.automated_email_id == email.id)
+            queued_email_counts[email.id] = len(session.scalars(all_queued_emails.filter(Email.status != c.SENT)).all())
+            sent_email_counts[email.id] = len(session.scalars(all_queued_emails.filter(Email.status == c.SENT)).all())
 
         emails_by_sender = groupify(emails, 'sender')
 
@@ -177,14 +179,15 @@ class Root:
         depts_tuples = EmailService.depts_from_email(session, email.sender)
 
         forms = load_forms(params, email, ['EmailInfo'])
-        
+
         limited_queue = False
-        queued_emails = session.query(Email).filter(Email.automated_email_id == email.id)
-        if queued_emails.limit(500).count() == 500:
+        queued_emails = select(Email).filter(Email.automated_email_id == email.id)
+        if len(session.scalars(queued_emails.limit(500)).all()) == 500:
             limited_queue = True
-        unsent_count = queued_emails.filter(Email.status != c.SENT).limit(100).count()
-        unapproved_count = queued_emails.filter(Email.status == c.UNAPPROVED).limit(100).count()
-        error_count = queued_emails.filter(Email.status != c.SENT, Email.error != '').limit(100).count()
+        unsent_count = len(session.scalars(queued_emails.filter(Email.status != c.SENT).limit(100)).all())
+        unapproved_count = len(session.scalars(queued_emails.filter(Email.status == c.UNAPPROVED).limit(100)).all())
+        error_count = len(session.scalars(queued_emails.filter(
+            Email.status != c.SENT, Email.error != '').limit(100)).all())
 
         fixture = email.fixture
         if not fixture.template_plugin_name or not fixture.template_path:
@@ -434,7 +437,7 @@ class Root:
         interests = [int(i) for i in listify(params['interests'])]
         assert all(k in c.INTERESTS for k in interests)
 
-        attendees = session.query(Attendee).filter_by(can_spam=True).order_by('email').all()
+        attendees = session.scalars(select(Attendee).filter_by(can_spam=True).order_by(Attendee.email)).all()
 
         out.writerow(["fullname", "email", "zipcode"])
 
@@ -466,8 +469,8 @@ class Root:
         if 'include_staff' in params:
             attendee_filter = or_(attendee_filter, Attendee.badge_type == c.STAFF_BADGE)
 
-        attendees = session.query(Attendee).filter(
-            base_filter, attendee_filter, *email_filter).all()
+        attendees = session.scalars(select(Attendee).filter(
+            base_filter, attendee_filter, *email_filter)).all()
 
         out.writerow(["fullname", "email", "zipcode"])
         for a in attendees:

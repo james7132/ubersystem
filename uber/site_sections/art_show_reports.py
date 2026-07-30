@@ -34,8 +34,8 @@ class Root:
             if end:
                 filters.append(ArtShowReceipt.invoice_num <= end)
 
-            receipts = session.query(ArtShowReceipt).join(ArtShowReceipt.attendee)\
-                .filter(*filters).order_by(ArtShowReceipt.closed.desc()).all()
+            receipts = session.scalars(select(ArtShowReceipt).join(ArtShowReceipt.attendee)
+                                       .filter(*filters).order_by(ArtShowReceipt.closed.desc())).all()
             if not receipts:
                 message = "No invoices found!"
 
@@ -47,8 +47,8 @@ class Root:
         }
 
     def artist_invoices(self, session, message=''):
-        apps = session.query(ArtShowApplication).join(ArtShowApplication.art_show_pieces)\
-            .filter(ArtShowApplication.art_show_pieces.any(ArtShowPiece.status.in_([c.SOLD, c.PAID]))).all()
+        apps = session.scalars(select(ArtShowApplication).join(ArtShowApplication.art_show_pieces)
+                               .filter(ArtShowApplication.art_show_pieces.any(ArtShowPiece.status.in_([c.SOLD, c.PAID])))).all()
         if not apps:
             message = "No invoices found!"
 
@@ -60,10 +60,10 @@ class Root:
     def high_bids(self, session, message='', admin_report=None):
         return {
             'message': message,
-            'won_pieces': session.query(ArtShowPiece).join(ArtShowPiece.buyer).join(
+            'won_pieces': session.scalars(select(ArtShowPiece).join(ArtShowPiece.buyer).join(
                 Attendee.art_show_bidder).filter(ArtShowPiece.winning_bid.isnot(None), ArtShowPiece.status == c.SOLD
                                                  ).order_by(ArtShowBidder.bidder_num, ArtShowPiece.piece_id,
-                                                            ArtShowPiece.name),
+                                                            ArtShowPiece.name)).all(),
             'admin_report': admin_report,
             'now': localized_now(),
         }
@@ -86,8 +86,9 @@ class Root:
             filters.append(ArtShowApplication.art_show_pieces.any(~ArtShowPiece.status.in_(no_status)))
             count_filters.append(~ArtShowPiece.status.in_(no_status))
 
-        apps = session.query(ArtShowApplication).join(ArtShowApplication.art_show_pieces).filter(*filters).all()
-        num_pieces = session.query(ArtShowPiece).filter(*count_filters).count()
+        apps = session.scalars(select(ArtShowApplication).join(
+            ArtShowApplication.art_show_pieces).filter(*filters)).all()
+        num_pieces = len(session.scalars(select(ArtShowPiece.id).filter(*count_filters)).all())
 
         if not apps:
             message = 'No pieces found!'
@@ -116,22 +117,23 @@ class Root:
                 no_methods = list(params['no_methods'])
             filters.append(ArtShowApplication.payout_method.in_(no_methods))
 
-        winning_bids_by_method = session.query(
+        winning_bids_by_method = session.execute(select(
             ArtShowApplication.payout_method, func.sum(ArtShowPiece.winning_bid)).join(
                 ArtShowApplication.art_show_pieces).filter(
-                    ArtShowPiece.status.in_([c.SOLD, c.PAID]), ArtShowPiece.winning_bid > 0).group_by(ArtShowApplication.payout_method).all()
-        
-        paid_qs_by_method = session.query(
+                    ArtShowPiece.status.in_([c.SOLD, c.PAID]), ArtShowPiece.winning_bid > 0).group_by(ArtShowApplication.payout_method)).all()
+
+        paid_qs_by_method = session.execute(select(
             ArtShowApplication.payout_method, func.sum(ArtShowPiece.quick_sale_price)).join(
                 ArtShowApplication.art_show_pieces).filter(
-                    ArtShowPiece.status == c.PAID, ArtShowPiece.winning_bid <= 0).group_by(ArtShowApplication.payout_method).all()
-        
+                    ArtShowPiece.status == c.PAID, ArtShowPiece.winning_bid <= 0).group_by(ArtShowApplication.payout_method)).all()
+
         totals_by_method = defaultdict(int)
 
         for method, total in winning_bids_by_method + paid_qs_by_method:
             totals_by_method[method] += total
 
-        apps = session.query(ArtShowApplication).filter(*filters).options(joinedload(ArtShowApplication.art_show_pieces)).all()
+        apps = session.scalars(select(ArtShowApplication).filter(
+            *filters).options(joinedload(ArtShowApplication.art_show_pieces))).all()
 
         won_bids = defaultdict(int)
         total_money = defaultdict(int)
@@ -166,9 +168,9 @@ class Root:
         }
 
     def summary(self, session, message=''):
-        general_pieces = session.query(ArtShowPiece).join(ArtShowApplication).filter(
+        general_pieces = select(ArtShowPiece).join(ArtShowApplication).filter(
             ArtShowApplication.status == c.APPROVED, ArtShowPiece.gallery == c.GENERAL)
-        mature_pieces = session.query(ArtShowPiece).join(ArtShowApplication).filter(
+        mature_pieces = select(ArtShowPiece).join(ArtShowApplication).filter(
             ArtShowApplication.status == c.APPROVED, ArtShowPiece.gallery == c.MATURE)
 
         general_auctioned = general_pieces.filter(ArtShowPiece.voice_auctioned == True)  # noqa: E712
@@ -177,10 +179,11 @@ class Root:
         general_sold = general_pieces.filter(ArtShowPiece.status.in_([c.SOLD, c.PAID]))
         mature_sold = mature_pieces.filter(ArtShowPiece.status.in_([c.SOLD, c.PAID]))
 
-        artists_with_pieces = session.query(ArtShowApplication).filter(
+        artists_with_pieces = select(ArtShowApplication).filter(
             ArtShowApplication.art_show_pieces != None, ArtShowApplication.status == c.APPROVED)  # noqa: E711
 
-        approved_apps = session.query(ArtShowApplication).filter(ArtShowApplication.status == c.APPROVED)
+        approved_apps = session.scalars(select(ArtShowApplication).filter(
+            ArtShowApplication.status == c.APPROVED)).all()
 
         panels, tables, mailin = {}, {}, defaultdict(int)
         for key in 'general', 'mature', 'fee':
@@ -210,18 +213,17 @@ class Root:
                     extra_fee = max(0, app.mailing_fee - c.BASE_ART_MAILING_FEE)
                     mailin['extra'] += extra_fee
 
-
         return {
             'message': message,
-            'general_sales_sum': sum([piece.sale_price for piece in general_sold]),
-            'mature_sales_sum': sum([piece.sale_price for piece in mature_sold]),
-            'general_count': general_pieces.count(),
-            'mature_count': mature_pieces.count(),
-            'general_sold_count': general_sold.count(),
-            'mature_sold_count': mature_sold.count(),
-            'general_auctioned_count': general_auctioned.count(),
-            'mature_auctioned_count': mature_auctioned.count(),
-            'artist_count': artists_with_pieces.count(),
+            'general_sales_sum': sum([piece.sale_price for piece in session.scalars(general_sold).all()]),
+            'mature_sales_sum': sum([piece.sale_price for piece in session.scalars(mature_sold).all()]),
+            'general_count': len(session.scalars(general_pieces).all()),
+            'mature_count': len(session.scalars(mature_pieces).all()),
+            'general_sold_count': len(session.scalars(general_sold).all()),
+            'mature_sold_count': len(session.scalars(mature_sold).all()),
+            'general_auctioned_count': len(session.scalars(general_auctioned).all()),
+            'mature_auctioned_count': len(session.scalars(mature_auctioned).all()),
+            'artist_count': len(session.scalars(artists_with_pieces).all()),
             'panels': panels,
             'total_panels': sum([count for key, count in panels['general'].items()]) + sum(
                 [count for key, count in panels['mature'].items()]),
@@ -241,20 +243,20 @@ class Root:
 
         return {
             'message': message,
-            'pieces': session.query(ArtShowPiece).filter(*filters).join(ArtShowPiece.app).all(),
+            'pieces': session.scalars(select(ArtShowPiece).filter(*filters).join(ArtShowPiece.app)).all(),
             'mature': mature,
             'now': localized_now(),
         }
 
     @log_pageview
     def artist_receipt_discrepancies(self, session):
-        apps = session.query(ArtShowApplication).filter(
+        apps = session.scalars(select(ArtShowApplication).filter(
             ArtShowApplication.status == c.APPROVED
-            ).join(ArtShowApplication.active_receipt).outerjoin(ModelReceipt.receipt_items).group_by(
-                ModelReceipt.id).group_by(ArtShowApplication.id).having(
-                    ArtShowApplication.true_default_cost_cents != ModelReceipt.fkless_item_total_sql).options(
-                        lazyload("*")
-                    )
+        ).join(ArtShowApplication.active_receipt).outerjoin(ModelReceipt.receipt_items).group_by(
+            ModelReceipt.id, ArtShowApplication.id).having(
+            ArtShowApplication.true_default_cost_cents != ModelReceipt.fkless_item_total_sql).options(
+            lazyload("*")
+        )).all()
 
         return {
             'apps': apps,
@@ -262,26 +264,26 @@ class Root:
 
     @log_pageview
     def artists_nonzero_balance(self, session, include_no_receipts=False, include_discrepancies=False):
-        item_subquery = session.query(ModelReceipt.owner_id, ModelReceipt.item_total_sql.label('item_total')
-                                      ).join(ModelReceipt.receipt_items).group_by(ModelReceipt.owner_id).subquery()
+        item_subquery = select(ModelReceipt.owner_id, ModelReceipt.item_total_sql.label('item_total')
+                               ).join(ModelReceipt.receipt_items).group_by(ModelReceipt.owner_id).subquery()
 
         if include_discrepancies:
             filter = True
         else:
             filter = ArtShowApplication.true_default_cost_cents == item_subquery.c.item_total
 
-        apps_and_totals = session.query(
+        apps_and_totals = session.execute(select(
             ArtShowApplication, ModelReceipt.payment_total_sql, ModelReceipt.refund_total_sql, item_subquery.c.item_total
-            ).filter(ArtShowApplication.status == c.APPROVED).join(ArtShowApplication.active_receipt).outerjoin(
-                ModelReceipt.receipt_txns).join(item_subquery, ArtShowApplication.id == item_subquery.c.owner_id).group_by(
-                    ModelReceipt.id).group_by(ArtShowApplication.id).group_by(item_subquery.c.item_total).having(
-                        and_((ModelReceipt.payment_total_sql - ModelReceipt.refund_total_sql) != item_subquery.c.item_total,
-                             filter)).options(lazyload("*"))
+        ).filter(ArtShowApplication.status == c.APPROVED).join(ArtShowApplication.active_receipt).outerjoin(
+            ModelReceipt.receipt_txns).join(item_subquery, ArtShowApplication.id == item_subquery.c.owner_id).group_by(
+            ModelReceipt.id, ArtShowApplication.id, item_subquery.c.item_total).having(
+            and_((ModelReceipt.payment_total_sql - ModelReceipt.refund_total_sql) != item_subquery.c.item_total,
+                 filter)).options(lazyload("*"))).all()
 
         if include_no_receipts:
-            apps_no_receipts = session.query(ArtShowApplication).outerjoin(
+            apps_no_receipts = session.scalars(select(ArtShowApplication).outerjoin(
                 ModelReceipt, ArtShowApplication.active_receipt).filter(ArtShowApplication.true_default_cost > 0,
-                                                                        ModelReceipt.id == None)
+                                                                        ModelReceipt.id == None)).all()
         else:
             apps_no_receipts = []
 
@@ -294,7 +296,7 @@ class Root:
     @csv_file
     def banner_csv(self, out, session):
         out.writerow(['Banner Name', 'Locations'])
-        for app in session.query(ArtShowApplication).filter(ArtShowApplication.status != c.DECLINED):
+        for app in session.scalars(select(ArtShowApplication).filter(ArtShowApplication.status != c.DECLINED)).all():
             out.writerow([app.display_name, app.locations])
 
     @csv_file
@@ -307,13 +309,13 @@ class Root:
                       'Agent Email',
                       ])
 
-        for app in session.query(ArtShowApplication
-                                 ).join(Attendee, ArtShowApplication.attendee_id == Attendee.id
-                                        ).filter(ArtShowApplication.status == c.APPROVED,
-                                                 or_(and_(ArtShowApplication.country != '',
-                                                          ArtShowApplication.country != 'United States'),
-                                                     and_(Attendee.country != '',
-                                                          Attendee.country != 'United States'))):
+        for app in session.scalars(select(ArtShowApplication
+                                          ).join(Attendee, ArtShowApplication.attendee_id == Attendee.id
+                                                 ).filter(ArtShowApplication.status == c.APPROVED,
+                                                          or_(and_(ArtShowApplication.country != '',
+                                                                   ArtShowApplication.country != 'United States'),
+                                                              and_(Attendee.country != '',
+                                                              Attendee.country != 'United States')))).all():
             out.writerow([app.artist_name or app.attendee.full_name,
                           app.attendee.legal_first_name + " " + app.attendee.legal_last_name,
                           app.check_payable or (app.attendee.legal_first_name + " " + app.attendee.legal_last_name),
@@ -352,7 +354,7 @@ class Root:
                       'Country',
                       ])
 
-        for app in session.query(ArtShowApplication):
+        for app in session.scalars(select(ArtShowApplication)).all():
             if app.amount_unpaid == 0:
                 paid = "Yes"
             elif app.status == c.APPROVED:
@@ -407,12 +409,12 @@ class Root:
                       "Sale Price",
                       ])
 
-        for piece in session.query(ArtShowPiece):
+        for piece in session.scalars(select(ArtShowPiece)).all():
             if piece.type == c.PRINT:
                 piece_type = "{} ({} of {})".format(piece.type_label, piece.print_run_num, piece.print_run_total)
             else:
                 piece_type = piece.type_label
-            
+
             artist_code, piece_id = piece.artist_and_piece_id.split('-')
 
             out.writerow([piece.app_display_name,
@@ -440,8 +442,8 @@ class Root:
                       "Winner Phone #",
                       "Winner Email"])
 
-        for piece in session.query(ArtShowPiece).join(ArtShowBidder).filter(ArtShowPiece.status == c.SOLD
-                                                                            ).order_by(ArtShowBidder.bidder_num):
+        for piece in session.scalars(select(ArtShowPiece).join(ArtShowBidder).filter(ArtShowPiece.status == c.SOLD
+                                                                                     ).order_by(ArtShowBidder.bidder_num)).all():
             current_row = [piece.app.artist_id + "-" + str(piece.piece_id),
                            piece.app.locations,
                            piece.app.artist_name or piece.app.attendee.full_name,
@@ -475,7 +477,7 @@ class Root:
                       "Email Bids?",
                       ])
 
-        for bidder in session.query(ArtShowBidder).join(ArtShowBidder.attendee):
+        for bidder in session.scalars(select(ArtShowBidder).join(ArtShowBidder.attendee)).all():
             if bidder.attendee.badge_status == c.NOT_ATTENDING and bidder.attendee.art_show_application:
                 address_model = bidder.attendee.art_show_application
             else:

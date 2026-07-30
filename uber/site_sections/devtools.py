@@ -196,7 +196,7 @@ class Root:
             session.rollback()
             message = 'Import unsuccessful'
 
-        all_instances = session.query(model).filter(model.id.in_(id_list)).all() if id_list else None
+        all_instances = session.scalars(select(model).filter(model.id.in_(id_list))).all() if id_list else None
 
         return self.csv_import(message, all_instances)
 
@@ -213,7 +213,7 @@ class Root:
     @csv_file
     def export_model(self, out, session, selected_model=''):
         model = Session.resolve_model(selected_model)
-        rows = prepare_model_export(model, filtered_models=session.query(model).all())
+        rows = prepare_model_export(model, filtered_models=session.scalars(select(model)).all())
         for row in rows:
             out.writerow(row)
 

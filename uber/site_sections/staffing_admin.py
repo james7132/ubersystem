@@ -96,8 +96,8 @@ def _copy_department_shifts(service, to_department, from_department, dept_role_m
 class Root:
     def pending_badges(self, session, message=''):
         return {
-            'pending_badges': session.query(Attendee).filter_by(
-                badge_status=c.PENDING_STATUS).filter_by(staffing=True).filter(Attendee.paid != c.PENDING),
+            'pending_badges': session.scalars(select(Attendee).filter_by(
+                badge_status=c.PENDING_STATUS, staffing=True).filter(Attendee.paid != c.PENDING)).all(),
             'message': message,
         }
 
@@ -136,7 +136,8 @@ class Root:
                 shifts_text = ' shifts' if 'skip_shifts' not in kwargs else ''
 
                 if to_department_id == "None":
-                    existing_department = session.query(Department).filter_by(name=from_department['name']).first()
+                    existing_department = session.scalars(
+                        select(Department).filter_by(name=from_department['name'])).first()
                     if existing_department:
                         raise HTTPRedirect('import_shifts?target_server={}&api_token={}&message={}',
                                            target_server,
@@ -211,10 +212,10 @@ class Root:
 
             for id, name in from_departments:
                 from_department = service.dept.jobs(department_id=id)
-                to_department = session.query(Department).filter_by(name=from_department['name']).options(
+                to_department = session.scalars(select(Department).filter_by(name=from_department['name']).options(
                     selectinload(Department.dept_roles), selectinload(Department.job_templates),
                     selectinload(Department.attractions),
-                ).first()
+                )).first()
                 if not to_department:
                     to_department = _create_copy_department(from_department)
                     session.add(to_department)
@@ -228,7 +229,8 @@ class Root:
                     to_dept_attraction = to_dept_attractions.get(from_slug, None)
 
                     if not to_dept_attraction:
-                        existing_attraction = session.query(Attraction).filter(Attraction.slug == from_slug).first()
+                        existing_attraction = session.scalars(
+                            select(Attraction).filter(Attraction.slug == from_slug)).first()
 
                         if existing_attraction:
                             if not existing_attraction.department:

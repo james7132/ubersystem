@@ -25,9 +25,9 @@ class PersonalizedBadgeReport(ReportBase):
         self._include_badge_nums = include_badge_nums
 
     def run(self, out, session, *filters, order_by=None, badge_type_override=None):
-        for a in (session.query(Attendee).join(BadgeInfo)
+        for a in (session.scalars(select(Attendee).join(BadgeInfo)
                          .filter(Attendee.has_badge == True, *filters)  # noqa: E712
-                         .order_by(order_by).all()):
+                         .order_by(order_by)).all()):
 
             # write the actual data
             row = [a.id, a.badge_num] if self._include_badge_nums else [a.id]

@@ -741,7 +741,7 @@ def date_trunc_day(dt):
 def load_locations_from_config(session):
     from uber.models import EventLocation
 
-    existing_location = session.query(EventLocation).first()
+    existing_location = session.scalars(select(EventLocation)).first()
     if existing_location:
         return
 
@@ -1067,9 +1067,9 @@ class GuidebookUtils():
     @classmethod
     def get_guidebook_models(cls, session, selected_model=''):
         model_cls = cls.parse_guidebook_model(selected_model)
-        model_query = session.query(model_cls)
+        model_query = select(model_cls)
         stale_filters = [model_cls.last_synced['guidebook'] == None,
-                        cls.cast_jsonb_to_datetime(model_cls.last_synced['guidebook']) < model_cls.last_updated]
+                         cls.cast_jsonb_to_datetime(model_cls.last_synced['guidebook']) < model_cls.last_updated]
 
         if '_band' in selected_model:
             model_query = model_query.filter_by(group_type=c.BAND)
@@ -1116,8 +1116,8 @@ class GuidebookUtils():
         cl_updates, image_updates = defaultdict(list), defaultdict(list)
         for key, label in c.GUIDEBOOK_MODELS:
             model_query, filters = GuidebookUtils.get_guidebook_models(session, key)
-            model_query = model_query.filter(or_(*filters))
-            for model in model_query:
+            stmt = model_query.filter(or_(*filters))
+            for model in session.scalars(stmt).all():
                 if model.guidebook_data != model.last_synced.get('data', {}).get('guidebook', {}):
                     cl_updates[label].append(model)
                 header_file, thumbnail_file = GuidebookUtils.get_guidebook_images(session, model)
@@ -1129,15 +1129,15 @@ class GuidebookUtils():
                     image_updates[model.id].append('guidebook_thumbnail')
 
         schedule_updates = []
-        schedule_query = session.query(Event).filter(
+        schedule_query = select(Event).filter(
             or_(Event.last_synced['guidebook'] == None,
                 GuidebookUtils.cast_jsonb_to_datetime(Event.last_synced['guidebook']) < Event.last_updated,
-            ))
+                ))
 
-        for event in schedule_query:
+        for event in session.scalars(schedule_query).all():
             if event.guidebook_data != event.last_synced.get('data', {}).get('guidebook', {}):
                 schedule_updates.append(event)
-        
+
         return cl_updates, schedule_updates, image_updates
 
 
@@ -1391,7 +1391,7 @@ class RegistrationCode():
         with Session() as session:
             # Kind of inefficient, but doing one big query for all the existing
             # codes will be faster than a separate query for each new code.
-            old_codes = set(s for (s,) in session.query(code_col).all())
+            old_codes = set(s for (s,) in session.execute(select(code_col)).all())
 
         # Set an upper limit on the number of collisions we'll allow,
         # otherwise this loop could potentially run forever.
@@ -1459,7 +1459,7 @@ class RegistrationCode():
         from uber.models import Session, PromoCodeWord
         with Session() as session:
             words = PromoCodeWord.group_by_parts_of_speech(
-                session.query(PromoCodeWord).order_by(PromoCodeWord.normalized_word).all())
+                session.scalars(select(PromoCodeWord).order_by(PromoCodeWord.normalized_word)).all())
 
         # The actual generator function, called repeatedly by `_generate_code`
         def _generate_word_code():
@@ -1841,7 +1841,7 @@ class SignNowRequest:
         from uber.models import SignedDocument
 
         if group:
-            self.document = session.query(SignedDocument).filter_by(model="Group", fk_id=group.id).first()
+            self.document = session.scalars(select(SignedDocument).filter_by(model="Group", fk_id=group.id)).first()
 
             if not self.document and create_if_none:
                 self.document = SignedDocument(fk_id=group.id, model="Group", ident=ident)
@@ -2090,22 +2090,22 @@ class TaskUtils:
         from uber.models import Department
 
         id, name = id_name
-        dept = session.query(Department).filter(or_(
+        dept = session.scalars(select(Department).filter(or_(
             Department.id == id,
-            Department.normalized_name == Department.normalize_name(name))).first()
+            Department.normalized_name == Department.normalize_name(name)))).first()
 
         if dept:
             return (id, dept)
         return None
-    
+
     @staticmethod
     def _guess_dept_role(session, dept, id_name):
         from uber.models import DeptRole
 
         id, name = id_name
-        role = session.query(DeptRole).filter(DeptRole.department_id == dept.id, or_(
+        role = session.scalars(select(DeptRole).filter(DeptRole.department_id == dept.id, or_(
             DeptRole.id == id,
-            DeptRole.normalized_name == DeptRole.normalize_name(name))).first()
+            DeptRole.normalized_name == DeptRole.normalize_name(name)))).first()
 
         if role:
             return role
@@ -2217,8 +2217,8 @@ class TaskUtils:
                 except Exception as ex:
                     import_job.errors += "; {}".format("; ".join(str(ex))) if import_job.errors else "; ".join(str(ex))
 
-                account = session.query(AttendeeAccount).filter(
-                    AttendeeAccount.normalized_email == normalize_email_legacy(account_to_import['email'])).first()
+                account = session.scalars(select(AttendeeAccount).filter(
+                    AttendeeAccount.normalized_email == normalize_email_legacy(account_to_import['email']))).first()
                 if not account:
                     del account_to_import['id']
                     account = AttendeeAccount().apply(account_to_import, restricted=False)
@@ -2307,8 +2307,8 @@ class TaskUtils:
                     import_job.completed = datetime.now()
                     return
 
-            account = session.query(AttendeeAccount).filter(
-                AttendeeAccount.normalized_email == normalize_email_legacy(account_to_import['email'])).first()
+            account = session.scalars(select(AttendeeAccount).filter(
+                AttendeeAccount.normalized_email == normalize_email_legacy(account_to_import['email']))).first()
             if not account:
                 del account_to_import['id']
                 account = AttendeeAccount().apply(account_to_import, restricted=False)
@@ -2340,7 +2340,8 @@ class TaskUtils:
                     if not c.SSO_EMAIL_DOMAINS:
                         # Try to match staff to their existing badge, which would be newer than the one we're importing
                         old_badge_num = attendee['badge_num']
-                        existing_staff = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == old_badge_num).first()
+                        existing_staff = session.scalars(select(Attendee).join(
+                            BadgeInfo).filter(BadgeInfo.ident == old_badge_num)).first()
                         if existing_staff:
                             existing_staff.managers.append(account)
                             session.add(existing_staff)
@@ -2452,8 +2453,8 @@ class TaskUtils:
                     except Exception as ex:
                         import_job.errors += "; {}".format(str(ex)) if import_job.errors else str(ex)
 
-                    account = session.query(AttendeeAccount).filter(
-                        AttendeeAccount.normalized_email == normalize_email_legacy(account_to_import['email'])).first()
+                    account = session.scalars(select(AttendeeAccount).filter(
+                        AttendeeAccount.normalized_email == normalize_email_legacy(account_to_import['email']))).first()
                     if not account:
                         del account_to_import['id']
                         account = AttendeeAccount().apply(account_to_import, restricted=False)

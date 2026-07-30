@@ -25,10 +25,10 @@ def _attendee_for_badge_num(session, badge_num, options=None):
     except Exception:
         return None
 
-    query = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == badge_num)
+    query = select(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == badge_num)
     if options:
         query = query.options(options)
-    return query.first()
+    return session.scalars(query).first()
 
 
 def _attendee_for_info(session, first_name, last_name, email, zip_code=''):
@@ -51,12 +51,12 @@ def _model_for_id(session, model, id, options=None, filters=[]):
         return None
 
     if model == Attendee:
-        query = session.query(model).filter(or_(model.id == id, model.public_id == id), *filters)
+        query = select(model).filter(or_(model.id == id, model.public_id == id), *filters)
     else:
-        query = session.query(model).filter(model.id == id, *filters)
+        query = select(model).filter(model.id == id, *filters)
     if options:
         query = query.options(options)
-    return query.first()
+    return session.scalars(query).first()
 
 
 @all_renderable(public=True)
@@ -80,14 +80,14 @@ class Root:
     def index(self, session, **params):
         attendee = _model_for_id(session, Attendee, params.get('attendee_id', None))
 
-        attractions = session.query(Attraction).filter_by(is_public=True) \
-            .options(subqueryload(Attraction.public_features)) \
-            .order_by(Attraction.name).all()
+        attractions = session.scalars(select(Attraction).filter_by(is_public=True)
+                                      .options(subqueryload(Attraction.public_features))
+                                      .order_by(Attraction.name)).all()
         return {
             'attractions': attractions,
             'attendee': attendee,
             'attendee_id': params.get('attendee_id'),
-            }
+        }
 
     @requires_account(Attendee)
     def features(self, session, id=None, slug=None, **params):
@@ -98,9 +98,9 @@ class Root:
             .subqueryload(AttractionFeature.events).subqueryload(AttractionEvent.attendees)
 
         if slug:
-            attraction = session.query(Attraction) \
-                .filter(Attraction.slug.startswith(slug), *filters) \
-                .options(options).first()
+            attraction = session.scalars(select(Attraction)
+                                         .filter(Attraction.slug.startswith(slug), *filters)
+                                         .options(options)).first()
         else:
             attraction = _model_for_id(
                 session, Attraction, id, options, filters)
@@ -120,20 +120,20 @@ class Root:
     @requires_account(Attendee)
     def events(self, session, id=None, slug=None, feature=None, **params):
         attendee = _model_for_id(session, Attendee, params.get('attendee_id', None))
-        
+
         filters = [AttractionFeature.is_public == True]  # noqa: E712
         options = subqueryload(AttractionFeature.events) \
             .subqueryload(AttractionEvent.attendees)
 
         if slug and feature:
-            attraction = session.query(Attraction).filter(
+            attraction = session.scalars(select(Attraction).filter(
                 Attraction.is_public == True,  # noqa: E712
-                Attraction.slug.startswith(slug)).first()  # noqa: E712
+                Attraction.slug.startswith(slug))).first()  # noqa: E712
             if attraction:
-                feature = session.query(AttractionFeature).filter(
+                feature = session.scalars(select(AttractionFeature).filter(
                     AttractionFeature.attraction_id == attraction.id,
                     AttractionFeature.slug.startswith(feature),
-                    *filters).options(options).first()
+                    *filters).options(options)).first()
             else:
                 feature = None
         else:
@@ -165,7 +165,7 @@ class Root:
             raise HTTPRedirect('../preregistration/new_badge_payment?id=' + attendee.id +
                                '&return_to=../attractions/manage?id=' + attendee.id)
         return {
-            'attractions': session.query(Attraction).order_by('name').all(),
+            'attractions': session.scalars(select(Attraction).order_by(Attraction.name)).all(),
             'attendee': attendee,
             'has_checked_in': any(
                 s.is_checked_in for s in attendee.attraction_signups),

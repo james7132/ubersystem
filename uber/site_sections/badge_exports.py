@@ -50,8 +50,8 @@ class Root:
         minimum_extra_amount = c.BLANK_STAFF_BADGES
 
         max_badges = max(c.BADGE_RANGES[c.STAFF_BADGE][1], c.BADGE_RANGES[c.CONTRACTOR_BADGE][1])
-        last_taken_badge = session.query(BadgeInfo).filter(BadgeInfo.ident < max_badges, BadgeInfo.attendee_id != None
-                                                          ).order_by(BadgeInfo.ident.desc()).first()
+        last_taken_badge = session.scalars(select(BadgeInfo).filter(BadgeInfo.ident < max_badges, BadgeInfo.attendee_id != None
+                                                                    ).order_by(BadgeInfo.ident.desc())).first()
         last_taken_badge = last_taken_badge.ident if last_taken_badge else 0
         start_badge = max(last_taken_badge, max_badges - minimum_extra_amount + 1)
         end_badge = max_badges

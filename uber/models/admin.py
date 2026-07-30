@@ -177,7 +177,7 @@ class AdminAccount(MagModel, table=True):
 
     @property
     def allowed_access_opts(self):
-        return self.session.query(AccessGroup).all()
+        return self.session.scalars(select(AccessGroup)).all()
 
     @property
     def allowed_api_access_opts(self):

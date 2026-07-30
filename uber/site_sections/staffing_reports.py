@@ -15,14 +15,14 @@ from uber.models import Attendee, Department, DeptMembership, Job
 
 
 def volunteer_checklists(session):
-    attendees = session.query(Attendee) \
+    attendees = session.scalars(select(Attendee)
         .filter(
             Attendee.staffing == True,  # noqa: E712
             Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS])).options(
                 selectinload(Attendee.hotel_requests), selectinload(Attendee.food_restrictions),
                 selectinload(Attendee.shifts)
-            ) \
-        .order_by(Attendee.full_name, Attendee.id).all()
+            )
+        .order_by(Attendee.full_name, Attendee.id)).all()
 
     checklist_items = OrderedDict()
     for item_template in c.VOLUNTEER_CHECKLIST:
@@ -70,7 +70,7 @@ class Root:
         for job in jobs:
             jobs_by_dept[job.department_id].append(job)
 
-        departments = session.query(Department).order_by(Department.name)
+        departments = session.scalars(select(Department).order_by(Department.name)).all()
 
         return {
             'hour_total': sum(j.weighted_hours * j.slots for j in jobs),
@@ -89,9 +89,9 @@ class Root:
 
     def departments(self, session):
         everything = []
-        departments = session.query(Department).options(
+        departments = session.scalars(select(Department).options(
             subqueryload(Department.members).subqueryload(Attendee.dept_memberships),
-            subqueryload(Department.unassigned_explicitly_requesting_attendees)).order_by(Department.name)
+            subqueryload(Department.unassigned_explicitly_requesting_attendees)).order_by(Department.name)).all()
         for department in departments:
             assigned = department.members
             unassigned = department.unassigned_explicitly_requesting_attendees
@@ -121,7 +121,8 @@ class Root:
                 department_id = None
 
             if not start or not end:
-                potential = session.query(Attendee).filter(Attendee.badge_type != c.CONTRACTOR_BADGE, Attendee.shifts)
+                potential = session.scalars(select(Attendee).filter(
+                    Attendee.badge_type != c.CONTRACTOR_BADGE, Attendee.shifts)).all()
                 for attendee in potential:
                     if attendee.badge_type == c.STAFF_BADGE or attendee.weighted_hours >= c.HOURS_FOR_FOOD:
                         staffers.add(attendee)
@@ -137,7 +138,7 @@ class Root:
                     while minute < end:
                         minutes.add(minute)
                         minute += timedelta(minutes=1)
-                    for job in session.query(Job).filter(*filters):
+                    for job in session.scalars(select(Job).filter(*filters)).all():
                         if minutes.intersection(job.minutes):
                             for shift in job.shifts:
                                 if shift.attendee.badge_type != c.CONTRACTOR_BADGE and (
@@ -155,11 +156,11 @@ class Root:
     @csv_file
     def dept_head_contact_info(self, out, session):
         out.writerow(["Full Name", "Email", "Phone", "Department(s)"])
-        dept_heads = session.query(Attendee).join(DeptMembership,
-                                                  and_(
-                                                      Attendee.id == DeptMembership.attendee_id,
-                                                      DeptMembership.is_dept_head == True))
-        for a in dept_heads.order_by(Attendee.last_name):
+        dept_heads = session.scalars(select(Attendee).join(DeptMembership,
+                                                           and_(
+                                                               Attendee.id == DeptMembership.attendee_id,
+                                                               DeptMembership.is_dept_head == True)).order_by(Attendee.last_name)).all()
+        for a in dept_heads:
             for label in a.assigned_depts_labels:
                 out.writerow([a.full_name, a.email, a.cellphone, label])
 

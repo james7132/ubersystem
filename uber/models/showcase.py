@@ -351,11 +351,11 @@ class IndieDeveloper(MagModel, table=True):
 
     @property
     def matching_attendee(self):
-        return self.session.query(Attendee).filter(
+        return self.session.scalars(select(Attendee).filter(
             func.lower(Attendee.first_name) == self.first_name.lower(),
             func.lower(Attendee.last_name) == self.last_name.lower(),
             func.lower(Attendee.email) == self.email.lower()
-        ).first()
+        )).first()
 
 
 class IndieGame(MagModel, ReviewMixin, table=True):

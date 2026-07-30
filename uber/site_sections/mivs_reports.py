@@ -75,8 +75,8 @@ class Root:
             header_row.append('Past Due?')
         out.writerow(header_row)
 
-        for studio in session.query(IndieStudio).join(IndieStudio.group
-                                                      ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS):
+        for studio in session.scalars(select(IndieStudio).join(IndieStudio.group
+                                                               ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS)).all():
             showcases = set([game.showcase_type_label for game in studio.games])
             row = [studio.name, ' / '.join(showcases)]
             for key, val in c.MIVS_CHECKLIST.items():
@@ -94,13 +94,14 @@ class Root:
         out.writerow(['Studio', 'Game', 'Showcase', 'Promo Image 1', 'Promo Image 2', 'Guidebook Header', 'Guidebook Thumbnail',
                       'Brief Description', 'Full Description', 'Gameplay Video', 'Website', 'Steam Page',
                       'Other Social Media', 'Studio Contact Phone #'])
-        for studio in session.query(IndieStudio).join(IndieStudio.group
-                                                      ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS):
+        for studio in session.scalars(select(IndieStudio).join(IndieStudio.group
+                                                               ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS)).all():
             for game in studio.confirmed_games:
                 promo_1_url, promo_2_url, header_url, thumbnail_url = '', '', '', ''
                 promo_images = FileService.get_existing_files(session, game, and_flags=['use_in_promo'], uselist=True)
                 game_guidebook_header = FileService.get_existing_files(session, game, and_flags=['guidebook_header'])
-                game_guidebook_thumbnail = FileService.get_existing_files(session, game, and_flags=['guidebook_thumbnail'])
+                game_guidebook_thumbnail = FileService.get_existing_files(
+                    session, game, and_flags=['guidebook_thumbnail'])
                 if promo_images:
                     promo_1_url = c.URL_BASE + promo_images[0].url
                     if len(promo_images) > 1:
@@ -112,15 +113,16 @@ class Root:
 
                 out.writerow([
                     studio.name, game.title, game.showcase_type_label, promo_1_url, promo_2_url, header_url, thumbnail_url,
-                    game.brief_description, normalize_newlines(game.description), game.link_to_promo_video, game.link_to_webpage,
+                    game.brief_description, normalize_newlines(
+                        game.description), game.link_to_promo_video, game.link_to_webpage,
                     game.link_to_store, game.other_social_media, studio.contact_phone
                 ])
 
     @csv_file
     def discussion_group_emails(self, out, session):
         out.writerow(['Studio', 'Emails', 'Last Updated'])
-        for studio in session.query(IndieStudio).join(IndieStudio.group
-                                                      ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS):
+        for studio in session.scalars(select(IndieStudio).join(IndieStudio.group
+                                                               ).join(Group.guest).filter(GuestGroup.group_type == c.MIVS)).all():
             emails = []
             row = [studio.name]
             emails.extend(studio.group.guest.email)
@@ -135,8 +137,8 @@ class Root:
     @xlsx_file
     def accepted_games_xlsx(self, out, session):
         rows = []
-        for game in session.query(IndieGame).filter(IndieGame.showcase_type == c.MIVS,
-                                                    IndieGame.status == c.ACCEPTED):
+        for game in session.scalars(select(IndieGame).filter(IndieGame.showcase_type == c.MIVS,
+                                                             IndieGame.status == c.ACCEPTED)).all():
             screenshots = game.accepted_image_download_filenames()
             rows.append([
                 game.studio.name, game.studio.website, ' / '.join(game.studio.other_links.split(',')),
@@ -156,8 +158,8 @@ class Root:
     def accepted_games_zip(self, zip_file, session):
         output = self.accepted_games_xlsx(set_headers=False)
         zip_file.writestr('mivs_accepted_games.xlsx', output)
-        for game in session.query(IndieGame).filter(IndieGame.showcase_type == c.MIVS,
-                                                    IndieGame.status == c.ACCEPTED):
+        for game in session.scalars(select(IndieGame).filter(IndieGame.showcase_type == c.MIVS,
+                                                             IndieGame.status == c.ACCEPTED)).all():
             filenames = game.accepted_image_download_filenames()
             images = game.accepted_image_downloads()
             for filename, screenshot in zip(filenames, images):
@@ -168,9 +170,9 @@ class Root:
     @csv_file
     def presenters(self, out, session):
         presenters = set()
-        for game in (session.query(IndieGame).filter(IndieGame.showcase_type == c.MIVS,
-                                                     IndieGame.status == c.ACCEPTED).options(
-                                                         joinedload(IndieGame.studio).joinedload(IndieStudio.group))):
+        for game in (session.scalars(select(IndieGame).filter(IndieGame.showcase_type == c.MIVS,
+                                                              IndieGame.status == c.ACCEPTED).options(
+                joinedload(IndieGame.studio).joinedload(IndieStudio.group))).all()):
             for attendee in getattr(game.studio.group, 'attendees', []):
                 if not attendee.is_unassigned and attendee not in presenters:
                     presenters.add(attendee)
@@ -185,8 +187,8 @@ class Root:
             'Genres', 'Platforms', 'Other Platforms',
             'Staff Notes']
 
-        for judge in session.query(IndieJudge).filter(IndieJudge.showcases.contains(c.MIVS)
-                                                      ).options(joinedload(IndieJudge.admin_account)):
+        for judge in session.scalars(select(IndieJudge).filter(IndieJudge.showcases.contains(c.MIVS)
+                                                               ).options(joinedload(IndieJudge.admin_account))).all():
             attendee = judge.admin_account.attendee
             rows.append([
                 attendee.first_name, attendee.last_name,

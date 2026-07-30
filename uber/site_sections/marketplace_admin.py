@@ -17,21 +17,22 @@ class Root:
     def index(self, session, message=''):
         return {
             'message': message,
-            'applications': session.query(ArtistMarketplaceApplication).all()
+            'applications': session.scalars(select(ArtistMarketplaceApplication)).all()
         }
-    
+
     def set_status(self, session, status=None, **params):
         if not status:
             raise HTTPRedirect('index?message={}', "Please select a status to set applications to.")
-        
+
         ids = params.get('selected')
         if isinstance(ids, str):
             ids = str(ids).split(",")
         if not ids:
             raise HTTPRedirect('index?message={}', "Please select at least one application to change the status of.")
 
-        apps = session.query(ArtistMarketplaceApplication).filter(ArtistMarketplaceApplication.id.in_(ids))
-        if not apps.count():
+        apps = session.scalars(select(ArtistMarketplaceApplication).filter(
+            ArtistMarketplaceApplication.id.in_(ids))).all()
+        if not apps:
             raise HTTPRedirect('index?message={}', "Could not find any of the selected applications.")
         for app in apps:
             app.status = int(status)
@@ -46,14 +47,14 @@ class Root:
             app = session.artist_marketplace_application(params)
         attendee = None
 
-        attendee_attrs = session.query(Attendee.id, Attendee.last_first, Attendee.badge_type, BadgeInfo.ident) \
+        attendee_attrs = session.execute(select(Attendee.id, Attendee.last_first, Attendee.badge_type, BadgeInfo.ident)
             .outerjoin(Attendee.active_badge).filter(Attendee.first_name != '', Attendee.is_valid == True,  # noqa: E712
-                                                     Attendee.badge_status != c.WATCHED_STATUS)
+                                                     Attendee.badge_status != c.WATCHED_STATUS)).all()
 
         attendees = [
             (id, '{} - {}{}'.format(name.title(), c.BADGES[badge_type], ' #{}'.format(badge_num) if badge_num else ''))
             for id, name, badge_type, badge_num in attendee_attrs]
-        
+
         forms_list = ["AdminArtistMarketplaceForm"]
         forms = load_forms(params, app, forms_list)
 
@@ -125,20 +126,20 @@ class Root:
                 c.STRIPE: "Authorize.net" if c.AUTHORIZENET_LOGIN_ID else "Stripe",
                 c.SQUARE: "SPIn" if c.SPIN_TERMINAL_AUTH_KEY else "Square",
                 c.MANUAL: "Stripe"},
-            'changes': session.query(Tracking).filter(
+            'changes': session.scalars(select(Tracking).filter(
                 or_(Tracking.links.like('%artist_marketplace_application({})%'.format(id)),
                     and_(Tracking.model == 'ArtistMarketplaceApplication',
-                         Tracking.fk_id == id))).order_by(Tracking.when).all(),
-            'pageviews': session.query(PageViewTracking).filter(PageViewTracking.which == repr(app)
-                                                                ).order_by(PageViewTracking.when).all(),
+                         Tracking.fk_id == id))).order_by(Tracking.when)).all(),
+            'pageviews': session.scalars(select(PageViewTracking).filter(PageViewTracking.which == repr(app)
+                                                                         ).order_by(PageViewTracking.when)).all(),
             'receipt_items': marketplace_items_and_txns,
         }
-    
+
     def emails(self, session, id):
         app = session.artist_marketplace_application(id)
         return {
             'app': app,
-            'emails': session.query(Email).filter(Email.fk_id == id).order_by(Email.generated).all(),
+            'emails': session.scalars(select(Email).filter(Email.fk_id == id).order_by(Email.generated)).all(),
             'depts_by_sender': EmailService.emails_from_depts(session),
         }
 
@@ -155,11 +156,11 @@ class Root:
             'Seating Requests',
             'Accessibility Requests',
             'Admin Notes'
-            ]
-        
+        ]
+
         rows = []
-        
-        for app in session.query(ArtistMarketplaceApplication).all():
+
+        for app in session.scalars(select(ArtistMarketplaceApplication)).all():
             rows.append([
                 app.id,
                 app.status_label,

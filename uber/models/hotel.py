@@ -222,13 +222,13 @@ class LotteryApplication(MagModel, table=True):
 
     def generate_new_invite_code(self):
         return RegistrationCode.generate_random_code(LotteryApplication.invite_code)
-    
+
     def _generate_conf_num(self, generator):
         from uber.models import Session
         with Session() as session:
             # Kind of inefficient, but doing one big query for all the existing
             # codes will be faster than a separate query for each new code.
-            old_codes = set(s for (s,) in session.query(LotteryApplication.confirmation_num).all())
+            old_codes = set(s for s in session.scalars(select(LotteryApplication.confirmation_num)).all())
 
         # Set an upper limit on the number of collisions we'll allow,
         # otherwise this loop could potentially run forever.

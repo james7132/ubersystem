@@ -82,38 +82,39 @@ class EmailHandler:
 
         if not self.fixture_obj:
             return True
-        
+
         if self.fixture_obj.policy == c.DISABLED:
             return
 
         if self.to_model and (limit_one or delete_existing):
             if self.email_obj.shared_ident:
-                ident_filter = or_(Email.ident == self.email_obj.ident, Email.shared_ident == self.email_obj.shared_ident)
+                ident_filter = or_(Email.ident == self.email_obj.ident,
+                                   Email.shared_ident == self.email_obj.shared_ident)
             else:
                 ident_filter = Email.ident == self.email_obj.ident
-            other_emails = session.query(Email).filter(ident_filter,
-                                                       Email.fk_id == self.email_obj.fk_id,
-                                                       Email.model == self.email_obj.model)
-            if limit_one and other_emails.filter(Email.status == c.SENT).count():
+            other_emails = select(Email).filter(ident_filter,
+                                                Email.fk_id == self.email_obj.fk_id,
+                                                Email.model == self.email_obj.model)
+            if limit_one and len(session.scalars(other_emails.filter(Email.status == c.SENT)).all()):
                 return
-            
+
             if delete_existing:
                 for email in other_emails.filter(Email.status != c.SENT):
                     session.delete(email)
 
         return True
-    
+
     def queue_email_obj(self, session):
         if not self.fixture_obj:
             self.email_obj.send_after = self.email_obj.new_send_after
             session.add(self.email_obj)
             return
-        
+
         if not self.fixture_obj.policy or self.fixture_obj.policy == c.NEEDS_APPROVAL:
             self.email_obj.status = c.UNAPPROVED
         else:
             self.email_obj.send_after = self.email_obj.new_send_after
-        
+
         session.add(self.email_obj)
 
 
@@ -129,14 +130,14 @@ class EmailService:
         else:
             ident_filter = Email.ident == fixture_obj.ident
 
-        existing_fk_ids = [id for id, in session.query(Email.fk_id).filter(ident_filter)]
+        existing_fk_ids = [id for id in session.scalars(select(Email.fk_id).filter(ident_filter)).all()]
 
-        to_models = session.query(model_class).filter(~model_class.id.in_(existing_fk_ids))
+        to_models = select(model_class).filter(~model_class.id.in_(existing_fk_ids))
         if AutomatedEmailFixture.queries.get(model_class):
             to_models = to_models.options(*AutomatedEmailFixture.queries[model_class])
 
         model_count = 0
-        for to_model in to_models:
+        for to_model in session.scalars(to_models):
             if fixture_obj.fixture.filter(to_model):
                 model_count += 1
 
@@ -150,14 +151,14 @@ class EmailService:
     def check_emails_for_model(session, to_model):
         if to_model.__class__ not in set([fixture.model for fixture in AutomatedEmail._fixtures.values()]):
             return
-        
+
         if not AutomatedEmail.initialized:
             AutomatedEmail.reconcile_fixtures()
             AutomatedEmail.initialized = True
 
         model_str = to_model.__class__.__name__
-        active_automated_emails = session.query(AutomatedEmail).filter(
-            AutomatedEmail.model == model_str).filter(*AutomatedEmail.filters_for_allowed).all()
+        active_automated_emails = session.scalars(select(AutomatedEmail).filter(
+            AutomatedEmail.model == model_str).filter(*AutomatedEmail.filters_for_allowed)).all()
         active_idents = []
         active_shared_idents = set()
         for email in active_automated_emails:
@@ -165,10 +166,10 @@ class EmailService:
             if email.shared_ident:
                 active_shared_idents.add(email.shared_ident)
 
-        existing_emails = session.query(Email).filter(Email.model == model_str,
-                                                      Email.fk_id == to_model.id,
-                                                      or_(Email.ident.in_(active_idents),
-                                                          Email.shared_ident.in_(active_shared_idents)))
+        existing_emails = session.scalars(select(Email).filter(Email.model == model_str,
+                                                               Email.fk_id == to_model.id,
+                                                               or_(Email.ident.in_(active_idents),
+                                                                   Email.shared_ident.in_(active_shared_idents)))).all()
         existing_by_ident = defaultdict(list)
         existing_by_shared_ident = defaultdict(list)
         for email in existing_emails:
@@ -195,42 +196,43 @@ class EmailService:
     def process_emails_by_class(session, model_class):
         model_str = model_class.__name__ if model_class else ''
 
-        queued_emails = session.query(Email).filter(
+        queued_emails = session.scalars(select(Email).filter(
             Email.status == c.QUEUED, Email.model == model_str,
             Email.send_after != None, Email.send_after < datetime.now(pytz.UTC)
-            ).options(joinedload(Email.automated_email)).limit(5000)
+        ).options(joinedload(Email.automated_email)).limit(5000)).all()
 
-        if not queued_emails.count():
+        if not len(queued_emails):
             return 0
 
         if model_class:
-            log.debug(f"Found {queued_emails.count()} queued emails for {model_str}.")
-            
+            log.debug(f"Found {len(queued_emails)} queued emails for {model_str}.")
+
             fk_ids = set()
             for email in queued_emails:
                 fk_ids.add(email.fk_id)
             fk_ids.discard(None)
-            
-            to_models = session.query(model_class).filter(model_class.id.in_(fk_ids))
+
+            to_models = select(model_class).filter(model_class.id.in_(fk_ids))
             if AutomatedEmailFixture.queries.get(model_class):
                 to_models = to_models.options(AutomatedEmailFixture.queries[model_class])
-            models_by_id = {model.id: model for model in to_models}
+            models_by_id = {model.id: model for model in session.scalars(to_models)}
         else:
-            log.debug(f"Found {queued_emails.count()} classless queued emails.")
+            log.debug(f"Found {len(queued_emails)} classless queued emails.")
             models_by_id = {}
 
         sent_count = 0
         for email in queued_emails:
-            sent_email = EmailService.send_email(session, email, email.automated_email, models_by_id.get(email.fk_id, None))
+            sent_email = EmailService.send_email(session, email, email.automated_email,
+                                                 models_by_id.get(email.fk_id, None))
             if sent_email:
                 session.add(sent_email)
                 sent_count += 1
         session.commit()
         return sent_count
-    
+
     @staticmethod
     def reconcile_policy(session, fixture_obj):
-        emails = session.query(Email).filter(Email.automated_email_id == fixture_obj.id)
+        emails = select(Email).filter(Email.automated_email_id == fixture_obj.id)
         if not fixture_obj.can_generate:
             emails = emails.filter(Email.status != c.SENT)
             new_status = None
@@ -242,7 +244,7 @@ class EmailService:
             new_status = c.UNAPPROVED
 
         email_update_list = []
-        for email in emails:
+        for email in session.scalars(emails).all():
             if new_status is None:
                 session.delete(email)
             else:
@@ -263,8 +265,8 @@ class EmailService:
         fixture_obj = fixture_obj or email.automated_email
         if not to_model and email.fk_id:
             model_class = email.model_class
-            to_model = session.query(model_class).filter(model_class.id == email.fk_id).first()
-        
+            to_model = session.scalars(select(model_class).filter(model_class.id == email.fk_id)).first()
+
         # Check that the object associated with this email still exists and is still eligible for emails
         if email.fk_id:
             if not to_model:
@@ -369,22 +371,24 @@ class EmailService:
         if not to_model and not to:
             log.error(f"Misconfigured email '{ident}': no recipient specified.")
             return
-        
+
         if to_model and to:
             log.error(f"Misconfigured email '{ident}': emails cannot have both a to_model and a custom to address.")
 
         if ident:
-            fixture_obj = session.query(AutomatedEmail).filter(AutomatedEmail.ident == ident).first()
+            fixture_obj = session.scalars(select(AutomatedEmail).filter(AutomatedEmail.ident == ident)).first()
             if not fixture_obj and (not kwargs.get('subject') or not kwargs.get('body')):
                 log.error(f"Tried to look up email by ident '{ident}', but it doesn't exist.")
                 return
-        
+
         if not fixture_obj or not to_model:
             if limit_one:
-                log.error(f"Misconfigured email '{ident}': emails cannot have limit_one set without both a valid fixture and a to_model.")
+                log.error(
+                    f"Misconfigured email '{ident}': emails cannot have limit_one set without both a valid fixture and a to_model.")
                 return
             if replace_unsent:
-                log.error(f"Misconfigured email '{ident}': emails cannot have replace_unset set without both a valid fixture and a to_model.")
+                log.error(
+                    f"Misconfigured email '{ident}': emails cannot have replace_unset set without both a valid fixture and a to_model.")
                 return
 
         email_handler = EmailHandler(fixture_obj, to_model, ident=ident, to=to, data=data, **kwargs)
@@ -403,22 +407,23 @@ class EmailService:
         from uber.models import Department
 
         depts_by_sender = defaultdict(set)
-        departments = session.query(Department).filter(Department.from_email != '')
+        dept_stmt = select(Department).filter(Department.from_email != '')
         if dept_ids:
-            departments = departments.filter(Department.id.in_(dept_ids))
+            dept_stmt = dept_stmt.filter(Department.id.in_(dept_ids))
 
-        for dept in departments:
+        for dept in session.scalars(dept_stmt):
             from_email = dept.from_email
             related_emails = c.RELATED_EMAILS.get(from_email, [])
             for email in [from_email] + related_emails:
                 depts_by_sender[email].add(dept)
-            
+
         return depts_by_sender
-    
+
     def depts_from_email(session, email_sender):
         from uber.models import Department
         email_sender = email_only(email_sender)
 
         related_emails = c.RELATED_EMAILS.get(email_sender, [])
-        department_ids = session.query(Department.id, Department.name).filter(Department.from_email.in_(related_emails + [email_sender]))
+        department_ids = session.execute(select(Department.id, Department.name).filter(
+            Department.from_email.in_(related_emails + [email_sender])))
         return [(id, name) for id, name in department_ids]

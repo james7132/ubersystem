@@ -50,9 +50,9 @@ class Root:
     @csv_file
     def presenters(self, out, session):
         presenters = set()
-        for game in (session.query(IndieGame).filter(IndieGame.showcase_type == c.INDIE_RETRO,
-                                                     IndieGame.status == c.ACCEPTED).options(
-                                                         joinedload(IndieGame.studio).joinedload(IndieStudio.group))):
+        for game in (session.scalars(select(IndieGame).filter(IndieGame.showcase_type == c.INDIE_RETRO,
+                                                              IndieGame.status == c.ACCEPTED).options(
+                joinedload(IndieGame.studio).joinedload(IndieStudio.group))).all()):
             for attendee in getattr(game.studio.group, 'attendees', []):
                 if not attendee.is_unassigned and attendee not in presenters:
                     presenters.add(attendee)
@@ -65,8 +65,8 @@ class Root:
             'First Name', 'Last Name',
             'Email', 'Status', 'Staff Notes']
 
-        for judge in session.query(IndieJudge).filter(IndieJudge.showcases.contains(c.INDIE_RETRO)
-                                                      ).options(joinedload(IndieJudge.admin_account)):
+        for judge in session.scalars(select(IndieJudge).filter(IndieJudge.showcases.contains(c.INDIE_RETRO)
+                                                               ).options(joinedload(IndieJudge.admin_account))).all():
             attendee = judge.admin_account.attendee
             rows.append([
                 attendee.first_name, attendee.last_name,

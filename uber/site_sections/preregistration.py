@@ -100,7 +100,8 @@ def check_account(session, email, password, confirm_password, skip_if_logged_in=
 
     super_normalized_old_email = normalize_email_legacy(normalize_email(old_email)) if old_email else ''
 
-    existing_account = session.query(AttendeeAccount).filter_by(normalized_email=normalize_email_legacy(email)).first()
+    existing_account = session.scalars(select(AttendeeAccount).filter_by(
+        normalized_email=normalize_email_legacy(email))).first()
     if existing_account and (old_email
                              and normalize_email_legacy(
                                  normalize_email(existing_account.email)) != super_normalized_old_email
@@ -120,7 +121,7 @@ def check_account(session, email, password, confirm_password, skip_if_logged_in=
 def set_up_new_account(session, attendee, email=None):
     email = email or attendee.email
     token = secrets.token_urlsafe(64)
-    account = session.query(AttendeeAccount).filter_by(normalized_email=normalize_email_legacy(email)).first()
+    account = session.scalars(select(AttendeeAccount).filter_by(normalized_email=normalize_email_legacy(email))).first()
     if account:
         if account.password_reset:
             session.delete(account.password_reset)
@@ -184,20 +185,19 @@ class Root:
 
     def check_if_preregistered(self, session, message='', **params):
         if 'email' in params:
-            attendee = session.query(Attendee).filter(func.lower(Attendee.email) == func.lower(params['email']),
-                                                      Attendee.is_valid == True).first()
+            attendee = session.scalars(select(Attendee).filter(func.lower(Attendee.email) == func.lower(params['email']),
+                                                               Attendee.is_valid == True)).first()
             message = 'Thank you! You will receive a confirmation email if ' \
                 'you are registered for {}.'.format(c.EVENT_NAME_AND_YEAR)
 
             subject = c.EVENT_NAME_AND_YEAR + ' Registration Confirmation'
 
             if attendee:
-                last_email = (session.query(Email)
-                                     .filter_by(to=attendee.email, subject=subject)
-                                     .first())
+                last_email = session.scalars(select(Email)
+                                             .filter_by(to=attendee.email, subject=subject)).first()
                 if not last_email or last_email.generated < (localized_now() - timedelta(days=7)):
                     EmailService.queue_email(session, 'prereg_check', attendee, replace_unsent=True)
-                    
+
         return {'message': message}
 
     @requires_account()
@@ -217,14 +217,14 @@ class Root:
             age_discounts = {}
             for attendee in cart.attendees:
                 if attendee.promo_code:
-                    real_code = session.query(PromoCode).filter_by(code=attendee.promo_code.code).first()
+                    real_code = session.scalars(select(PromoCode).filter_by(code=attendee.promo_code.code)).first()
                     if real_code and real_code.group:
                         attendee.promo_group_name = real_code.group.name
 
                 age_discount = ReceiptManager.check_age_discount(attendee, None, '')
                 if age_discount:
                     age_discounts[attendee.id] = age_discount.discount_str
-                
+
                 promo_code_discount_objs = ReceiptManager.check_promo_code_discounts(attendee, None, '')
                 for discount in promo_code_discount_objs:
                     if discount.discount_str:
@@ -651,7 +651,7 @@ class Root:
 
         promo_code_group = None
         if attendee.promo_code:
-            promo_code_group = session.query(PromoCode).filter_by(code=attendee.promo_code.code).first().group
+            promo_code_group = session.scalars(select(PromoCode).filter_by(code=attendee.promo_code.code)).first().group
 
         return {
             'logged_in_account': session.current_attendee_account(),
@@ -718,8 +718,8 @@ class Root:
             return errors
 
         attendee, group = self._get_attendee_or_group(params)
-        orig = session.query(Attendee).filter_by(
-            first_name=attendee.first_name, last_name=attendee.last_name, email=attendee.email).first()
+        orig = session.scalars(select(Attendee).filter_by(
+            first_name=attendee.first_name, last_name=attendee.last_name, email=attendee.email)).first()
 
         if not orig:
             raise HTTPRedirect('index')
@@ -748,12 +748,13 @@ class Root:
         cart = PreregCart(list(PreregCart.unpaid_preregs.values()))
         registrations_list = []
         account = session.current_attendee_account() if c.ATTENDEE_ACCOUNTS_ENABLED else None
-        account_pickup_group = session.query(BadgePickupGroup).filter_by(account_id=account.id).first() if account else None
+        account_pickup_group = session.scalars(select(BadgePickupGroup).filter_by(
+            account_id=account.id)).first() if account else None
         pickup_group = None
 
         if not list(PreregCart.unpaid_preregs.values()):
             if qr_code_id:
-                current_pickup_group = session.query(BadgePickupGroup).filter_by(public_id=qr_code_id).first()
+                current_pickup_group = session.scalars(select(BadgePickupGroup).filter_by(public_id=qr_code_id)).first()
                 for attendee in current_pickup_group.attendees:
                     registrations_list.append(attendee.full_name)
             elif c.ATTENDEE_ACCOUNTS_ENABLED:
@@ -1054,7 +1055,7 @@ class Root:
 
     @ajax
     def cancel_prereg_payment(self, session, stripe_id):
-        for txn in session.query(ReceiptTransaction).filter_by(intent_id=stripe_id).all():
+        for txn in session.scalars(select(ReceiptTransaction).filter_by(intent_id=stripe_id)).all():
             if not txn.charge_id:
                 txn.cancelled = datetime.now()
                 session.add(txn)
@@ -1068,7 +1069,7 @@ class Root:
 
     @ajax
     def cancel_payment(self, session, stripe_id):
-        for txn in session.query(ReceiptTransaction).filter_by(intent_id=stripe_id).all():
+        for txn in session.scalars(select(ReceiptTransaction).filter_by(intent_id=stripe_id)).all():
             if not txn.charge_id:
                 txn.cancelled = datetime.now()
                 session.add(txn)
@@ -1076,12 +1077,12 @@ class Root:
         session.commit()
 
         return {'message': 'Payment cancelled.'}
-    
+
     @ajax
     def cancel_payment_and_revert(self, session, stripe_id):
         last_receipt = None
         model = None
-        for txn in session.query(ReceiptTransaction).filter_by(intent_id=stripe_id).all():
+        for txn in session.scalars(select(ReceiptTransaction).filter_by(intent_id=stripe_id)).all():
             receipt = txn.receipt
             if receipt != last_receipt:
                 model = session.get_model_by_receipt(receipt)
@@ -1111,7 +1112,7 @@ class Root:
     @requires_account()
     @ajax
     def cancel_promo_code_payment(self, session, stripe_id, **params):
-        for txn in session.query(ReceiptTransaction).filter_by(intent_id=stripe_id).all():
+        for txn in session.scalars(select(ReceiptTransaction).filter_by(intent_id=stripe_id)).all():
             if not txn.charge_id:
                 txn.cancelled = datetime.now()
                 session.add(txn)
@@ -1197,9 +1198,9 @@ class Root:
         receipt = session.refresh_receipt_and_model(group.buyer)
         session.commit()
 
-        sent_code_emails = session.query(Email.ident, Email.to, func.max(Email.generated)).filter(
+        sent_code_emails = session.execute(select(Email.ident, Email.to, func.max(Email.generated)).filter(
             Email.ident.contains("pc_group_invite_")).order_by(func.max(Email.generated)).group_by(Email.ident,
-                                                                                              Email.to).all()
+                                                                                                   Email.to)).all()
 
         emailed_codes = defaultdict(str)
 
@@ -1544,18 +1545,18 @@ class Root:
             uuid.UUID(confirmation_id)
         except ValueError:
             return {'success': False, 'message': f"Invalid confirmation ID format: {confirmation_id}"}
-        
-        attendee = session.query(Attendee).filter(or_(Attendee.id == confirmation_id,
-                                                      Attendee.public_id == confirmation_id),
-                                                      Attendee.first_name == first_name.strip(),
-                                                      Attendee.last_name == last_name.strip()).first()
+
+        attendee = session.scalars(select(Attendee).filter(or_(Attendee.id == confirmation_id,
+                                                               Attendee.public_id == confirmation_id),
+                                                           Attendee.first_name == first_name.strip(),
+                                                           Attendee.last_name == last_name.strip())).first()
         if not attendee:
             return {'success': False, 'message': f"Badge not found. Please check confirmation ID, first name, and last name."}
         if not attendee.is_valid:
             return {'success': False, 'message': f"This is not a valid badge."}
         if attendee.group:
             return {'success': False, 'message': f"This badge is already in a group."}
-        
+
         group = session.group(id)
         attendee.group = group
         session.commit()
@@ -1615,14 +1616,16 @@ class Root:
         transfer_badge = None
 
         if transfer_code:
-            transfer_badges = session.query(Attendee).filter(
-                Attendee.normalized_transfer_code == RegistrationCode.normalize_code(transfer_code))
-            if transfer_badges.count() == 1:
-                transfer_badge = transfer_badges.first()
-            elif transfer_badges.count() > 1:
-                log.error(f"ERROR: {transfer_badges.count()} attendees have transfer code {transfer_code}!")
-                transfer_badge = transfer_badges.filter(Attendee.has_badge == True).first()
-                
+            transfer_badges_list = session.scalars(select(Attendee).filter(
+                Attendee.normalized_transfer_code == RegistrationCode.normalize_code(transfer_code))).all()
+            if len(transfer_badges_list) == 1:
+                transfer_badge = transfer_badges_list[0]
+            elif len(transfer_badges_list) > 1:
+                log.error(f"ERROR: {len(transfer_badges_list)} attendees have transfer code {transfer_code}!")
+                transfer_badge = session.scalars(select(Attendee).filter(
+                    Attendee.normalized_transfer_code == RegistrationCode.normalize_code(transfer_code),
+                    Attendee.has_badge == True)).first()
+
         attendee = Attendee()
         form_list = ['PersonalInfo', 'OtherInfo', 'StaffingInfo', 'Consents']
         forms = load_forms(params, attendee, form_list)
@@ -1689,25 +1692,27 @@ class Root:
         old = session.attendee(id)
         if not old.is_transferable:
             raise HTTPRedirect('../landing/index?message={}', 'This badge is not transferable.')
-        
+
         if not code:
             raise HTTPRedirect('transfer_badge?id={}&message={}', id, 'Please enter a transfer code.')
 
-        transfer_badges = session.query(Attendee).filter(
-            Attendee.normalized_transfer_code == RegistrationCode.normalize_code(code))
+        transfer_badges_list = session.scalars(select(Attendee).filter(
+            Attendee.normalized_transfer_code == RegistrationCode.normalize_code(code))).all()
 
-        if transfer_badges.count() == 1:
-            transfer_badge = transfer_badges.first()
-        elif transfer_badges.count() > 1:
-            log.error(f"ERROR: {transfer_badges.count()} attendees have transfer code {code}!")
-            transfer_badge = transfer_badges.filter(Attendee.badge_status == c.PENDING_STATUS).first()
+        if len(transfer_badges_list) == 1:
+            transfer_badge = transfer_badges_list[0]
+        elif len(transfer_badges_list) > 1:
+            log.error(f"ERROR: {len(transfer_badges_list)} attendees have transfer code {code}!")
+            transfer_badge = session.scalars(select(Attendee).filter(
+                Attendee.normalized_transfer_code == RegistrationCode.normalize_code(code),
+                Attendee.badge_status == c.PENDING_STATUS)).first()
         else:
             transfer_badge = None
-        
+
         if not transfer_badge or transfer_badge.badge_status != c.PENDING_STATUS:
             raise HTTPRedirect('transfer_badge?id={}&message={}', id,
                                f"Could not find a badge to transfer to with transfer code {code}.")
-        
+
         old_attendee_dict = old.to_dict()
         del old_attendee_dict['id']
         for attr in old_attendee_dict:
@@ -2070,8 +2075,8 @@ class Root:
             raise HTTPRedirect('../landing/index?message={}', "You cannot log into your account this way.")
         email = params.get('account_email')  # This email has already been validated
         password = params.get('account_password')
-        account = session.query(AttendeeAccount).filter(
-            AttendeeAccount.normalized_email == normalize_email_legacy(email)).first()
+        account = session.scalars(select(AttendeeAccount).filter(
+            AttendeeAccount.normalized_email == normalize_email_legacy(email))).first()
         if account and not account.hashed:
             return {'success': False,
                     'message': "We had an issue logging you into your account. Please contact an administrator."}
@@ -2093,7 +2098,8 @@ class Root:
                 return {'success': False, 'message': "Please confirm your email address."}
             elif normalize_email_legacy(email) != normalize_email_legacy(params.get('confirm_email')):
                 return {'success': False, 'message': "Your email address and email confirmation do not match."}
-        account = session.query(AttendeeAccount).filter_by(normalized_email=normalize_email_legacy(email)).first()
+        account = session.scalars(select(AttendeeAccount).filter_by(
+            normalized_email=normalize_email_legacy(email))).first()
         if account:
             return {'success': False,
                     'message': "You already have an account. Please use the 'forgot your password' link. \
@@ -2231,7 +2237,7 @@ class Root:
             'attendee':      attendee,
             'homepage_account': session.get_attendee_account_by_attendee(attendee),
             'message':       message,
-            'attractions':   session.query(Attraction).filter_by(is_public=True).all(),
+            'attractions':   session.scalars(select(Attraction).filter_by(is_public=True)).all(),
             'badge_cost':    attendee.badge_cost if attendee.paid != c.PAID_BY_GROUP else 0,
             'receipt':       session.get_receipt_by_model(attendee) if attendee.is_valid else None,
             'incomplete_txn':  receipt.get_last_incomplete_txn() if receipt else None,
@@ -2612,8 +2618,8 @@ class Root:
     def reset_password(self, session, **params):
         if 'account_email' in params:
             account_email = params['account_email']
-            account = session.query(AttendeeAccount).filter_by(
-                normalized_email=normalize_email_legacy(account_email)).first()
+            account = session.scalars(select(AttendeeAccount).filter_by(
+                normalized_email=normalize_email_legacy(account_email))).first()
             if 'admin_url' in params:
                 success_url = "../{}message=Password reset email sent.".format(params['admin_url'])
                 sso_url = "../{}message=SSO accounts do not have passwords.".format(params['admin_url'])
@@ -2650,8 +2656,8 @@ class Root:
         if 'id' in params:
             account = session.attendee_account(params['id'])
         else:
-            account = session.query(AttendeeAccount).filter_by(
-                normalized_email=normalize_email_legacy(account_email)).first()
+            account = session.scalars(select(AttendeeAccount).filter_by(
+                normalized_email=normalize_email_legacy(account_email))).first()
         if not account or not account.password_reset:
             message = 'Invalid link. This link may have already been used or replaced.'
         elif account.password_reset.is_expired:

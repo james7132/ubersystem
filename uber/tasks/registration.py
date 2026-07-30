@@ -47,24 +47,25 @@ def create_badge_nums():
 
     if not c.NUMBERED_BADGES:
         return
-    
+
     starts_ends = list(zip(*c.BADGE_RANGES.values()))
     first_badge_num = min(starts_ends[0])
     last_badge_num = max(starts_ends[1])
 
     with Session() as session:
-        any_badge = session.query(BadgeInfo).first()
+        any_badge = session.scalars(select(BadgeInfo)).first()
         if not any_badge:
             new_badge_list = [{"ident": x} for x in range(first_badge_num, last_badge_num + 1)]
         else:
             new_badge_list = []
-            first_badge = session.query(BadgeInfo).filter(BadgeInfo.ident == first_badge_num).first()
-            last_badge = session.query(BadgeInfo).filter(BadgeInfo.ident == last_badge_num).first()
+            first_badge = session.scalars(select(BadgeInfo).filter(BadgeInfo.ident == first_badge_num)).first()
+            last_badge = session.scalars(select(BadgeInfo).filter(BadgeInfo.ident == last_badge_num)).first()
             if not first_badge:
-                min_badge_num = session.query(BadgeInfo.ident).order_by(BadgeInfo.ident).limit(1).first()
+                min_badge_num = session.execute(select(BadgeInfo.ident).order_by(BadgeInfo.ident).limit(1)).first()
                 new_badge_list.extend([{"ident": x} for x in range(first_badge_num, min_badge_num[0])])
             if not last_badge:
-                max_badge_num = session.query(BadgeInfo.ident).order_by(BadgeInfo.ident.desc()).limit(1).first()
+                max_badge_num = session.execute(select(BadgeInfo.ident).order_by(
+                    BadgeInfo.ident.desc()).limit(1)).first()
                 new_badge_list.extend([{"ident": x} for x in range(max_badge_num[0] + 1, last_badge_num + 1)])
         session.execute(insert(BadgeInfo), new_badge_list)
         session.commit()
@@ -94,9 +95,9 @@ def check_duplicate_registrations():
         with Session() as session:
             if session.no_email(subject):
                 grouped = defaultdict(list)
-                for a in session.query(Attendee).filter(Attendee.first_name != '') \
-                        .filter(Attendee.badge_status == c.COMPLETED_STATUS).options(joinedload(Attendee.group)) \
-                        .order_by(Attendee.registered):
+                for a in session.scalars(select(Attendee).filter(Attendee.first_name != '')
+                                         .filter(Attendee.badge_status == c.COMPLETED_STATUS).options(joinedload(Attendee.group))
+                                         .order_by(Attendee.registered)).all():
                     if not a.group or (not a.group.is_dealer or a.group.status not in [c.WAITLISTED, c.UNAPPROVED]):
                         grouped[a.full_name, a.email.lower()].append(a)
 
@@ -158,13 +159,13 @@ def check_placeholder_registrations():
                     c.EVENT_NAME, badge_type, weeks_until)
 
                 if session.no_email(subject):
-                    placeholders = (session.query(Attendee)
+                    placeholders = session.scalars(select(Attendee)
                                            .filter(Attendee.placeholder == True,  # noqa: E712
                                                    Attendee.registered < localized_now() - timedelta(days=3),
                                                    Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]),
                                                    *per_email_filter)
                                            .options(joinedload(Attendee.group))
-                                           .order_by(Attendee.registered, Attendee.full_name).all())
+                                           .order_by(Attendee.registered, Attendee.full_name)).all()
                     if placeholders:
                         EmailService.queue_email(session, 'daily_placeholder_report', to=to,
                                                  subject=subject, data={'placeholders': placeholders},
@@ -176,8 +177,8 @@ def check_pending_badges():
     if c.PRE_CON and (c.DEV_BOX or c.SEND_EMAILS) and c.REPORTS_EMAIL:
         subject = c.EVENT_NAME + ' Pending Badges Report for ' + localized_now().strftime('%Y-%m-%d')
         with Session() as session:
-            pending = session.query(Attendee).filter(Attendee.badge_status == c.PENDING_STATUS,
-                                                     Attendee.paid != c.PENDING).all()
+            pending = session.scalars(select(Attendee).filter(Attendee.badge_status == c.PENDING_STATUS,
+                                                              Attendee.paid != c.PENDING)).all()
             if pending and session.no_email(subject):
                 EmailService.queue_email(session, 'daily_pending_report', to=c.REPORTS_CC_EMAIL,
                                          subject=subject, data={'pending': pending})
@@ -187,12 +188,12 @@ def check_pending_badges():
 def check_unassigned_volunteers():
     if c.PRE_CON and (c.DEV_BOX or c.SEND_EMAILS) and c.REPORTS_EMAIL:
         with Session() as session:
-            unassigned = session.query(Attendee).filter(
+            unassigned = session.scalars(select(Attendee).filter(
                 Attendee.is_valid == True,  # noqa: E712
                 Attendee.staffing == True,  # noqa: E712
                 Attendee.badge_status != c.REFUNDED_STATUS,
                 Attendee.is_unassigned == False,  # noqa: E712
-                not_(Attendee.dept_memberships.any())).order_by(Attendee.full_name).all()  # noqa: E712
+                not_(Attendee.dept_memberships.any())).order_by(Attendee.full_name)).all()  # noqa: E712
             subject = c.EVENT_NAME + ' Unassigned Volunteer Report for ' + localized_now().strftime('%Y-%m-%d')
             if unassigned and session.no_email(subject):
                 EmailService.queue_email(session, 'daily_unassigned_report', to=c.VOLUNTEER_EMAIL)
@@ -205,7 +206,7 @@ def check_near_cap():
         for badges_left in [int(num) for num in c.BADGES_LEFT_ALERTS]:
             subject = "BADGES SOLD ALERT: {} BADGES LEFT!".format(badges_left)
             with Session() as session:
-                if not session.query(Email).filter_by(subject=subject).first() and actual_badges_left <= badges_left:
+                if not session.scalars(select(Email).filter_by(subject=subject)).first() and actual_badges_left <= badges_left:
                     EmailService.queue_email(session, 'badges_sold_alert', to=[c.REGDESK_EMAIL, c.ADMIN_EMAIL],
                                              subject=subject, data={'badges_left': actual_badges_left})
 
@@ -216,8 +217,8 @@ def invalidate_at_door_badges():
         return
 
     with Session() as session:
-        pending_badges = session.query(Attendee).filter(Attendee.paid == c.PENDING,
-                                                        Attendee.badge_status == c.NEW_STATUS)
+        pending_badges = session.scalars(select(Attendee).filter(Attendee.paid == c.PENDING,
+                                                                 Attendee.badge_status == c.NEW_STATUS)).all()
         for badge in pending_badges:
             badge.badge_status = c.INVALID_STATUS
             session.add(badge)
@@ -231,10 +232,10 @@ def invalidate_dealer_badges():
         return
 
     with Session() as session:
-        pending_badges = session.query(Attendee).filter(Attendee.admin_notes.contains('Converted badge'),
-                                                        Attendee.placeholder,
-                                                        Attendee.paid == c.NOT_PAID,
-                                                        Attendee.badge_status != c.INVALID_STATUS)
+        pending_badges = session.scalars(select(Attendee).filter(Attendee.admin_notes.contains('Converted badge'),
+                                                                 Attendee.placeholder,
+                                                                 Attendee.paid == c.NOT_PAID,
+                                                                 Attendee.badge_status != c.INVALID_STATUS)).all()
         for badge in pending_badges:
             badge.badge_status = c.INVALID_STATUS
             session.add(badge)
@@ -251,11 +252,11 @@ def email_pending_attendees():
 
     with Session() as session:
         four_days_old = datetime.now(pytz.UTC) - timedelta(hours=96)
-        pending_badges = session.query(Attendee).filter(
+        pending_badges = session.scalars(select(Attendee).filter(
             Attendee.paid == c.PENDING,
             Attendee.badge_status == c.PENDING_STATUS,
             Attendee.transfer_code == '',
-            Attendee.registered < datetime.now(pytz.UTC) - timedelta(hours=24)).order_by(Attendee.registered)
+            Attendee.registered < datetime.now(pytz.UTC) - timedelta(hours=24)).order_by(Attendee.registered)).all()
         for badge in pending_badges:
             # Update `compare_date` to prevent early deletion of badges registered before a certain date
             # Implemented for MFF 2023 but let's be honest, we'll probably need it again
@@ -272,7 +273,7 @@ def email_pending_attendees():
                     email_to = badge.email
 
                 email_ident = 'pending_badge_' + badge.id
-                already_emailed = session.query(Email.ident).filter(Email.ident == email_ident).first()
+                already_emailed = session.scalars(select(Email.ident).filter(Email.ident == email_ident)).first()
 
                 if already_emailed:
                     if c.ATTENDEE_ACCOUNTS_ENABLED:
@@ -470,8 +471,8 @@ def check_missed_stripe_payments():
     pending_ids = []
     paid_ids = []
     with Session() as session:
-        pending_payments = session.query(ReceiptTransaction).filter(ReceiptTransaction.intent_id != '',
-                                                                    ReceiptTransaction.charge_id == '')
+        pending_payments = session.scalars(select(ReceiptTransaction).filter(ReceiptTransaction.intent_id != '',
+                                                                             ReceiptTransaction.charge_id == '')).all()
         for payment in pending_payments:
             pending_ids.append(payment.intent_id)
 
@@ -518,10 +519,10 @@ def check_authnet_held_txns():
                                                                                             heldTransactionListResponse.messages.message[0]['text'].text))
 
     with Session() as session:
-        hold_txns = session.query(ReceiptTransaction).filter(ReceiptTransaction.charge_id.in_(held_ids),
-                                                             ReceiptTransaction.on_hold == False)
-        release_txns = session.query(ReceiptTransaction).filter(~ReceiptTransaction.charge_id.in_(held_ids),
-                                                                ReceiptTransaction.on_hold == True)
+        hold_txns = session.scalars(select(ReceiptTransaction).filter(ReceiptTransaction.charge_id.in_(held_ids),
+                                                                      ReceiptTransaction.on_hold == False)).all()
+        release_txns = session.scalars(select(ReceiptTransaction).filter(~ReceiptTransaction.charge_id.in_(held_ids),
+                                                                         ReceiptTransaction.on_hold == True)).all()
 
         for txn in hold_txns:
             txn.on_hold = True
@@ -553,8 +554,8 @@ def check_authnet_held_txns():
 def create_badge_pickup_groups():
     if c.ATTENDEE_ACCOUNTS_ENABLED and c.BADGE_PICKUP_GROUPS_ENABLED and (c.AFTER_PREREG_TAKEDOWN or c.DEV_BOX):
         with Session() as session:
-            skip_account_ids = set(s for (s,) in session.query(BadgePickupGroup.account_id).all())
-            for account in session.query(AttendeeAccount).filter(~AttendeeAccount.id.in_(skip_account_ids)):
+            skip_account_ids = set(s for (s,) in session.execute(select(BadgePickupGroup.account_id)).all())
+            for account in session.scalars(select(AttendeeAccount).filter(~AttendeeAccount.id.in_(skip_account_ids))).all():
                 pickup_group = BadgePickupGroup(account_id=account.id)
                 pickup_group.build_from_account(account)
                 session.add(pickup_group)
@@ -564,7 +565,7 @@ def create_badge_pickup_groups():
 @celery.schedule(timedelta(days=60))
 def sunset_empty_accounts():
     with Session() as session:
-        empty_accounts = session.query(AttendeeAccount).filter(AttendeeAccount.unused_years > 2)
+        empty_accounts = session.scalars(select(AttendeeAccount).filter(AttendeeAccount.unused_years > 2)).all()
         for account in empty_accounts:
             session.delete(account)
         session.commit()
@@ -576,9 +577,9 @@ def import_attendee_accounts(accounts, admin_id, admin_name, target_server, api_
     with Session() as session:
         accounts_by_email = groupify(accounts, lambda a: normalize_email(a['email']))
 
-        existing_accounts = session.query(AttendeeAccount).filter(
-            AttendeeAccount.email.in_(accounts_by_email.keys())) \
-            .options(subqueryload(AttendeeAccount.attendees)).all()
+        existing_accounts = session.scalars(select(AttendeeAccount).filter(
+            AttendeeAccount.email.in_(accounts_by_email.keys()))
+            .options(subqueryload(AttendeeAccount.attendees))).all()
         for account in existing_accounts:
             existing_key = account.email
             accounts_by_email.pop(existing_key, {})
@@ -586,11 +587,11 @@ def import_attendee_accounts(accounts, admin_id, admin_name, target_server, api_
 
         for account in accounts:
             id = account['id']
-            existing_import = session.query(ApiJob).filter(ApiJob.job_name == "attendee_account_import",
+            existing_import = session.scalars(select(func.count(ApiJob.id)).filter(ApiJob.job_name == "attendee_account_import",
                                                            ApiJob.query == id,
                                                            ApiJob.completed == None,  # noqa: E711
                                                            ApiJob.cancelled == None,  # noqa: E711
-                                                           ApiJob.errors == '').count()
+                                                           ApiJob.errors == '')).one()
             if existing_import:
                 already_queued += 1
             else:
@@ -622,8 +623,8 @@ def process_api_queue():
 
     with Session() as session:
         for job_name in known_job_names:
-            jobs_to_run = session.query(ApiJob).filter(ApiJob.job_name == job_name,
-                                                       ApiJob.queued == None).limit(safety_limit)  # noqa: E711
+            jobs_to_run = session.scalars(select(ApiJob).filter(ApiJob.job_name == job_name,
+                                                       ApiJob.queued == None).limit(safety_limit)).all()  # noqa: E711
             completed_jobs[job_name] = 0
 
             for job in jobs_to_run:

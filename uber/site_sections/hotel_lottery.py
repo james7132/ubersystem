@@ -684,10 +684,10 @@ class Root:
         if errors:
             return {'error': f"Please enter {readable_join(errors)}."}
 
-        #room_group = session.lookup_registration_code(invite_code, LotteryApplication)
-        room_group = session.query(LotteryApplication).filter(
+        # room_group = session.lookup_registration_code(invite_code, LotteryApplication)
+        room_group = session.scalars(select(LotteryApplication).filter(
             LotteryApplication.confirmation_num == invite_code,
-            LotteryApplication.room_group_name != '').first()
+            LotteryApplication.room_group_name != '')).first()
 
         if not room_group or room_group.attendee.normalized_email != normalize_email_legacy(leader_email) or room_group.locked or \
                 room_group.is_staff_entry and (not c.STAFF_HOTEL_LOTTERY_OPEN or not application.qualifies_for_staff_lottery):

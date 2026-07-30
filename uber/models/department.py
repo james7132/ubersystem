@@ -663,7 +663,7 @@ class Job(MagModel, table=True):
             staffing_only: Restrict result to attendees where staffing==True.
             order_by: Order by another Attendee attribute.
         """
-        query = self.session.query(Attendee)
+        query = select(Attendee)
 
         if staffing_only:
             query = query.filter(Attendee.staffing == True)  # noqa: E712
@@ -833,20 +833,20 @@ class JobTemplate(MagModel, table=True):
             add_days = new_days_ints - old_days_ints
 
             if delete_days:
-                jobs_by_date = session.query(
+                jobs_by_date = session.execute(select(
                     date_trunc_day(Job.start_time), Job
-                    ).join(Job.template).filter(Job.job_template_id == self.id)
+                ).join(Job.template).filter(Job.job_template_id == self.id)).all()
                 for dt, job_to_delete in jobs_by_date:
                     if int(dt.strftime('%Y%m%d')) in delete_days:
                         deleted_jobs.append(job_to_delete)
                         session.delete(job_to_delete)
-        
+
         jobs_to_process = [j for j in self.jobs if j.id not in deleted_jobs]
 
         for attr in update_attrs:
             if self.orig_value_of(attr) != getattr(self, attr):
                 changes[attr] = getattr(self, attr)
-        
+
         old_required_roles_ids = [role.id for role in self.required_roles]
         if old_required_roles_ids != self.required_roles_ids:
             changes['required_roles_ids'] = self.required_roles_ids
@@ -914,13 +914,13 @@ class JobTemplate(MagModel, table=True):
         prev_job_end = None
         day_int = start_time.strftime('%Y%m%d')
         cutoff_time = self.real_cutoff_time(day_int)
-        job_query = session.query(Job).filter(Job.job_template_id == self.id,
-                                              date_trunc_day(Job.start_time) == start_time.date())
+        job_query = select(Job).filter(Job.job_template_id == self.id,
+                                       date_trunc_day(Job.start_time) == start_time.date())
         if job:
-            other_jobs = job_query.filter(Job.id != job.id).all()
+            other_jobs = session.scalars(job_query.filter(Job.id != job.id)).all()
             jobs = sorted([job] + other_jobs, key=lambda x: x.start_time)
         else:
-            jobs = job_query.order_by(Job.start_time).all()
+            jobs = session.scalars(job_query.order_by(Job.start_time)).all()
 
         for next_job in jobs:
             if prev_job_end:

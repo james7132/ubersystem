@@ -21,21 +21,24 @@ log = logging.getLogger(__name__)
 
 
 def _build_item_subquery(session):
-    return session.query(ModelReceipt.owner_id, ModelReceipt.item_total_sql.label('item_total')
-                         ).join(ModelReceipt.receipt_items).group_by(ModelReceipt.owner_id).subquery()
+    return select(ModelReceipt.owner_id, ModelReceipt.item_total_sql.label('item_total')
+                  ).join(ModelReceipt.receipt_items).group_by(ModelReceipt.owner_id).subquery()
+
 
 def _build_txn_subquery(session):
-    return session.query(ModelReceipt.owner_id, ModelReceipt.payment_total_sql.label('payment_total'),
-                         ModelReceipt.refund_total_sql.label('refund_total')
-                         ).join(ModelReceipt.receipt_txns).group_by(ModelReceipt.owner_id).subquery()
+    return select(ModelReceipt.owner_id, ModelReceipt.payment_total_sql.label('payment_total'),
+                  ModelReceipt.refund_total_sql.label('refund_total')
+                  ).join(ModelReceipt.receipt_txns).group_by(ModelReceipt.owner_id).subquery()
+
 
 def _build_discount_subquery(session):
-    return session.query(ModelReceipt.owner_id, ModelReceipt.discount_total_sql.label('discount_total')
-                         ).join(ModelReceipt.receipt_discounts).group_by(ModelReceipt.owner_id).subquery()
+    return select(ModelReceipt.owner_id, ModelReceipt.discount_total_sql.label('discount_total')
+                  ).join(ModelReceipt.receipt_discounts).group_by(ModelReceipt.owner_id).subquery()
+
 
 def get_grouped_costs(session, filters=[], joins=[], selector=Attendee.badge_cost):
     # Returns a defaultdict with the {int(cost): count} of badges
-    query = session.query(selector, func.count(selector))
+    query = select(selector, func.count(selector))
     for join in joins:
         if isinstance(join, Iterable):
             query = query.join(*join)
@@ -43,7 +46,7 @@ def get_grouped_costs(session, filters=[], joins=[], selector=Attendee.badge_cos
             query = query.join(join)
     if filters:
         query = query.filter(*filters)
-    return defaultdict(int, query.group_by(selector).order_by(selector).all())
+    return defaultdict(int, session.execute(query.group_by(selector).order_by(selector)).all())
 
 
 def get_dict_sum(dict_to_sum):
@@ -54,20 +57,20 @@ def get_dict_sum(dict_to_sum):
 class Root:
     @log_pageview
     def index(self, session):
-        receipt_items = session.query(ReceiptItem)
-        receipt_total = sum([item.amount for item in receipt_items.filter_by(txn_type=c.PAYMENT).all()]
-                            ) - sum([item.amount for item in receipt_items.filter_by(txn_type=c.REFUND).all()])
-        sales_total = sum([sale.cash * 100 for sale in session.query(Sale).all()])
-        arbitrary_charge_total = sum([charge.amount * 100 for charge in session.query(ArbitraryCharge).all()])
+        receipt_items = select(ReceiptItem)
+        receipt_total = sum([item.amount for item in session.scalars(receipt_items.filter_by(txn_type=c.PAYMENT)).all()]
+                            ) - sum([item.amount for item in session.scalars(receipt_items.filter_by(txn_type=c.REFUND)).all()])
+        sales_total = sum([sale.cash * 100 for sale in session.scalars(select(Sale)).all()])
+        arbitrary_charge_total = sum([charge.amount * 100 for charge in session.scalars(select(ArbitraryCharge)).all()])
         return {
-            'receipt_items': receipt_items.filter_by(txn_type=c.REFUND),
-            'arbitrary_charges': session.query(ArbitraryCharge),
-            'sales': session.query(Sale),
+            'receipt_items': session.scalars(receipt_items.filter_by(txn_type=c.REFUND)).all(),
+            'arbitrary_charges': session.scalars(select(ArbitraryCharge)).all(),
+            'sales': session.scalars(select(Sale)).all(),
             'total': receipt_total + sales_total + arbitrary_charge_total,
         }
 
     def badge_cost_summary(self, session):
-        attendees = session.query(Attendee)
+        attendees = select(Attendee)
         item_subquery = _build_item_subquery(session)
         txn_subquery = _build_txn_subquery(session)
         discount_subquery = _build_discount_subquery(session)  # TODO: Make this work
@@ -79,17 +82,17 @@ class Root:
 
         group_counts = {}
 
-        group_counts['free_groups'] = session.query(Attendee).filter(
-            *group_filter).join(Attendee.group).filter(Group.cost <= 0).count()
-        group_counts['custom_price'] = session.query(Attendee).filter(
-            *group_filter).join(Attendee.group).filter(Group.cost > 0, Group.auto_recalc == False).count()  # noqa: E712
+        group_counts['free_groups'] = len(session.scalars(select(Attendee.id).filter(
+            *group_filter).join(Attendee.group).filter(Group.cost <= 0)).all())
+        group_counts['custom_price'] = len(session.scalars(select(Attendee.id).filter(
+            *group_filter).join(Attendee.group).filter(Group.cost > 0, Group.auto_recalc == False)).all())  # noqa: E712
 
-        group_subquery_base = session.query(Attendee.id).filter(*group_filter).outerjoin(
+        group_subquery_base = select(Attendee.id).filter(*group_filter).outerjoin(
             Attendee.group).filter(*badge_cost_matters_filter).outerjoin(
                 item_subquery, Group.id == item_subquery.c.owner_id
-                ).outerjoin(txn_subquery, Group.id == txn_subquery.c.owner_id).group_by(Attendee.id).group_by(
-                    item_subquery.c.item_total).group_by(txn_subquery.c.payment_total).group_by(
-                        txn_subquery.c.refund_total)
+        ).outerjoin(txn_subquery, Group.id == txn_subquery.c.owner_id).group_by(Attendee.id).group_by(
+            item_subquery.c.item_total).group_by(txn_subquery.c.payment_total).group_by(
+            txn_subquery.c.refund_total)
 
         paid_group_subquery = group_subquery_base.having(
             (txn_subquery.c.payment_total - txn_subquery.c.refund_total) >= item_subquery.c.item_total).subquery()
@@ -106,22 +109,22 @@ class Root:
         for key, val in no_receipt_group_badges.items():
             unpaid_group_badges[key] += val
 
-        group_total = session.query(Attendee).filter(*group_filter).count()
+        group_total = len(session.scalars(select(Attendee.id).filter(*group_filter)).all())
 
         pc_group_filter = base_filter + [Attendee.promo_code_group_name != None]  # noqa: E711
         paid_pc_group_filter = pc_group_filter + [PromoCodeGroup.total_cost > 0]
 
         pc_comped_badges = 0
         pc_unused_badges = defaultdict(int)
-        pc_group_total = session.query(Attendee).filter(*pc_group_filter).count()
+        pc_group_total = len(session.scalars(select(Attendee.id).filter(*pc_group_filter)).all())
 
-        pc_group_leaders = session.query(Attendee).filter(Attendee.promo_code_groups != None).count()  # noqa: E711
+        pc_group_leaders = len(session.scalars(select(Attendee.id).filter(Attendee.promo_code_groups != None)).all())  # noqa: E711
         pc_group_badges = get_grouped_costs(session, paid_pc_group_filter)
 
-        for group in session.query(PromoCodeGroup).filter(PromoCodeGroup.total_cost <= 0):
+        for group in session.scalars(select(PromoCodeGroup).filter(PromoCodeGroup.total_cost <= 0)).all():
             pc_comped_badges += len(group.used_promo_codes)
 
-        for group in session.query(PromoCodeGroup).filter(PromoCodeGroup.total_cost > 0):
+        for group in session.scalars(select(PromoCodeGroup).filter(PromoCodeGroup.total_cost > 0)).all():
             for code in group.unused_codes:
                 pc_unused_badges[code.cost] += 1
                 pc_group_total += 1
@@ -129,18 +132,19 @@ class Root:
         individual_filter = base_filter + [not_(Attendee.paid.in_([c.PAID_BY_GROUP, c.NEED_NOT_PAY])),
                                            Attendee.promo_code_group_name == None,  # noqa: E711
                                            Attendee.badge_cost > 0]
-        ind_subquery_base = session.query(Attendee.id).filter(*individual_filter).outerjoin(
-                item_subquery, Attendee.id == item_subquery.c.owner_id
-                ).outerjoin(txn_subquery, Attendee.id == txn_subquery.c.owner_id).group_by(Attendee.id).group_by(
-                    item_subquery.c.item_total).group_by(txn_subquery.c.payment_total).group_by(
-                        txn_subquery.c.refund_total)
-        
+        ind_subquery_base = select(Attendee.id).filter(*individual_filter).outerjoin(
+            item_subquery, Attendee.id == item_subquery.c.owner_id
+        ).outerjoin(txn_subquery, Attendee.id == txn_subquery.c.owner_id).group_by(Attendee.id).group_by(
+            item_subquery.c.item_total).group_by(txn_subquery.c.payment_total).group_by(
+            txn_subquery.c.refund_total)
+
         paid_ind_subquery = ind_subquery_base.having(
             (txn_subquery.c.payment_total - txn_subquery.c.refund_total) >= item_subquery.c.item_total).subquery()
         unpaid_ind_subquery = ind_subquery_base.having(
             (txn_subquery.c.payment_total - txn_subquery.c.refund_total) < item_subquery.c.item_total).subquery()
 
-        individual_badges = get_grouped_costs(session, joins=[(paid_ind_subquery, Attendee.id == paid_ind_subquery.c.id)])
+        individual_badges = get_grouped_costs(
+            session, joins=[(paid_ind_subquery, Attendee.id == paid_ind_subquery.c.id)])
         unpaid_badges = get_grouped_costs(session, filters=[Attendee.default_cost > 0],
                                           joins=[(unpaid_ind_subquery, Attendee.id == unpaid_ind_subquery.c.id)])
         no_receipt_badges = get_grouped_costs(session,
@@ -149,13 +153,13 @@ class Root:
         for key, val in no_receipt_badges.items():
             unpaid_badges[key] += val
 
-        comped_badges = session.query(Attendee).filter(*base_filter,
+        comped_badges = len(session.scalars(select(Attendee.id).filter(*base_filter,
                                                        Attendee.promo_code_group_name == None,  # noqa: E711
-                                                       Attendee.paid == c.NEED_NOT_PAY).count()
-        individual_total = session.query(Attendee).filter(*individual_filter).count() + comped_badges
+                                                       Attendee.paid == c.NEED_NOT_PAY)).all())
+        individual_total = len(session.scalars(select(Attendee.id).filter(*individual_filter)).all()) + comped_badges
 
         return {
-            'total_badges': attendees.filter(*base_filter).count(),
+            'total_badges': len(session.scalars(attendees.filter(*base_filter)).all()),
             'group_total': group_total,
             'group_counts': group_counts,
             'group_badges': paid_group_badges,
@@ -185,8 +189,8 @@ class Root:
         }
 
     def dealer_cost_summary(self, session):
-        dealers = session.query(Group).filter(Group.is_dealer == True,  # noqa: E712
-                                              Group.attendees_have_badges == True, Group.cost > 0)  # noqa: E712
+        dealers = session.scalars(select(Group).filter(Group.is_dealer == True,  # noqa: E712
+                                              Group.attendees_have_badges == True, Group.cost > 0)).all()  # noqa: E712
 
         paid_total = 0
         paid_custom = defaultdict(int)
@@ -256,12 +260,12 @@ class Root:
         item_subquery = _build_item_subquery(session)
         txn_subquery = _build_txn_subquery(session)
 
-        addons_subquery_base = session.query(Attendee.id).outerjoin(
-                item_subquery, Attendee.id == item_subquery.c.owner_id
-                ).outerjoin(txn_subquery, Attendee.id == txn_subquery.c.owner_id).group_by(Attendee.id).group_by(
-                    item_subquery.c.item_total).group_by(txn_subquery.c.payment_total).group_by(
-                        txn_subquery.c.refund_total)
-        
+        addons_subquery_base = select(Attendee.id).outerjoin(
+            item_subquery, Attendee.id == item_subquery.c.owner_id
+        ).outerjoin(txn_subquery, Attendee.id == txn_subquery.c.owner_id).group_by(Attendee.id).group_by(
+            item_subquery.c.item_total).group_by(txn_subquery.c.payment_total).group_by(
+            txn_subquery.c.refund_total)
+
         paid_addons_subquery = addons_subquery_base.having(
             (txn_subquery.c.payment_total - txn_subquery.c.refund_total) >= item_subquery.c.item_total).subquery()
         unpaid_addons_subquery = addons_subquery_base.having(
@@ -321,25 +325,25 @@ class Root:
             unpaid_upgrades_by_cost[c.BADGE_TYPE_PRICES[key]] = val
 
         return {
-            'total_addons': session.query(Attendee).filter(*base_filter).filter(
+            'total_addons': len(session.scalars(select(Attendee.id).filter(*base_filter).filter(
                 or_(Attendee.amount_extra > 0,
                     Attendee.extra_donation > 0,
-                    Attendee.badge_type.in_(c.BADGE_TYPE_PRICES))).count(),
-            'total_merch': session.query(Attendee).filter(*preordered_merch_filter).count(),
+                    Attendee.badge_type.in_(c.BADGE_TYPE_PRICES)))).all()),
+            'total_merch': len(session.scalars(select(Attendee.id).filter(*preordered_merch_filter)).all()),
             'paid_preordered_merch_total': sum(paid_preordered_merch.values()),
             'paid_preordered_merch_sum': get_dict_sum(paid_preordered_merch),
             'paid_preordered_merch': paid_preordered_merch,
             'unpaid_preordered_merch_total': sum(unpaid_preordered_merch.values()),
             'unpaid_preordered_merch_sum': get_dict_sum(unpaid_preordered_merch),
             'unpaid_preordered_merch': unpaid_preordered_merch,
-            'total_donations': session.query(Attendee).filter(*extra_donation_filter).count(),
+            'total_donations': len(session.scalars(select(Attendee.id).filter(*extra_donation_filter)).all()),
             'paid_extra_donations_total': sum(paid_extra_donations.values()),
             'paid_extra_donations_sum': get_dict_sum(paid_extra_donations),
             'paid_extra_donations': paid_extra_donations,
             'unpaid_extra_donations_total': sum(unpaid_extra_donations.values()),
             'unpaid_extra_donations_sum': get_dict_sum(unpaid_extra_donations),
             'unpaid_extra_donations': unpaid_extra_donations,
-            'total_upgrades': session.query(Attendee).filter(*badge_upgrade_filter).count(),
+            'total_upgrades': len(session.scalars(select(Attendee.id).filter(*badge_upgrade_filter)).all()),
             'paid_upgrades_total': sum(paid_upgrades_by_cost.values()),
             'paid_upgrades_sum': get_dict_sum(paid_upgrades_by_cost),
             'paid_upgrades': paid_badge_upgrades,
@@ -352,8 +356,8 @@ class Root:
     @log_pageview
     def mpoints(self, session):
         groups = defaultdict(list)
-        for mpu in session.query(MPointsForCash).options(
-                joinedload(MPointsForCash.attendee).subqueryload(Attendee.group)):
+        for mpu in session.scalars(select(MPointsForCash).options(
+                joinedload(MPointsForCash.attendee).subqueryload(Attendee.group))).all():
             groups[mpu.attendee and mpu.attendee.group].append(mpu)
 
         all = [(sum(mpu.amount for mpu in mpus), group, mpus)
@@ -368,16 +372,17 @@ class Root:
                       '# Day Badges', '# Group Badges', '# Attendee Badges',
                       '# Sponsor Upgrades', '# Shiny Upgrades', '# Day-to-Attendee Upgrades'])
 
-        badge_txn_purchasers = session.query(
+        badge_txn_purchasers = session.execute(select(
             ModelReceipt.owner_id, ModelReceipt.owner_model, ReceiptTransaction,
-            func.json_agg(func.json_build_object('id', ReceiptItem.id, 'amount', ReceiptItem.amount, 'count', ReceiptItem.count, 'category', ReceiptItem.category, 'desc', ReceiptItem.desc)),
+            func.json_agg(func.json_build_object('id', ReceiptItem.id, 'amount', ReceiptItem.amount,
+                          'count', ReceiptItem.count, 'category', ReceiptItem.category, 'desc', ReceiptItem.desc)),
             func.array_agg(ReceiptItem.purchaser_id)).filter(
                 ReceiptTransaction.cancelled == None, ReceiptTransaction.on_hold == False, ReceiptTransaction.amount > 0, ReceiptTransaction.charge_id != '').join(ReceiptTransaction.receipt_items).filter(
                     ReceiptItem.reverted == False, ReceiptItem.comped == False, ReceiptItem.amount != 0,
                     ReceiptItem.category.in_([c.BADGE, c.GROUP_BADGE, c.BADGE_DISCOUNT, c.BADGE_UPGRADE])).join(
                         ReceiptTransaction.receipt).filter(ModelReceipt.closed == None).group_by(
-                            ReceiptTransaction.id).group_by(ModelReceipt.owner_id).group_by(ModelReceipt.owner_model).options(lazyload("*"))
-        
+                            ReceiptTransaction.id).group_by(ModelReceipt.owner_id).group_by(ModelReceipt.owner_model).options(lazyload("*"))).all()
+
         transactions_by_purchaser = defaultdict(list)
         weird_transactions_by_purchaser = defaultdict(list)
         transactions_by_attendee = defaultdict(list)
@@ -394,11 +399,12 @@ class Root:
                 else:
                     transactions_by_purchaser[purchasers_list[0]].append((owner_id, owner_model, items))
             elif len(purchasers_list) != 1:
-                log.error(f"Found multiple purchasers for one transaction while generating donation report. {purchasers}: {owner_id}, {owner_model}, {items}")
-        
+                log.error(
+                    f"Found multiple purchasers for one transaction while generating donation report. {purchasers}: {owner_id}, {owner_model}, {items}")
+
         purchaser_ids = set(transactions_by_purchaser.keys()) | set(weird_transactions_by_purchaser.keys())
-        purchasers = session.query(AttendeeAccount).filter(AttendeeAccount.id.in_(purchaser_ids))
-        attendee_purchasers = session.query(Attendee).filter(Attendee.id.in_(purchaser_ids))
+        purchasers = session.scalars(select(AttendeeAccount).filter(AttendeeAccount.id.in_(purchaser_ids)))
+        attendee_purchasers = session.scalars(select(Attendee).filter(Attendee.id.in_(purchaser_ids)))
 
         purchasers_by_id = {a.id: a for a in purchasers.all()}
         for attendee in attendee_purchasers:

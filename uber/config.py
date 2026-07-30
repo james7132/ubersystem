@@ -352,10 +352,10 @@ class Config(_Overridable):
         from uber.models import Session, Attendee
         count = 0
         with Session() as session:
-            count = session.query(Attendee).filter(
+            count = session.scalars(select(func.count(Attendee.id)).filter(
                 Attendee.paid != c.NOT_PAID,
                 Attendee.badge_type == badge_type,
-                Attendee.has_badge == True).count()  # noqa: E712
+                Attendee.has_badge == True)).one()  # noqa: E712
         return count
 
     def has_section_or_page_access(self, page_path='', include_read_only=False, full=False):
@@ -488,10 +488,10 @@ class Config(_Overridable):
     def DEALER_APPS(self):
         from uber.models import Session, Group
         with Session() as session:
-            return session.query(Group).filter(
+            return session.scalars(select(func.count(Group.id)).filter(
                 Group.tables > 0,
                 Group.cost > 0,
-                Group.status == self.UNAPPROVED).count()
+                Group.status == self.UNAPPROVED)).one()
 
     @request_cached_property
     @dynamic
@@ -503,8 +503,8 @@ class Config(_Overridable):
         from uber.models import Session, PromoCode, PromoCodeGroup
         base_count = self.get_badge_count_by_type(c.ATTENDEE_BADGE)
         with Session() as session:
-            pc_code_count = session.query(PromoCode).join(PromoCodeGroup).filter(PromoCode.cost > 0,
-                                                                                 PromoCode.uses_remaining > 0).count()
+            pc_code_count = session.scalars(select(func.count(PromoCode.id)).join(PromoCodeGroup).filter(PromoCode.cost > 0,
+                                                                                                         PromoCode.uses_remaining > 0)).one()
         return base_count + pc_code_count
 
     @request_cached_property
@@ -525,18 +525,18 @@ class Config(_Overridable):
                 return max(0, attendee_count - staff_count)
         else:
             with Session() as session:
-                attendees = session.query(Attendee)
-                individuals = attendees.filter(Attendee.has_badge == True, or_(  # noqa: E712
+                individuals = session.scalars(select(func.count(Attendee.id)).filter(Attendee.has_badge == True, or_(  # noqa: E712
                     Attendee.paid == self.HAS_PAID,
                     Attendee.paid == self.REFUNDED)
-                ).filter(Attendee.badge_status == self.COMPLETED_STATUS).count()
+                ).filter(Attendee.badge_status == self.COMPLETED_STATUS)).one()
 
-                group_badges = attendees.join(Attendee.group).filter(
+                group_badges = session.scalars(select(func.count(Attendee.id)).join(Attendee.group).filter(
                     Attendee.has_badge == True,  # noqa: E712
                     Attendee.paid == self.PAID_BY_GROUP,
-                    Group.amount_paid > 0).count()
+                    Group.amount_paid > 0)).one()
 
-                promo_code_badges = session.query(PromoCode).join(PromoCodeGroup).filter(PromoCode.cost > 0).count()
+                promo_code_badges = session.scalars(select(func.count(PromoCode.id)).join(
+                    PromoCodeGroup).filter(PromoCode.cost > 0)).one()
 
                 return individuals + group_badges + promo_code_badges
 
@@ -1050,11 +1050,11 @@ class Config(_Overridable):
             from uber.models import Session, AdminAccount, Attendee
             with Session() as session:
                 attrs = Attendee.to_dict_default_attrs + ['admin_account', 'assigned_depts', 'logged_in_name']
-                admin_attendee = session.query(Attendee).join(Attendee.admin_account) \
-                    .filter(AdminAccount.id == cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None))) \
-                    .options(
-                        joinedload(Attendee.admin_account),
-                        selectinload(Attendee.assigned_depts)).one()
+                admin_attendee = session.scalars(select(Attendee).join(Attendee.admin_account)
+                                                 .filter(AdminAccount.id == cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None)))
+                                                 .options(
+                    joinedload(Attendee.admin_account),
+                    selectinload(Attendee.assigned_depts))).one()
                 return admin_attendee.to_dict(attrs)
         except Exception:
             return {}
@@ -1088,32 +1088,33 @@ class Config(_Overridable):
         with Session() as session:
             account = session.current_attendee_account()
         return account
-        
+
     @property
     def LOCAL_ACCOUNTS_DISABLED(self):
         return c.OIDC_ENABLED and not c.SSO_EMAIL_DOMAINS
-    
+
     def get_dept_opts(self, admin_access=False, public=False, has_email=False, include_desc=False):
         from uber.models import Session, Department
         with Session() as session:
             if include_desc:
-                query = session.query(Department.id, Department.name, Department.description)
+                stmt = select(Department.id, Department.name, Department.description)
             else:
-                query = session.query(Department.id, Department.name)
+                stmt = select(Department.id, Department.name)
 
-            if not query.first():
+            if not session.execute(stmt).first():
                 return [(-1, -1, '')] if include_desc else [(-1, -1)]
-            
+
             if has_email:
-                query = query.filter(Department.from_email != '')
+                stmt = stmt.filter(Department.from_email != '')
             if public:
-                query = query.filter(Department.solicits_volunteers == True)
+                stmt = stmt.filter(Department.solicits_volunteers == True)
 
             if admin_access and not self.has_section_or_page_access(full=True):
-                admin_memberships = [str(d.id) for d in session.current_admin_account().attendee.dept_memberships_with_inherent_role]
-                query = query.filter(Department.id.in_(admin_memberships))
+                admin_memberships = [str(d.id) for d in session.current_admin_account(
+                ).attendee.dept_memberships_with_inherent_role]
+                stmt = stmt.filter(Department.id.in_(admin_memberships))
 
-            return [tuple(info) for info in query.order_by(Department.name)]
+            return [tuple(info) for info in session.execute(stmt.order_by(Department.name)).all()]
 
     @request_cached_property
     @dynamic
@@ -1157,9 +1158,9 @@ class Config(_Overridable):
     def get_kickin_count(self, kickin_level):
         from uber.models import Session, Attendee
         with Session() as session:
-            count = session.query(Attendee).filter_by(amount_extra=kickin_level).filter(
-                    ~Attendee.badge_status.in_([c.INVALID_GROUP_STATUS, c.INVALID_STATUS,
-                                                c.IMPORTED_STATUS, c.REFUNDED_STATUS])).count()
+            count = session.scalars(select(func.count(Attendee.id)).filter_by(amount_extra=kickin_level).filter(
+                ~Attendee.badge_status.in_([c.INVALID_GROUP_STATUS, c.INVALID_STATUS,
+                                            c.IMPORTED_STATUS, c.REFUNDED_STATUS]))).one()
         return count
 
     def get_shirt_count(self, shirt_enum_key):
@@ -1170,18 +1171,19 @@ class Config(_Overridable):
             base_filters = [Attendee.shirt == shirt_enum_key,
                             ~Attendee.badge_status.in_([c.INVALID_GROUP_STATUS, c.INVALID_STATUS,
                                                         c.IMPORTED_STATUS, c.REFUNDED_STATUS])]
-            base_query = session.query(Attendee).filter(*base_filters)
 
             # Paid event shirts
-            shirt_count += base_query.filter(Attendee.amount_extra >= c.SHIRT_LEVEL).count()
+            shirt_count += session.scalars(select(func.count(Attendee.id)).filter(*
+                                           base_filters, Attendee.amount_extra >= c.SHIRT_LEVEL)).one()
 
             if c.SHIRTS_PER_STAFFER > 0:
-                staff_event_shirts = session.query(func.sum(Attendee.num_event_shirts)).filter(*base_filters).filter(
-                    Attendee.badge_type == c.STAFF_BADGE, Attendee.num_event_shirts != -1).scalar()
+                staff_event_shirts = session.scalars(select(func.sum(Attendee.num_event_shirts)).filter(
+                    *base_filters, Attendee.badge_type == c.STAFF_BADGE, Attendee.num_event_shirts != -1)).first()
                 shirt_count += staff_event_shirts or 0
 
             if c.HOURS_FOR_SHIRT:
-                shirt_count += base_query.filter(Attendee.ribbon.contains(c.VOLUNTEER_RIBBON)).count()
+                shirt_count += session.scalars(select(func.count(Attendee.id)).filter(*
+                                               base_filters, Attendee.ribbon.contains(c.VOLUNTEER_RIBBON))).one()
 
         return shirt_count
 
@@ -1228,8 +1230,7 @@ class Config(_Overridable):
     def ACCESS_GROUP_OPTS(self):
         from uber.models import Session, AccessGroup
         with Session() as session:
-            query = session.query(AccessGroup).order_by(AccessGroup.name)
-            return [(a.id, a.name) for a in query]
+            return [(a.id, a.name) for a in session.scalars(select(AccessGroup).order_by(AccessGroup.name)).all()]
 
     @request_cached_property
     @dynamic
@@ -1422,18 +1423,18 @@ class Config(_Overridable):
         with Session() as session:
             return sorted([
                 (a.attendee.id, a.attendee.full_name)
-                for a in session.query(AdminAccount).options(joinedload(AdminAccount.attendee))
+                for a in session.scalars(select(AdminAccount).options(joinedload(AdminAccount.attendee))).all()
                 if 'panels_admin' in a.read_or_write_access_set
             ], key=lambda tup: tup[1], reverse=False)
-        
+
     @request_cached_property
     @dynamic
     def get_panels_id(self):
         from uber.models import Session, Department
 
         with Session() as session:
-            panels_dept = session.query(Department).filter(Department.manages_panels == True, 
-                                                           Department.name == "Panels").first()
+            panels_dept = session.scalars(select(Department).filter(Department.manages_panels == True,
+                                                                    Department.name == "Panels")).first()
             if panels_dept:
                 return panels_dept.id
             else:
@@ -1446,21 +1447,16 @@ class Config(_Overridable):
         opt_list = []
 
         with Session() as session:
-            event_locations = session.query(EventLocation)
-
-            if not event_locations.count():
-                return opt_list
-
-            for location in event_locations:
+            for location in session.scalars(select(EventLocation)).all():
                 opt_list.append((location.id, location.schedule_name))
-        
+
         return opt_list
-    
+
     @request_cached_property
     @dynamic
     def SCHEDULE_LOCATIONS(self):
         return {key: name for key, name in self.SCHEDULE_LOCATION_OPTS}
-    
+
     @request_cached_property
     @dynamic
     def ROOM_TRIE(self):
@@ -1484,16 +1480,11 @@ class Config(_Overridable):
         opt_list = []
 
         with Session() as session:
-            event_depts = session.query(Department)
-
-            if not event_depts.count():
-                return opt_list
-
-            for dept in event_depts:
+            for dept in session.scalars(select(Department)).all():
                 opt_list.append((dept.id, dept.name))
-        
+
         return opt_list
-    
+
     @request_cached_property
     @dynamic
     def EVENT_DEPTS(self):
@@ -1506,23 +1497,20 @@ class Config(_Overridable):
         opt_list = []
 
         with Session() as session:
-            panel_depts = session.query(Department).filter(Department.manages_panels == True)
-            panels = panel_depts.filter(Department.name == "Panels").first()
+            panel_depts = session.scalars(select(Department).filter(Department.manages_panels == True)).all()
+            panels = next((p for p in panel_depts if p.name == "Panels"), None)
 
             if panels:
                 opt_list.append((panels.id, panels.name, panels.panels_desc))
             else:
                 opt_list.append((str(c.PANELS), "Panels", ''))
-            
-            if not panel_depts.count():
-                return opt_list
 
             for dept in panel_depts:
                 if dept.name != "Panels":
                     opt_list.append((dept.id, dept.name, dept.panels_desc))
 
         return opt_list
-    
+
     @request_cached_property
     @dynamic
     def PANELS_DEPT_OPTS(self):
@@ -1540,9 +1528,7 @@ class Config(_Overridable):
 
         id_list = [c.PANELS]
         with Session() as session:
-            panels_depts_query = session.query(Department).filter(Department.manages_panels == True)
-            for dept in panels_depts_query.filter(or_(Department.from_email == '',
-                                                      Department.from_email == c.PANELS_EMAIL)):
+            for dept in session.scalars(select(Department).filter(Department.manages_panels == True, or_(Department.from_email == '', Department.from_email == c.PANELS_EMAIL))).all():
                 id_list.append(dept.id)
         return id_list
 

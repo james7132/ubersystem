@@ -22,7 +22,7 @@ class Root:
     def accepted(self, session, message=''):
         return {
             'message': message,
-            'accepted_teams': session.query(MITSTeam).filter(MITSTeam.status == c.ACCEPTED),
+            'accepted_teams': session.scalars(select(MITSTeam).filter(MITSTeam.status == c.ACCEPTED)).all(),
         }
 
     def create_new_application(self):
@@ -32,13 +32,13 @@ class Root:
     def team(self, session, id, message=''):
         team = session.mits_team(id)
         game_ids = [game.id for game in team.games]
-        files_query = session.query(File).filter(File.fk_id.in_(game_ids), File.fk_model == 'MITSGame')
+        files_query = select(File).filter(File.fk_id.in_(game_ids), File.fk_model == 'MITSGame')
 
         return {
             'message': message,
             'team': team,
-            'team_pictures': files_query.filter(File.flags['picture'].astext == 'true').all(),
-            'team_documents': files_query.filter(File.flags['document'].astext == 'true'). all(),
+            'team_pictures': session.scalars(files_query.filter(File.flags['picture'].astext == 'true')).all(),
+            'team_documents': session.scalars(files_query.filter(File.flags['document'].astext == 'true')).all(),
         }
 
     def set_status(self, session, id, status=None, confirmed=False, csrf_token=None, return_to='index', message=''):
@@ -88,7 +88,7 @@ class Root:
 
     def teams_and_badges(self, session):
         return {
-            'accepted_teams': session.query(MITSTeam).filter(MITSTeam.status == c.ACCEPTED),
+            'accepted_teams': session.scalars(select(MITSTeam).filter(MITSTeam.status == c.ACCEPTED)).all(),
         }
 
     @ajax
@@ -190,7 +190,7 @@ class Root:
 
     @multifile_zipfile
     def accepted_games_images_zip(self, zip_file, session):
-        query = session.query(MITSGame).filter_by(has_been_accepted=True)
+        query = session.scalars(select(MITSGame).filter_by(has_been_accepted=True)).all()
 
         for game in query:
             pictures = FileService.get_existing_files(session, game, and_flags=['picture'], uselist=True)

@@ -48,10 +48,11 @@ def notify_admins_of_pending_emails():
         return
 
     with Session() as session:
-        pending_emails = session.query(Email.automated_email_id, func.count(Email.id)).filter(Email.status == c.UNAPPROVED
-                                                                                              ).group_by(Email.automated_email_id)
+        pending_emails = session.execute(select(Email.automated_email_id, func.count(Email.id)).filter(Email.status == c.UNAPPROVED
+                                                                                                       ).group_by(Email.automated_email_id)).all()
         pending_count_by_id = {id: count for id, count in pending_emails}
-        pending_automated_emails = session.query(AutomatedEmail).filter(AutomatedEmail.id.in_(pending_count_by_id.keys()))
+        pending_automated_emails = session.scalars(select(AutomatedEmail).filter(
+            AutomatedEmail.id.in_(pending_count_by_id.keys()))).all()
         pending_emails_by_sender = defaultdict(list)
         depts_by_sender = EmailService.emails_from_depts(session)
 

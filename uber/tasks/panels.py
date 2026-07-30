@@ -20,10 +20,12 @@ __all__ = ['panels_waitlist_unaccepted_panels', 'sync_guidebook_models', 'setup_
 
 
 def _get_deleted_models(session, deleted_since=None):
-    deleted_synced = session.query(Tracking).filter(Tracking.action == c.DELETED,
-                                                    Tracking.snapshot.contains('"last_synced": {"data": {"guidebook"'))
+    deleted_synced_stmt = select(Tracking).filter(Tracking.action == c.DELETED,
+                                                  Tracking.snapshot.contains('"last_synced": {"data": {"guidebook"'))
     if deleted_since:
-        deleted_synced = deleted_synced.filter(Tracking.when > deleted_since)
+        deleted_synced_stmt = deleted_synced_stmt.filter(Tracking.when > deleted_since)
+
+    deleted_synced = session.scalars(deleted_synced_stmt).all()
 
     deleted_models = defaultdict(list)
     model_names = {}
@@ -79,13 +81,14 @@ def sync_guidebook_models(selected_model, sync_time, id_list):
 def check_deleted_guidebook_models():
     if not c.PRE_CON or not c.GUIDEBOOK_UPDATES_EMAIL:
         return
-    
+
     with Session() as session:
         subject = f"Deleted Guidebook Items: {localized_now().strftime("%A %-I:%M %p")}"
-        last_email = session.query(Email).filter(Email.subject.contains("Deleted Guidebook Items")
-                                                 ).first()
+        last_email = session.scalars(select(Email).filter(Email.subject.contains("Deleted Guidebook Items")
+                                                          )).first()
 
-        deleted_models = _get_deleted_models(session, deleted_since=last_email.generated) if last_email else _get_deleted_models(session)
+        deleted_models = _get_deleted_models(
+            session, deleted_since=last_email.generated) if last_email else _get_deleted_models(session)
 
         if deleted_models:
             EmailService.queue_email(session, 'guidebook_deletes', to=c.GUIDEBOOK_UPDATES_EMAIL,
@@ -104,12 +107,13 @@ def check_stale_guidebook_models():
         if schedule_updates:
             stale_models.append('Schedule')
 
-        last_email = session.query(Email).filter(or_(
+        last_email = session.scalars(select(Email).filter(or_(
             Email.subject.contains("Guidebook Updates"),
             Email.subject.contains("Deleted Guidebook Items"))
-            ).first()
+        )).first()
 
-        deleted_models = _get_deleted_models(session, deleted_since=last_email.generated) if last_email else _get_deleted_models(session)
+        deleted_models = _get_deleted_models(
+            session, deleted_since=last_email.generated) if last_email else _get_deleted_models(session)
 
         if stale_models or deleted_models:
             EmailService.queue_email(session, 'guidebook_updates', to=c.GUIDEBOOK_UPDATES_EMAIL,
@@ -124,7 +128,7 @@ def panels_waitlist_unaccepted_panels():
         return
 
     with Session() as session:
-        for app in session.query(PanelApplication).filter_by(status=c.ACCEPTED):
+        for app in session.scalars(select(PanelApplication).filter_by(status=c.ACCEPTED)).all():
             if not app.confirmed and app.after_confirm_deadline:
                 app.status = c.WAITLISTED
                 session.commit()
@@ -135,15 +139,16 @@ def panels_waitlist_unaccepted_panels():
 def setup_panel_emails(reconcile_fixtures=True):
     if not c.PRE_CON:
         return
-    
-    with Session() as session:
-        panels_depts_query = session.query(Department).filter(Department.manages_panels == True)
 
-        panels_depts = panels_depts_query.filter(Department.from_email != '').all()
+    with Session() as session:
+        panels_depts_stmt = select(Department).filter(Department.manages_panels == True)
+
+        panels_depts = session.scalars(panels_depts_stmt.filter(Department.from_email != '')).all()
         current_depts = [dept.from_email for dept in panels_depts]
         emails_to_add = {dept.from_email: (dept.id, dept.name) for dept in panels_depts}
 
-        current_email_fixtures = session.query(AutomatedEmail).filter(AutomatedEmail.ident.startswith('panelapps_'))
+        current_email_fixtures = session.scalars(select(AutomatedEmail).filter(
+            AutomatedEmail.ident.startswith('panelapps_'))).all()
 
         for fixture in current_email_fixtures:
             if fixture.sender not in [current_depts]:

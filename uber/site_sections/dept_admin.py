@@ -26,9 +26,9 @@ class Root:
 
         forms = load_forms({}, Department(), ['DepartmentInfo'])
 
-        departments = session.query(Department).filter(*dept_filter).options(
+        departments = session.scalars(select(Department).filter(*dept_filter).options(
             selectinload(Department.memberships)
-        ).order_by(Department.name).all()
+        ).order_by(Department.name)).all()
         return {
             'filtered': filtered,
             'message': message,
@@ -157,8 +157,8 @@ class Root:
 
         try:
             value = str(value).lower() not in ('false', 'none', '', '0')
-            dept_membership = session.query(DeptMembership).filter_by(
-                department_id=department_id, attendee_id=attendee_id).one()
+            dept_membership = session.scalars(select(DeptMembership).filter_by(
+                department_id=department_id, attendee_id=attendee_id)).one()
             setattr(dept_membership, 'is_' + role, value)
             session.commit()
         except Exception:
@@ -176,9 +176,9 @@ class Root:
         if not department_id:
             raise HTTPRedirect('index')
 
-        department = session.query(Department).filter(Department.id == department_id).options(
+        department = session.scalars(select(Department).filter(Department.id == department_id).options(
             selectinload(Department.unassigned_explicitly_requesting_attendees)
-        ).first()
+        )).first()
         if cherrypy.request.method == 'POST':
             attendee_ids = [s for s in params.get('attendee_ids', []) if s]
             if attendee_ids:
@@ -204,10 +204,10 @@ class Root:
 
     @csv_file
     def dept_requests_export(self, out, session, department_id, requested_any=False, message='', **params):
-        department = session.query(Department).filter(Department.id == department_id).options(
+        department = session.scalars(select(Department).filter(Department.id == department_id).options(
             selectinload(Department.unassigned_explicitly_requesting_attendees),
             selectinload(Department.unassigned_requesting_attendees),
-        ).first()
+        )).first()
 
         requesting_attendees = department.unassigned_requesting_attendees \
             if requested_any else department.unassigned_explicitly_requesting_attendees
@@ -272,7 +272,7 @@ class Root:
 
         out.writerow(["Attendee name", "Start of overworked shift sequence",
                       "Length of shift sequence", "Departments overworked in"])
-        for attendee in session.query(Attendee).filter(Attendee.staffing == True).all():  # noqa: E712
+        for attendee in session.scalars(select(Attendee).filter(Attendee.staffing == True)).all():  # noqa: E712
             minute_map = attendee.shift_minute_map
             for start_minute in minute_map:
                 # only look at start-of-sequence minutes
@@ -343,12 +343,11 @@ class Root:
     @csrf_protected
     def unassign_member(self, session, department_id, attendee_id, message=''):
         if cherrypy.request.method == 'POST':
-            membership = session.query(DeptMembership) \
-                .filter_by(
-                    department_id=department_id, attendee_id=attendee_id) \
-                .order_by(DeptMembership.id) \
-                .options(subqueryload(DeptMembership.attendee)) \
-                .first()
+            membership = session.scalars(select(DeptMembership)
+                                         .filter_by(
+                department_id=department_id, attendee_id=attendee_id)
+                .order_by(DeptMembership.id)
+                .options(subqueryload(DeptMembership.attendee))).first()
 
             if membership:
                 session.delete(membership)
@@ -365,12 +364,11 @@ class Root:
     @csrf_protected
     def assign_member(self, session, department_id, attendee_id, message=''):
         if cherrypy.request.method == 'POST':
-            membership = session.query(DeptMembership) \
-                .filter_by(
-                    department_id=department_id, attendee_id=attendee_id) \
-                .order_by(DeptMembership.id) \
-                .options(subqueryload(DeptMembership.attendee)) \
-                .first()
+            membership = session.scalars(select(DeptMembership)
+                                         .filter_by(
+                department_id=department_id, attendee_id=attendee_id)
+                .order_by(DeptMembership.id)
+                .options(subqueryload(DeptMembership.attendee))).first()
 
             if membership:
                 message = '{} is already a member of this ' \

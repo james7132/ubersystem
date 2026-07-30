@@ -260,7 +260,7 @@ class FileService:
         else:
             fk_id, fk_model = file_or_parent_obj.id, file_or_parent_obj.__class__.__name__
 
-        existing_files = session.query(File).filter(File.fk_id == fk_id, File.fk_model == fk_model)
+        existing_files = select(File).filter(File.fk_id == fk_id, File.fk_model == fk_model)
 
         and_filters = []
         for flag in and_flags:
@@ -274,8 +274,8 @@ class FileService:
         if or_filters:
             existing_files = existing_files.filter(or_(*or_filters))
 
-        return existing_files.all() if uselist else existing_files.first()
-    
+        return session.scalars(existing_files).all() if uselist else session.scalars(existing_files).first()
+
     @staticmethod
     def files_by_fk_id(session, fk_ids, fk_models=[], and_flags=[], or_flags=[]):
         if not fk_ids:
@@ -284,8 +284,8 @@ class FileService:
         filters = [File.fk_id.in_(fk_ids)]
         if fk_models:
             filters.append(File.fk_model.in_(fk_models))
-        
-        matching_files = session.query(File).filter(*filters)
+
+        matching_files = select(File).filter(*filters)
 
         and_filters = []
         for flag in and_flags:
@@ -301,7 +301,7 @@ class FileService:
 
         matching_files = matching_files.order_by(File.fk_id)
         files_by_fk_id = defaultdict(list)
-        for file in matching_files:
+        for file in session.scalars(matching_files):
             files_by_fk_id[file.fk_id].append(file)
 
         return files_by_fk_id

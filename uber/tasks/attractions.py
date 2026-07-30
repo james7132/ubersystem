@@ -32,10 +32,11 @@ def attractions_check_notification_replies():
         messages = twilio_client.messages.list(to=c.PANELS_TWILIO_NUMBER)
         sids = set(m.sid for m in messages)
         existing_sids = set(
-            sid for [sid] in
-            session.query(AttractionNotificationReply.sid).filter(AttractionNotificationReply.sid.in_(sids)))
+            sid for (sid,) in
+            session.execute(select(AttractionNotificationReply.sid).filter(AttractionNotificationReply.sid.in_(sids))).all())
 
-        attendees = session.query(Attendee).filter(Attendee.cellphone != '', Attendee.attraction_notifications.any())
+        attendees = session.scalars(select(Attendee).filter(Attendee.cellphone != '',
+                                    Attendee.attraction_notifications.any())).all()
         attendees_by_phone = groupify(attendees, lambda a: normalize_phone(a.cellphone))
 
         for message in filter(lambda m: m.sid not in existing_sids, messages):
@@ -132,12 +133,13 @@ def send_waitlist_notification(signup_id):
                 body=body))
             session.commit()
 
+
 def attractions_send_notifications():
     twilio_client = get_twilio_client(c.PANELS_TWILIO_SID, c.PANELS_TWILIO_TOKEN)
     text_template = 'Check-in for {signup.event.name} {checkin}, {signup.event.location_room_name}. Reply N to drop out'
 
     with Session() as session:
-        for attraction in session.query(Attraction):
+        for attraction in session.scalars(select(Attraction)).all():
             now = datetime.now(pytz.UTC)
             from_time = now - timedelta(seconds=300)
             to_time = now + timedelta(seconds=300)

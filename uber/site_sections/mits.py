@@ -64,17 +64,16 @@ class Root:
                 message = "Please enter an email address."
 
             if not message:
-                last_email = (session.query(Email)
-                              .filter(Email.to.ilike(params['email']))
-                              .filter_by(subject=subject)
-                              .first())
+                last_email = session.scalars(select(Email)
+                                             .filter(Email.to.ilike(params['email']))
+                                             .filter_by(subject=subject)).first()
                 if not last_email or last_email.generated < (
-                            localized_now() - timedelta(days=7)):
+                        localized_now() - timedelta(days=7)):
                     can_send_email = True
                 else:
                     can_send_email = False
 
-                mits_teams = session.query(MITSTeam).all()
+                mits_teams = session.scalars(select(MITSTeam)).all()
 
                 match_counter = 0
                 for team in mits_teams:

@@ -129,7 +129,7 @@ class AutomatedEmail(MagModel, BaseEmailMixin, table=True):
         with Session() as session:
             panels.setup_panel_emails(reconcile_fixtures=False)
 
-            existing_automated_emails = session.query(AutomatedEmail)
+            existing_automated_emails = session.scalars(select(AutomatedEmail)).all()
 
             existing_idents = set([email.ident for email in existing_automated_emails])
             fixture_idents = set(AutomatedEmail._fixtures.keys())
@@ -147,16 +147,18 @@ class AutomatedEmail(MagModel, BaseEmailMixin, table=True):
                 ident = automated_email.ident
                 if ident not in orphaned_idents:
                     fixture = AutomatedEmail._fixtures[ident]
-                    pending_emails = session.query(Email).filter(Email.ident == ident, Email.status != c.SENT)
-                    
+                    pending_emails = session.scalars(select(Email).filter(
+                        Email.ident == ident, Email.status != c.SENT)).all()
+
                     # We want to update any pending emails, but emails can be generated with custom attributes
                     # This updates emails while avoiding changing any attributes that don't match the fixture
                     changed_vals = {}
                     for attr in ['subject', 'sender', 'cc', 'bcc', 'replyto']:
-                        fixture_attr = getattr(fixture, attr) if attr in ['subject', 'sender'] else ','.join(getattr(fixture, attr))
+                        fixture_attr = getattr(fixture, attr) if attr in [
+                            'subject', 'sender'] else ','.join(getattr(fixture, attr))
                         if getattr(automated_email, attr) != fixture_attr:
                             changed_vals[attr] = fixture_attr
-                    
+
                     for pending in pending_emails:
                         changed = False
                         for attr in changed_vals.keys():

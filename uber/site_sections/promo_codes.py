@@ -24,7 +24,7 @@ class Root:
             'overused': [PromoCode.uses_remaining < 0]
         }[show]
 
-        promo_codes = session.query(PromoCode).filter(*which).options(joinedload(PromoCode.used_by)).all()
+        promo_codes = session.scalars(select(PromoCode).filter(*which).options(joinedload(PromoCode.used_by))).all()
         return {
             'show': show,
             'message': message,
@@ -36,8 +36,8 @@ class Root:
         text = text.strip()
         words = []
         if text:
-            old_words = set(s for (s,) in session.query(PromoCodeWord.normalized_word).filter(
-                PromoCodeWord.part_of_speech == part_of_speech).all())
+            old_words = set(s for (s,) in session.execute(select(PromoCodeWord.normalized_word).filter(
+                PromoCodeWord.part_of_speech == part_of_speech)).all())
 
             for word in [s for s in shlex.split(text.replace(',', ' ')) if s]:
                 if PromoCodeWord.normalize_word(word) not in old_words:
@@ -48,10 +48,10 @@ class Root:
 
     @ajax
     def delete_all_promo_code_words(self, session, part_of_speech=None):
-        query = session.query(PromoCodeWord)
+        stmt = delete(PromoCodeWord)
         if part_of_speech is not None:
-            query = query.filter(PromoCodeWord.part_of_speech == part_of_speech)
-        result = query.delete(synchronize_session=False)
+            stmt = stmt.filter(PromoCodeWord.part_of_speech == part_of_speech)
+        result = session.execute(stmt).rowcount
         return {'result': result}
 
     @ajax
@@ -59,18 +59,18 @@ class Root:
         result = 0
         word = PromoCodeWord.normalize_word(word)
         if word:
-            result = session.query(PromoCodeWord).filter(
-                PromoCodeWord.normalized_word == word).delete(synchronize_session=False)
+            result = session.execute(delete(PromoCodeWord).filter(
+                PromoCodeWord.normalized_word == word)).rowcount
 
         return {'result': result}
 
     def delete_promo_codes(self, session, id=None, **params):
-        query = session.query(PromoCode).filter(PromoCode.uses_count == 0,
-                                                PromoCode.group == None)
+        stmt = delete(PromoCode).filter(PromoCode.uses_count == 0,
+                                        PromoCode.group == None)
         if id is not None:
             ids = [s.strip() for s in id.split(',') if s.strip()]
-            query = query.filter(PromoCode.id.in_(ids))
-        result = query.delete(synchronize_session=False)
+            stmt = stmt.filter(PromoCode.id.in_(ids))
+        result = session.execute(stmt).rowcount
 
         referer = cherrypy.request.headers.get('Referer', 'index')
         page = urllib.parse.urlparse(referer).path.split('/')[-1]
@@ -82,7 +82,7 @@ class Root:
         if code_ids:
             codes = [session.promo_code(id) for id in code_ids]
         else:
-            codes = session.query(PromoCode).filter(PromoCode.group == None).all()
+            codes = session.scalars(select(PromoCode).filter(PromoCode.group == None)).all()
         out.writerow(['Code', 'Expiration Date', 'Item(s)', 'Discount', 'Total Uses', '# Uses'])
         for code in codes:
             out.writerow([
@@ -127,7 +127,7 @@ class Root:
             params['is_single_promo_code'] = 0
 
         words = PromoCodeWord.group_by_parts_of_speech(
-            session.query(PromoCodeWord).order_by(PromoCodeWord.normalized_word).all())
+            session.scalars(select(PromoCodeWord).order_by(PromoCodeWord.normalized_word)).all())
 
         result = dict(
             params,

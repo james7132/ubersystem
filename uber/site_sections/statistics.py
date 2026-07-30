@@ -58,11 +58,11 @@ class RegistrationDataOneYear:
 
         # return registrations where people actually paid money
         # exclude: dealers
-        reg_per_day = session.query(
+        reg_per_day = session.execute(select(
                 date_trunc_day(Attendee.registered),
                 func.count(date_trunc_day(Attendee.registered))
-            ) \
-            .outerjoin(Attendee.group) \
+            )
+            .outerjoin(Attendee.group)
             .filter(
                 (
                     (Attendee.group_id != None) &  # noqa: E711
@@ -72,17 +72,16 @@ class RegistrationDataOneYear:
                 ) | (                                     # OR
                     (Attendee.paid == c.HAS_PAID)         # if they're an attendee, make sure they're fully paid
                 )
-            ) \
-            .group_by(date_trunc_day(Attendee.registered)) \
-            .order_by(date_trunc_day(Attendee.registered)) \
-            .all()  # noqa: E711
+            )
+            .group_by(date_trunc_day(Attendee.registered))
+            .order_by(date_trunc_day(Attendee.registered))).all()  # noqa: E711
 
-        group_reg_per_day = session.query(
+        group_reg_per_day = session.execute(select(
             date_trunc_day(PromoCode.group_registered),
             func.count(date_trunc_day(PromoCode.group_registered))
-            ).filter(PromoCode.cost > 0) \
-             .group_by(date_trunc_day(PromoCode.group_registered)) \
-             .order_by(date_trunc_day(PromoCode.group_registered)).all()
+        ).filter(PromoCode.cost > 0)
+            .group_by(date_trunc_day(PromoCode.group_registered))
+            .order_by(date_trunc_day(PromoCode.group_registered))).all()
 
         # now, convert the query's data into the format we need.
         # SQL will skip days without registrations
@@ -185,7 +184,7 @@ class Root:
             counts['shirt_counts'][c.PREREG_SHIRTS[shirt_enum_key]] = \
                 c.REDIS_STORE.hget(c.REDIS_PREFIX + 'shirt_counts', shirt_enum_key)
 
-        for a in session.query(Attendee).options(joinedload(Attendee.group)):
+        for a in session.scalars(select(Attendee).options(joinedload(Attendee.group))).all():
             counts['statuses'][a.badge_status_label] += 1
 
             if a.badge_status not in [c.INVALID_GROUP_STATUS, c.INVALID_STATUS, c.IMPORTED_STATUS, c.REFUNDED_STATUS]:
@@ -250,7 +249,7 @@ class Root:
 
             zips = {}
             self.zips_counter = Counter()
-            attendees = session.query(Attendee).all()
+            attendees = session.scalars(select(Attendee)).all()
             for person in attendees:
                 if person.zip_code:
                     self.zips_counter[person.zip_code] += 1

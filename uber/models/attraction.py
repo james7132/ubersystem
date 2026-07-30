@@ -311,10 +311,10 @@ class Attraction(MagModel, AttractionMixin, table=True):
                 notice_param = bindparam(
                     'advance_notice_{}'.format(advance_notice), advance_notice).label('advance_notice')
 
-            subquery = session.query(AttractionSignup, notice_param).filter(
+            subquery = select(AttractionSignup, notice_param).filter(
                 AttractionSignup.is_unchecked_in,
                 AttractionSignup.attraction_event_id.in_(
-                    session.query(AttractionEvent.id).filter(*event_filters)),
+                    select(AttractionEvent.id).filter(*event_filters)),
                 not_(exists().where(and_(
                     AttractionNotification.ident == notice_ident,
                     AttractionNotification.attraction_event_id == AttractionSignup.attraction_event_id,

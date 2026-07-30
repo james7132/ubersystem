@@ -550,8 +550,8 @@ class ReceiptTransaction(MagModel, table=True):
             last_refund_id = refund.id
             self.refund_id = self.refund_id or last_refund_id
         with Session() as session:
-            other_txns = session.query(ReceiptTransaction).filter_by(intent_id=self.intent_id
-                                                                     ).filter(ReceiptTransaction.id != self.id)
+            other_txns = session.scalars(select(ReceiptTransaction).filter_by(intent_id=self.intent_id
+                                                                              ).filter(ReceiptTransaction.id != self.id)).all()
             other_refunds = sum([txn.refunded for txn in other_txns])
 
         self.refunded = min(self.amount, refunded_total - other_refunds)

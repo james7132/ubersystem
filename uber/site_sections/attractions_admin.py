@@ -70,12 +70,12 @@ class Root:
         else:
             attraction_filter = []
 
-        attractions = session.query(Attraction).filter(*attraction_filter) \
-            .options(
-                subqueryload(Attraction.department),
-                subqueryload(Attraction.owner)
-                .subqueryload(AdminAccount.attendee)) \
-            .order_by(Attraction.name).all()
+        attractions = session.scalars(select(Attraction).filter(*attraction_filter)
+                                      .options(
+            subqueryload(Attraction.department),
+            subqueryload(Attraction.owner)
+            .subqueryload(AdminAccount.attendee))
+            .order_by(Attraction.name)).all()
 
         return {
             'admin_account': admin_account,
@@ -104,7 +104,8 @@ class Root:
             uri = '{}/jsonrpc/'.format(target_url)
 
         if not message and service:
-            existing_attractions_by_slug = {attraction.slug: attraction for attraction in session.query(Attraction)}
+            existing_attractions_by_slug = {
+                attraction.slug: attraction for attraction in session.scalars(select(Attraction)).all()}
 
             for id, name in sorted(service.attraction.list(), key=lambda t: t[1]):
                 from_slug = slugify(name)
@@ -134,12 +135,13 @@ class Root:
                                      'signups_open_relative', 'slots']:
                             setattr(to_attraction, attr, from_attraction.get(attr, None))
                         import_signups_open_time(to_attraction, from_attraction.get('signups_open_time', None))
-                    
+
                     for from_feature in from_attraction['features']:
                         new_feature = False
 
                         from_slug = slugify(from_feature['name'])
-                        to_feature = session.query(AttractionFeature).filter(AttractionFeature.slug == from_slug).first()
+                        to_feature = session.scalars(select(AttractionFeature).filter(
+                            AttractionFeature.slug == from_slug)).first()
                         if not to_feature:
                             new_feature = True
                             feature_count += 1
@@ -150,19 +152,20 @@ class Root:
                                          'signups_open_relative', 'slots']:
                                 setattr(to_feature, attr, from_feature.get(attr, None))
                             import_signups_open_time(to_feature, from_feature.get('signups_open_time', None))
-                            
+
                             from_dept = from_feature.get('department', {})
                             if from_dept:
-                                to_dept = session.query(Department).filter(Department.name == from_feature['department']['name']).first()
+                                to_dept = session.scalars(select(Department).filter(
+                                    Department.name == from_feature['department']['name'])).first()
                                 if to_dept:
                                     to_feature.department_id = to_dept.id
 
                         for from_event in from_feature['events']:
                             start_time = pytz.UTC.localize(dateparser.parse(from_event['start_time'])) + EPOCH_DELTA
                             if not new_feature:
-                                existing_event = session.query(AttractionEvent).join(AttractionFeature).filter(
+                                existing_event = session.scalars(select(AttractionEvent).join(AttractionFeature).filter(
                                     AttractionFeature.id == to_feature.id,
-                                    AttractionEvent.start_time == start_time).first()
+                                    AttractionEvent.start_time == start_time)).first()
                                 if existing_event:
                                     continue
 
@@ -171,19 +174,21 @@ class Root:
                                          'signups_open_relative', 'slots']:
                                 setattr(to_event, attr, from_event.get(attr, None))
                             import_signups_open_time(to_event, from_event.get('signups_open_time', None))
-                            
-                            event_location = session.query(EventLocation).filter(EventLocation.name == from_event['location']['name'])
-                            if event_location.count() == 1:
-                                to_event.event_location_id = event_location.first().id
-                            elif event_location.count() > 1:
-                                event_location_with_room = event_location.filter(EventLocation.room == from_event['location']['room'])
-                                if event_location_with_room.count() == 1:
-                                    to_event.event_location_id = event_location_with_room.first().id
+
+                            event_location = session.scalars(select(EventLocation).filter(
+                                EventLocation.name == from_event['location']['name'])).all()
+                            if len(event_location) == 1:
+                                to_event.event_location_id = event_location[0].id
+                            elif len(event_location) > 1:
+                                event_location_with_room = [
+                                    el for el in event_location if el.room == from_event['location']['room']]
+                                if len(event_location_with_room) == 1:
+                                    to_event.event_location_id = event_location_with_room[0].id
                             # We couldn't find a single matching room, so just give up
 
                             to_feature.events.append(to_event)
                             event_count += 1
-                            
+
                         to_attraction.features.append(to_feature)
                     session.add(to_attraction)
 
@@ -215,12 +220,13 @@ class Root:
         attraction_id = params.get('id')
         if not attraction_id or attraction_id == 'None':
             raise HTTPRedirect('index')
-        
+
         attraction = session.get(Attraction, attraction_id, options=[
             joinedload(Attraction.department), selectinload(Attraction.events),
-            defaultload(Attraction.features).defaultload(AttractionFeature.events).selectinload(AttractionEvent.signups),
+            defaultload(Attraction.features).defaultload(
+                AttractionFeature.events).selectinload(AttractionEvent.signups),
         ])
-        
+
         forms = load_forms(params, attraction, ['AttractionInfo'])
 
         if cherrypy.request.method == 'POST':
@@ -684,12 +690,12 @@ class Root:
         except Exception:
             filters = [Attraction.slug.startswith(slugify(id))]
 
-        attraction = session.query(Attraction).filter(*filters).options(
+        attraction = session.scalars(select(Attraction).filter(*filters).options(
             joinedload(Attraction.department)
-        ).first()
+        )).first()
         if not attraction:
             raise HTTPRedirect('index')
-        
+
         dept_name = ''
         if attraction.department and len(attraction.department.attractions) > 1:
             dept_name = attraction.department.name
@@ -732,11 +738,11 @@ class Root:
                     signups = [s for s in signups if s.event.feature.attraction_id == attraction_id]
 
                 exclude_ids = [s.attraction_event_id for s in signups]
-                other_events = session.query(AttractionEvent).filter(
+                other_events = session.scalars(select(AttractionEvent).filter(
                     AttractionEvent.attraction_id == attraction_id,
                     ~AttractionEvent.id.in_(exclude_ids),
                     AttractionEvent.start_time > min_time,
-                    AttractionEvent.start_time < max_time).all()
+                    AttractionEvent.start_time < max_time)).all()
 
             signups_and_events = []
             for s_or_e in sorted(signups + other_events,
@@ -763,51 +769,50 @@ class Root:
                     'attendee': attendee.to_dict(),
                 }
             }
-        
+
     @ajax
     def sign_up(self, session, id, attendee_id):
         message = ''
         overfilled = False
-        
+
         if cherrypy.request.method == 'POST':
             if not id:
                 return {'error': "Event ID is blank."}
             if not attendee_id:
                 return {'error': "Attendee ID is blank."}
-            
+
             event = session.get(AttractionEvent, id)
             attendee = session.get(Attendee, attendee_id)
             if not event:
                 return {'error': "Could not find event."}
             if not attendee:
                 return {'error': "Could not find attendee."}
-            
+
             if attendee in event.attendee_signups:
                 return {'error': f"{attendee.full_name} is already signed up for this event!"}
-            
+
             if event.is_sold_out:
                 overfilled = True
-            
+
             event.attendee_signups.append(attendee)
             session.add(event)
             session.commit()
             session.refresh(event)
 
-            signup = session.query(AttractionSignup).filter(AttractionSignup.attendee_id == attendee.id,
-                                                            AttractionSignup.attraction_event_id == event.id).first()
+            signup = session.scalars(select(AttractionSignup).filter(AttractionSignup.attendee_id == attendee.id,
+                                                                     AttractionSignup.attraction_event_id == event.id)).first()
             if not signup:
                 return {'error': "Signup failed. Try refreshing the page."}
-            
+
             if overfilled:
                 message = "This event is now over capacity."
             elif event.is_sold_out:
                 message = "This event is now full."
-            
+
             signup_dict = signup.to_dict(signup_spec)
             signup_dict['is_signed_up'] = True
 
             return {'signup': signup_dict, 'message': message}
-
 
     @ajax
     def pull_from_waitlist(self, session, id, email=False):

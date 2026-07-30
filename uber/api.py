@@ -168,7 +168,8 @@ def _attendee_fields_and_query(full, query, only_valid=True):
             selectinload(Attendee.managers), joinedload(Attendee.group))
     else:
         fields = AttendeeLookup.fields
-        query = query.options(selectinload(Attendee.dept_memberships), selectinload(Attendee.shifts).joinedload(Shift.job),)
+        query = query.options(selectinload(Attendee.dept_memberships),
+                              selectinload(Attendee.shifts).joinedload(Shift.job),)
     return (fields, query)
 
 
@@ -336,7 +337,7 @@ def auth_by_token(required_access):
         return (403, 'Invalid auth token, {}: {}'.format(ex, token))
 
     with Session() as session:
-        api_token = session.query(ApiToken).filter_by(token=token).first()
+        api_token = session.scalars(select(ApiToken).filter_by(token=token)).first()
         if not api_token:
             return (403, 'Auth token not recognized: {}'.format(token))
         if api_token.revoked_time:
@@ -448,10 +449,10 @@ class GuestLookup:
         """
         with Session() as session:
             if type and type.upper() in c.GROUP_TYPE_VARS:
-                query = session.query(GuestGroup).filter_by(group_type=getattr(c, type.upper()))
+                query = select(GuestGroup).filter_by(group_type=getattr(c, type.upper()))
             else:
-                query = session.query(GuestGroup)
-            return [guest.to_dict(self.fields) for guest in query]
+                query = select(GuestGroup)
+            return [guest.to_dict(self.fields) for guest in session.scalars(query)]
 
 
 @all_api_auth('api_read')
@@ -492,10 +493,10 @@ class MivsLookup:
         """
         with Session() as session:
             if status and status.upper() in c.MIVS_STUDIO_STATUS_VARS:
-                query = session.query(IndieStudio).filter_by(status=getattr(c, status.upper()))
+                query = select(IndieStudio).filter_by(status=getattr(c, status.upper()))
             else:
-                query = session.query(IndieStudio)
-            return [mivs.to_dict(self.fields) for mivs in query]
+                query = select(IndieStudio)
+            return [mivs.to_dict(self.fields) for mivs in session.scalars(query)]
 
     def export_judges(self):
         """
@@ -507,14 +508,15 @@ class MivsLookup:
         """
         judges_list = []
         with Session() as session:
-            judges = session.query(IndieJudge).filter(not_(IndieJudge.status.in_([c.CANCELLED, c.DISQUALIFIED])))
+            judges = session.scalars(select(IndieJudge).filter(
+                not_(IndieJudge.status.in_([c.CANCELLED, c.DISQUALIFIED])))).all()
 
             for judge in judges:
                 fields = AttendeeLookup.attendee_import_fields + Attendee.import_fields
                 judges_list.append((judge.to_dict(), judge.attendee.to_dict(fields)))
 
             return judges_list
-    
+
     def lookup_judge(self, id):
         try:
             str(uuid.UUID(id))
@@ -627,9 +629,9 @@ class AttendeeLookup:
         restrictions.
         """
         with Session() as session:
-            attendee_query = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == badge_num)
+            attendee_query = select(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == badge_num)
             fields, attendee_query = _attendee_fields_and_query(full, attendee_query)
-            attendee = attendee_query.first()
+            attendee = session.scalars(attendee_query).first()
             if attendee:
                 return attendee.to_dict(fields)
             else:
@@ -652,7 +654,7 @@ class AttendeeLookup:
             if error:
                 raise HTTPError(400, error)
             fields, attendee_query = _attendee_fields_and_query(full, attendee_query)
-            return [a.to_dict(fields) for a in attendee_query.limit(100)]
+            return [a.to_dict(fields) for a in session.scalars(attendee_query.limit(100))]
 
     def login(self, first_name, last_name, email, zip_code):
         """
@@ -660,13 +662,13 @@ class AttendeeLookup:
         """
         # this code largely copied from above with different fields
         with Session() as session:
-            attendee_query = session.query(Attendee).filter(Attendee.first_name.ilike(first_name),
-                                                            Attendee.last_name.ilike(last_name),
-                                                            Attendee.email.ilike(email),
-                                                            Attendee.zip_code.ilike(zip_code))
+            attendee_query = select(Attendee).filter(Attendee.first_name.ilike(first_name),
+                                                     Attendee.last_name.ilike(last_name),
+                                                     Attendee.email.ilike(email),
+                                                     Attendee.zip_code.ilike(zip_code))
             fields, attendee_query = _attendee_fields_and_query(False, attendee_query)
             try:
-                attendee = attendee_query.one()
+                attendee = session.scalars(attendee_query).one()
             except MultipleResultsFound:
                 raise HTTPError(404, 'found more than one attendee with matching information?')
             except NoResultFound:
@@ -706,8 +708,8 @@ class AttendeeLookup:
 
             email_attendees = []
             if emails:
-                email_attendees = session.query(Attendee).filter(Attendee.normalized_email.in_(list(emails.keys()))) \
-                    .options(*options).order_by(Attendee.email, Attendee.id).all()
+                email_attendees = session.scalars(select(Attendee).filter(Attendee.normalized_email.in_(list(emails.keys())))
+                                                  .options(*options).order_by(Attendee.email, Attendee.id)).all()
 
             known_emails = set(a.normalized_email for a in email_attendees)
             unknown_emails = sorted([raw for normalized, raw in emails.items() if normalized not in known_emails])
@@ -717,8 +719,8 @@ class AttendeeLookup:
                 filters = [
                     and_(func.lower(Attendee.first_name) == first, func.lower(Attendee.last_name) == last)
                     for first, last in names.keys()]
-                name_attendees = session.query(Attendee).filter(or_(*filters)) \
-                    .options(*options).order_by(Attendee.email, Attendee.id).all()
+                name_attendees = session.scalars(select(Attendee).filter(or_(*filters))
+                                                 .options(*options).order_by(Attendee.email, Attendee.id)).all()
 
             known_names = set((a.first_name.lower(), a.last_name.lower()) for a in name_attendees)
             unknown_names = sorted([raw for normalized, raw in names.items() if normalized not in known_names])
@@ -731,8 +733,8 @@ class AttendeeLookup:
                         func.lower(Attendee.last_name) == last,
                         Attendee.normalized_email == email)
                     for first, last, email in names_and_emails.keys()]
-                name_and_email_attendees = session.query(Attendee).filter(or_(*filters)) \
-                    .options(*options).order_by(Attendee.email, Attendee.id).all()
+                name_and_email_attendees = session.scalars(select(Attendee).filter(or_(*filters))
+                                                           .options(*options).order_by(Attendee.email, Attendee.id)).all()
 
             known_names_and_emails = set(
                 (a.first_name.lower(), a.last_name.lower(), a.normalized_email) for a in name_and_email_attendees)
@@ -741,8 +743,8 @@ class AttendeeLookup:
 
             id_attendees = []
             if ids:
-                id_attendees = session.query(Attendee).filter(Attendee.id.in_(ids)) \
-                    .options(*options).order_by(Attendee.email, Attendee.id).all()
+                id_attendees = session.scalars(select(Attendee).filter(Attendee.id.in_(ids))
+                                               .options(*options).order_by(Attendee.email, Attendee.id)).all()
 
             known_ids = set(str(a.id) for a in id_attendees)
             unknown_ids = sorted([i for i in ids if i not in known_ids])
@@ -779,11 +781,11 @@ class AttendeeLookup:
         <pre>{"placeholder": "yes", "legal_name": "First Last", "cellphone": "5555555555"}</pre>
         """
         with Session(create_savepoint=True) as session:
-            attendee_query = session.query(Attendee).filter(Attendee.first_name.ilike(first_name),
-                                                            Attendee.last_name.ilike(last_name),
-                                                            Attendee.email.ilike(email))
+            attendee_query = select(Attendee).filter(Attendee.first_name.ilike(first_name),
+                                                     Attendee.last_name.ilike(last_name),
+                                                     Attendee.email.ilike(email))
 
-            if attendee_query.first():
+            if session.scalars(attendee_query).first():
                 raise HTTPError(400, 'An attendee with this name and email address already exists')
 
             attendee = Attendee(first_name=first_name, last_name=last_name, email=email)
@@ -873,12 +875,12 @@ class AttendeeAccountLookup:
 
             if not account:
                 raise HTTPError(404, 'No attendee account found with this ID')
-            
+
             filters = [Attendee.is_valid == True]
             if not include_group:
                 filters.append(Attendee.group_id == None)
 
-            attendees_to_export = session.query(Attendee).join(Attendee.managers).filter(
+            attendees_to_export = session.scalars(select(Attendee).join(Attendee.managers).filter(
                 AttendeeAccount.id == id).filter(*filters).options(
                 selectinload(Attendee.dept_memberships).joinedload(DeptMembership.department),
                 selectinload(Attendee.dept_roles).joinedload(DeptRole.department),
@@ -888,7 +890,7 @@ class AttendeeAccountLookup:
                 joinedload(Attendee.group),
                 joinedload(Attendee.art_show_application),
                 joinedload(Attendee.marketplace_application)
-            )
+            )).all()
 
             attendees = _prepare_attendees_export(attendees_to_export, include_apps=full)
             return {
@@ -913,24 +915,24 @@ class AttendeeAccountLookup:
 
         with Session() as session:
             if all:
-                all_accounts = session.query(AttendeeAccount).all()
+                all_accounts = session.scalars(select(AttendeeAccount)).all()
             else:
                 email_accounts = []
                 if emails:
-                    email_accounts = session.query(AttendeeAccount).filter(
+                    email_accounts = session.scalars(select(AttendeeAccount).filter(
                         AttendeeAccount.email.in_(list(emails.keys()))
-                        ).options(selectinload(AttendeeAccount.attendees)
-                                  ).order_by(AttendeeAccount.email, AttendeeAccount.id).all()
+                    ).options(selectinload(AttendeeAccount.attendees)
+                              ).order_by(AttendeeAccount.email, AttendeeAccount.id)).all()
 
                 known_emails = set(a.normalized_email for a in email_accounts)
                 unknown_emails = sorted([raw for normalized, raw in emails.items() if normalized not in known_emails])
 
                 id_accounts = []
                 if ids:
-                    id_accounts = session.query(AttendeeAccount).filter(
+                    id_accounts = session.scalars(select(AttendeeAccount).filter(
                         AttendeeAccount.id.in_(ids)).options(selectinload(AttendeeAccount.attendees)
                                                              ).order_by(AttendeeAccount.email,
-                                                                        AttendeeAccount.id).all()
+                                                                        AttendeeAccount.id)).all()
 
                 known_ids = set(str(a.id) for a in id_accounts)
                 unknown_ids = sorted([i for i in ids if i not in known_ids])
@@ -967,7 +969,7 @@ class AttractionLookup:
         Returns a list of all attractions
         """
         with Session() as session:
-            return [(id, name) for id, name in session.query(Attraction.id, Attraction.name).order_by(Attraction.name).all()]
+            return [(id, name) for id, name in session.execute(select(Attraction.id, Attraction.name).order_by(Attraction.name)).all()]
 
     @api_auth('api_read')
     def features_events(self, attraction_id):
@@ -1078,7 +1080,7 @@ class JobLookup:
         to be in the local timezone of the event.
         """
         with Session() as session:
-            query = session.query(Job).filter_by(department_id=department_id)
+            query = select(Job).filter_by(department_id=department_id)
             if start_time:
                 start_time = _parse_datetime(start_time)
                 query = query.filter(Job.start_time >= start_time)
@@ -1086,9 +1088,9 @@ class JobLookup:
                 end_time = _parse_datetime(end_time)
                 query = query.filter(Job.start_time <= end_time)
             query = query.options(
-                    subqueryload(Job.department),
-                    subqueryload(Job.shifts).subqueryload(Shift.attendee))
-            return [job.to_dict(self.fields) for job in query]
+                subqueryload(Job.department),
+                subqueryload(Job.shifts).subqueryload(Shift.attendee))
+            return [job.to_dict(self.fields) for job in session.scalars(query)]
 
     def assign(self, job_id, attendee_id):
         """
@@ -1224,10 +1226,10 @@ class GroupLookup:
             filters = [Group.is_dealer == True]  # noqa: E712
             if status and status.upper() in c.DEALER_STATUS_VARS:
                 filters += [Group.status == getattr(c, status.upper())]
-            query = session.query(Group).filter(*filters)
+            query = select(Group).filter(*filters)
             groups = []
 
-            for g in query.all():
+            for g in session.scalars(query).all():
                 d = g.to_dict(['id'] + GroupLookup.group_import_fields + Group.import_fields
                               + GroupLookup.dealer_import_fields)
 
@@ -1299,16 +1301,16 @@ class GroupLookup:
         with Session() as session:
             name_groups = []
             if names:
-                name_groups = session.query(Group).filter(Group.name.in_(names)) \
-                    .order_by(Group.name).all()
+                name_groups = session.scalars(select(Group).filter(Group.name.in_(names))
+                                              .order_by(Group.name)).all()
 
             known_names = set(str(a.name) for a in name_groups)
             unknown_names = sorted([n for n in names if n not in known_names])
 
             id_groups = []
             if ids:
-                id_groups = session.query(Group).filter(Group.id.in_(ids)) \
-                    .order_by(Group.name).all()
+                id_groups = session.scalars(select(Group).filter(Group.id.in_(ids))
+                                            .order_by(Group.name)).all()
 
             known_ids = set(str(a.id) for a in id_groups)
             unknown_ids = sorted([i for i in ids if i not in known_ids])
@@ -1517,7 +1519,7 @@ class HotelLookup:
         Returns a list of hotel eligible attendees
         """
         with Session() as session:
-            attendees = session.query(Attendee.id).filter(Attendee.hotel_eligible == True).all()  # noqa: E712
+            attendees = session.execute(select(Attendee.id).filter(Attendee.hotel_eligible == True)).all()  # noqa: E712
             return [x.id for x in attendees]
 
     @api_auth('api_update')
@@ -1578,7 +1580,7 @@ class HotelLookup:
         """
         with Session() as session:
             if id:
-                assignment = session.query(RoomAssignment).filter(RoomAssignment.id == id).one_or_none()
+                assignment = session.scalars(select(RoomAssignment).filter(RoomAssignment.id == id)).one_or_none()
                 if not assignment:
                     return HTTPError(404, "Could not locate room assignment {}".format(id))
             else:
@@ -1623,7 +1625,7 @@ class ScheduleLookup:
                     'description': event.public_description or event.description,
                     'panelists': [panelist.attendee.full_name for panelist in event.assigned_panelists]
                 }
-                for event in sorted(session.query(Event).all(), key=lambda e: [e.start_time, e.location_name])
+                for event in sorted(session.scalars(select(Event)).all(), key=lambda e: [e.start_time, e.location_name])
             ]
 
 
@@ -1649,9 +1651,9 @@ class BarcodeLookup:
         # Note: A decrypted barcode can yield a valid badge num,
         # but that badge num may not be assigned to an attendee.
         with Session() as session:
-            query = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == badge_num)
+            query = select(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == badge_num)
             fields, query = _attendee_fields_and_query(full, query)
-            attendee = query.first()
+            attendee = session.scalars(query).first()
             if attendee:
                 return attendee.to_dict(fields)
             else:
@@ -1705,7 +1707,7 @@ class PrintJobLookup:
                 filters += [PrintJob.printer_id.in_(printer_ids)]
             if not restart:
                 filters += [PrintJob.queued == None]  # noqa: E711
-            print_jobs = session.query(PrintJob).filter(*filters).all()
+            print_jobs = session.scalars(select(PrintJob).filter(*filters)).all()
 
             results = {}
             for job in print_jobs:
@@ -1769,7 +1771,7 @@ class PrintJobLookup:
                 raise HTTPError(400, "You must provide at least one job ID.")
 
             job_ids = [id.strip() for id in job_ids.split(',')]
-            jobs = session.query(PrintJob).filter(PrintJob.id.in_(job_ids)).all()
+            jobs = session.scalars(select(PrintJob).filter(PrintJob.id.in_(job_ids))).all()
 
             if not jobs:
                 raise HTTPError(404, '"No jobs found with those IDs."')
@@ -1797,13 +1799,13 @@ class PrintJobLookup:
         Returns a dictionary of changed jobs' `json_data` plus job metadata, keyed by job ID.
         """
         with Session() as session:
-            base_query = session.query(PrintJob).filter_by(printed=None)
+            base_query = select(PrintJob).filter_by(printed=None)
 
             if not job_ids:
                 raise HTTPError(400, "You must provide at least one job ID.")
 
             job_ids = [id.strip() for id in job_ids.split(',')]
-            jobs = base_query.filter(PrintJob.id.in_(job_ids)).all()
+            jobs = session.scalars(base_query.filter(PrintJob.id.in_(job_ids))).all()
 
             if not jobs:
                 raise HTTPError(404, '"No jobs found with those IDs."')
@@ -1843,7 +1845,7 @@ class PrintJobLookup:
             elif not all:
                 raise HTTPError(400, "You must provide at least one printer ID or set all to true.")
 
-            jobs = session.query(PrintJob).filter(*filters).all()
+            jobs = session.scalars(select(PrintJob).filter(*filters)).all()
 
             if invalidate and not error:
                 raise HTTPError(400, "You must provide an error message to invalidate jobs.")

@@ -819,8 +819,8 @@ class Attendee(MagModel, TakesPaymentMixin, table=True):
                 self.session.update_badge(self)
             return
 
-        badge = self.session.query(BadgeInfo).filter(BadgeInfo.ident == value,
-                                                     BadgeInfo.attendee_id == None).first()
+        badge = self.session.scalars(select(BadgeInfo).filter(BadgeInfo.ident == value,
+                                                              BadgeInfo.attendee_id == None)).first()
         if badge:
             if self.badge_num:
                 self.session.add(self.active_badge)
@@ -1976,11 +1976,11 @@ class Attendee(MagModel, TakesPaymentMixin, table=True):
             return []
 
         from uber.models.department import Job
-        jobs = self.session.query(Job).filter(*self.available_job_filters).options(
+        jobs = self.session.scalars(select(Job).filter(*self.available_job_filters).options(
             subqueryload(Job.shifts),
             subqueryload(Job.department),
             subqueryload(Job.required_roles)
-        ).order_by(Job.start_time, Job.department_id).all()
+        ).order_by(Job.start_time, Job.department_id)).all()
 
         return [job for job in jobs if self.has_required_roles(job)]
 
@@ -2263,9 +2263,9 @@ class Attendee(MagModel, TakesPaymentMixin, table=True):
     def depts_where_can_admin(self):
         if self.admin_account and self.admin_account.full_dept_admin:
             from uber.models.department import Department
-            return self.session.query(Department).options(
+            return self.session.scalars(select(Department).options(
                 selectinload(Department.dept_roles), selectinload(Department.job_templates)
-            ).order_by(Department.name).all()
+            ).order_by(Department.name)).all()
         return self.depts_with_inherent_role
 
     def has_shifts_in(self, department):

@@ -16,7 +16,7 @@ class Root:
         attendee = None
 
         badge_num = get_badge_num_from_barcode(barcode)['badge_num']
-        badge = session.query(BadgeInfo).filter(BadgeInfo.ident == badge_num).first()
+        badge = session.scalars(select(BadgeInfo).filter(BadgeInfo.ident == badge_num)).first()
         if not badge:
             msg = "Failed: this badge number does not exist."
         elif not badge.attendee:

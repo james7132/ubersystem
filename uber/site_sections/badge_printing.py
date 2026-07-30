@@ -50,13 +50,13 @@ def pre_print_check(session, attendee, printer_id, dry_run=False, **params):
 @all_renderable()
 class Root:
     def index(self, session, page='1', message='', pending=''):
-        base_query = session.query(Attendee).join(Attendee.print_requests)
+        base_query = select(Attendee).join(Attendee.print_requests)
 
         if pending:
-            badges = base_query.filter(PrintJob.printed == None, PrintJob.ready == True,  # noqa: E711
-                                       PrintJob.errors == '').order_by(PrintJob.queued.desc()).all()
+            badges = session.scalars(base_query.filter(PrintJob.printed == None, PrintJob.ready == True,  # noqa: E711
+                                       PrintJob.errors == '').order_by(PrintJob.queued.desc())).all()
         else:
-            badges = base_query.filter(PrintJob.printed != None).order_by(PrintJob.printed.desc()).all()  # noqa: E711
+            badges = session.scalars(base_query.filter(PrintJob.printed != None).order_by(PrintJob.printed.desc())).all()  # noqa: E711
 
         page = int(page)
         count = len(badges)
@@ -129,11 +129,12 @@ class Root:
         elif flag == 'errors':
             filters += [PrintJob.errors != '']
         elif flag == 'created':
-            filters += [PrintJob.admin_id == cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None))]
+            filters += [PrintJob.admin_id ==
+                        cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None))]
         elif flag == 'printed':
             filters += [PrintJob.printed != None]  # noqa: E711
 
-        jobs = session.query(PrintJob).filter(*filters).order_by(PrintJob.created.desc()).all()
+        jobs = session.scalars(select(PrintJob).filter(*filters).order_by(PrintJob.created.desc())).all()
 
         return {
             'jobs': jobs,

@@ -15,9 +15,9 @@ class Root:
         else:
             filters = [or_(Group.is_dealer == False, Group.status.in_(c.DEALER_ACCEPTED_STATUSES))]
 
-        groups = session.query(Group).filter(*filters).join(Group.active_receipt).outerjoin(
+        groups = session.scalars(select(Group).filter(*filters).join(Group.active_receipt).outerjoin(
             ModelReceipt.receipt_items).group_by(ModelReceipt.id).group_by(Group.id).having(
-                Group.cost_cents != ModelReceipt.fkless_item_total_sql)
+                Group.cost_cents != ModelReceipt.fkless_item_total_sql)).all()
 
         return {
             'groups': groups,
@@ -26,29 +26,29 @@ class Root:
 
     @log_pageview
     def dealers_nonzero_balance(self, session, include_no_receipts=False, include_discrepancies=False):
-        item_subquery = session.query(ModelReceipt.owner_id, ModelReceipt.item_total_sql.label('item_total')
-                                      ).join(ModelReceipt.receipt_items).group_by(ModelReceipt.owner_id).subquery()
-        
+        item_subquery = select(ModelReceipt.owner_id, ModelReceipt.item_total_sql.label('item_total')
+                               ).join(ModelReceipt.receipt_items).group_by(ModelReceipt.owner_id).subquery()
+
         if include_discrepancies:
             filter = True
         else:
             filter = Group.cost_cents == item_subquery.c.item_total
 
-        groups_and_totals = session.query(
+        groups_and_totals = session.execute(select(
             Group, ModelReceipt.payment_total_sql, ModelReceipt.refund_total_sql, item_subquery.c.item_total
-            ).filter(Group.is_valid == True).join(Group.active_receipt).outerjoin(
-                ModelReceipt.receipt_txns).join(item_subquery, Group.id == item_subquery.c.owner_id).group_by(
-                    ModelReceipt.id).group_by(Group.id).group_by(item_subquery.c.item_total).having(
-                        and_((ModelReceipt.payment_total_sql - ModelReceipt.refund_total_sql) != item_subquery.c.item_total,
-                             filter))
-        
+        ).filter(Group.is_valid == True).join(Group.active_receipt).outerjoin(
+            ModelReceipt.receipt_txns).join(item_subquery, Group.id == item_subquery.c.owner_id).group_by(
+            ModelReceipt.id).group_by(Group.id).group_by(item_subquery.c.item_total).having(
+            and_((ModelReceipt.payment_total_sql - ModelReceipt.refund_total_sql) != item_subquery.c.item_total,
+                 filter))).all()
+
         if include_no_receipts:
-            groups_no_receipts = session.query(Group).outerjoin(ModelReceipt,
-                                                                Group.active_receipt).filter(Group.cost > 0,
-                                                                                             ModelReceipt.id == None)
+            groups_no_receipts = session.scalars(select(Group).outerjoin(ModelReceipt,
+                                                                         Group.active_receipt).filter(Group.cost > 0,
+                                                                                                      ModelReceipt.id == None)).all()
         else:
             groups_no_receipts = []
-        
+
         return {
             'groups_and_totals': groups_and_totals,
             'include_discrepancies': include_discrepancies,
@@ -65,7 +65,7 @@ class Root:
             'What They Sell'
         ])
 
-        dealer_groups = session.query(Group).filter(Group.tables > 0).all()
+        dealer_groups = session.scalars(select(Group).filter(Group.tables > 0)).all()
         for group in dealer_groups:
             full_name = group.leader.full_name if group.leader else ''
             out.writerow([
@@ -97,7 +97,7 @@ class Root:
             'Cost',
             'Badges'
         ])
-        dealer_groups = session.query(Group).filter(Group.is_dealer == True).all()  # noqa: E712
+        dealer_groups = session.scalars(select(Group).filter(Group.is_dealer == True)).all()  # noqa: E712
         for group in dealer_groups:
             if group.status in c.DEALER_ACCEPTED_STATUSES:
                 full_name = group.leader.full_name if group.leader else ''
@@ -135,9 +135,9 @@ class Root:
             'Categories',
             'Other Category',
             'Special Requests',
-            ])
+        ])
 
-        dealer_groups = session.query(Group).filter(Group.is_dealer == True).all()  # noqa: E712
+        dealer_groups = session.scalars(select(Group).filter(Group.is_dealer == True)).all()  # noqa: E712
 
         def write_url_or_text(cell, is_url=False, last_cell=False):
             if is_url:
@@ -176,7 +176,7 @@ class Root:
 
     @xlsx_file
     def seller_comptroller_info(self, out, session):
-        dealer_groups = session.query(Group).filter(Group.tables > 0).all()
+        dealer_groups = session.scalars(select(Group).filter(Group.tables > 0)).all()
         rows = []
         for group in dealer_groups:
             if group.status in c.DEALER_ACCEPTED_STATUSES and group.is_dealer:
@@ -213,7 +213,7 @@ class Root:
 
     @xlsx_file
     def seller_applications(self, out, session):
-        dealer_groups = session.query(Group).filter(Group.is_dealer).all()
+        dealer_groups = session.scalars(select(Group).filter(Group.is_dealer)).all()
 
         header_row = [
             'id',
@@ -230,7 +230,7 @@ class Root:
 
     @xlsx_file
     def waitlisted_group_info(self, out, session):
-        waitlisted_groups = session.query(Group).filter(Group.status == c.WAITLISTED).all()
+        waitlisted_groups = session.scalars(select(Group).filter(Group.status == c.WAITLISTED)).all()
         rows = []
         for group in waitlisted_groups:
             if group.is_dealer:
@@ -246,13 +246,13 @@ class Root:
             'Group Leader Name',
             'Group Leader Email',
             'Website',
-            ]
+        ]
         out.writerows(header_row, rows)
 
     @xlsx_file
     def seller_tax_info(self, out, session):
         rows = []
-        for group in session.query(Group):
+        for group in session.scalars(select(Group)).all():
             name = group.leader.full_name if group.leader else ''
             phone = group.phone or (group.leader.cellphone if group.leader else '')
             if group.is_dealer:

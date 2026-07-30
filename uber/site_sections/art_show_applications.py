@@ -391,29 +391,29 @@ class Root:
             attendee = Attendee(
                 placeholder=True,
                 badge_status=c.NOT_ATTENDING,
-                )
+            )
         else:
             raise HTTPRedirect('index')
-        
+
         if cherrypy.request.method == 'POST':
             missing_fields = []
-            
+
             for field_name in params.copy().keys():
                 if params.get(field_name, None):
                     if hasattr(attendee, field_name) and (not hasattr(ArtShowBidder(), field_name) or field_name == 'email'):
                         setattr(attendee, field_name, params.pop(field_name))
                 elif field_name in ArtShowBidder.required_fields.keys():
-                    if field_name not in ['bidder_num', 'badge_printed_name']: # Admin only
+                    if field_name not in ['bidder_num', 'badge_printed_name']:  # Admin only
                         missing_fields.append(ArtShowBidder.required_fields[field_name])
-            
-            dupe_badge_num = session.query(Attendee).filter(Attendee.id != attendee.id,
-                                                            Attendee.badge_num != None,
-                                                            Attendee.badge_num == attendee.badge_num).first()
 
-            dupe_attendee = session.query(Attendee).filter(Attendee.id != attendee.id,
-                                                           Attendee.first_name == attendee.first_name,
-                                                           Attendee.last_name == attendee.last_name,
-                                                           Attendee.email == attendee.email).first()
+            dupe_badge_num = session.scalars(select(Attendee).filter(Attendee.id != attendee.id,
+                                                                     Attendee.badge_num != None,
+                                                                     Attendee.badge_num == attendee.badge_num)).first()
+
+            dupe_attendee = session.scalars(select(Attendee).filter(Attendee.id != attendee.id,
+                                                                    Attendee.first_name == attendee.first_name,
+                                                                    Attendee.last_name == attendee.last_name,
+                                                                    Attendee.email == attendee.email)).first()
             if dupe_badge_num:
                 message = 'We already have information for this badge number. Please check the badge number you entered \
                     or check in with a staff member at a "Bidder Sign-Up" table to complete the signup process.'

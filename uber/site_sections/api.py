@@ -18,15 +18,15 @@ class Root:
     @site_mappable
     def index(self, session, show_revoked=False, message='', **params):
         admin_account = session.current_admin_account()
-        api_tokens = session.query(ApiToken)
+        api_tokens = select(ApiToken)
         if not admin_account.is_super_admin:
             api_tokens = api_tokens.filter_by(admin_account_id=admin_account.id)
         if not show_revoked:
             api_tokens = api_tokens.filter(ApiToken.revoked_time == None)  # noqa: E711
-        api_tokens = api_tokens.options(
+        api_tokens = session.scalars(api_tokens.options(
             joinedload(ApiToken.admin_account)
-            .selectinload(AdminAccount.attendee)) \
-            .order_by(ApiToken.issued_time).all()
+            .selectinload(AdminAccount.attendee))
+            .order_by(ApiToken.issued_time)).all()
         return {
             'message': message,
             'admin_account': admin_account,
@@ -72,7 +72,8 @@ class Root:
     @ajax
     def create_api_token(self, session, **params):
         if cherrypy.request.method == 'POST':
-            params['admin_account_id'] = cherrypy.session.get('account_id', getattr(cherrypy.request, 'admin_account', None))
+            params['admin_account_id'] = cherrypy.session.get(
+                'account_id', getattr(cherrypy.request, 'admin_account', None))
             api_token = session.api_token(params)
             message = check(api_token)
             if not message:
@@ -96,7 +97,7 @@ class Root:
 
     def api_jobs(self, session, message=''):
         return {
-            'jobs': session.query(ApiJob).filter(ApiJob.cancelled == None).limit(5000).all(),  # noqa: E711
+            'jobs': session.scalars(select(ApiJob).filter(ApiJob.cancelled == None).limit(5000)).all(),  # noqa: E711
             'message': message,
         }
 
@@ -131,9 +132,9 @@ class Root:
         raise HTTPRedirect('api_jobs?message={}', message)
 
     def requeue_incomplete_jobs(self, session, message='', **params):
-        to_requeue = session.query(ApiJob).filter(ApiJob.cancelled == None,  # noqa: E711
+        to_requeue = session.scalars(select(ApiJob).filter(ApiJob.cancelled == None,  # noqa: E711
                                                   ApiJob.completed == None,  # noqa: E711
-                                                  ApiJob.queued != None)  # noqa: E711
+                                                  ApiJob.queued != None)).all()  # noqa: E711
         for job in to_requeue:
             job.queued = None
             job.errors = ''

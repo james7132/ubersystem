@@ -307,12 +307,13 @@ def dupe_badge_num(form, field):
     existing_name = ''
     if c.NUMBERED_BADGES and field.data:
         with Session() as session:
-            existing = session.query(BadgeInfo).filter(BadgeInfo.ident == field.data,
-                                                       BadgeInfo.attendee_id != None)
-            if not existing.count():
+            existing = session.scalars(select(BadgeInfo).filter(
+                BadgeInfo.ident == field.data,
+                BadgeInfo.attendee_id != None)).first()
+            if not existing:
                 return
             else:
-                existing_name = existing.first().attendee.full_name
+                existing_name = existing.attendee.full_name
         raise ValidationError('That badge number already belongs to {!r}'.format(existing_name))
 
 

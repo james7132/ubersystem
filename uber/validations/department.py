@@ -21,7 +21,7 @@ DepartmentInfo.field_validation.validations['from_email']['optional'] = validato
 def unique_name(form, field):
     if field.data:
         with Session() as session:
-            dupe_dept_name = session.query(Department).filter(Department.name == field.data).first()
+            dupe_dept_name = session.scalars(select(Department).filter(Department.name == field.data)).first()
             if dupe_dept_name:
                 raise ValidationError("There is already another department with this name.")
 

@@ -18,15 +18,17 @@ __all__ = ['assign_all_games_showcases', 'mivs_assign_game_codes_to_judges', 'se
 def assign_all_games_showcases():
     if not c.PRE_CON:
         return
-    
+
     with Session() as session:
         games_by_showcase = {}
         for showcase in c.SHOWCASE_GAME_TYPES.keys():
-            games_by_showcase[showcase] = session.query(IndieGame).filter(IndieGame.showcase_type == showcase).all()
+            games_by_showcase[showcase] = session.scalars(
+                select(IndieGame).filter(IndieGame.showcase_type == showcase)).all()
 
-        for judge in session.query(IndieJudge).filter(IndieJudge.all_games_showcases != None,
-                                                      IndieJudge.status == c.CONFIRMED).options(
-                                                          joinedload(IndieJudge.reviews)):
+        for judge in session.scalars(select(IndieJudge).filter(
+            IndieJudge.all_games_showcases != None,
+            IndieJudge.status == c.CONFIRMED
+        ).options(joinedload(IndieJudge.reviews))).all():
             existing_reviews = [review.game_id for review in judge.reviews]
             for showcase in judge.all_games_showcases_ints:
                 for game in games_by_showcase[showcase]:
@@ -59,7 +61,8 @@ def mivs_assign_game_codes_to_judges():
 
 def should_send_reminder(session, studio, keys, render_data_key):
     # TODO: Test this
-    sent_emails = session.query(Email.ident).filter(Email.ident.contains('checklist_reminder'), Email.fk_id == studio.id)
+    sent_emails = session.scalars(select(Email.ident).filter(
+        Email.ident.contains('checklist_reminder'), Email.fk_id == studio.id)).all()
 
     already_reminded = set()
     for email in sent_emails:
@@ -73,7 +76,7 @@ def send_mivs_checklist_reminders():
         return
 
     with Session() as session:
-        studios = session.query(IndieStudio).join(Group).join(GuestGroup)
+        studios = session.scalars(select(IndieStudio).join(Group).join(GuestGroup)).all()
         for studio in studios:
             if studio.group and studio.group.guest:
                 due_soon, overdue = studio.checklist_items_due_soon_grouped

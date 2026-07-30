@@ -121,11 +121,11 @@ class Root:
         dept_filter = [Department.members_who_can_admin_checklist.any(
             Attendee.id == attendee.id)] if filtered else []
 
-        departments = session.query(Department).filter(*dept_filter) \
-            .options(
-                subqueryload(Department.members_who_can_admin_checklist),
-                subqueryload(Department.dept_checklist_items)) \
-            .order_by(Department.name)
+        departments = session.scalars(select(Department).filter(*dept_filter)
+                                      .options(
+            subqueryload(Department.members_who_can_admin_checklist),
+            subqueryload(Department.dept_checklist_items))
+            .order_by(Department.name)).all()
 
         overview = []
         for dept in departments:
@@ -161,10 +161,10 @@ class Root:
     @xlsx_file
     def overview_xlsx(self, out, session):
         checklist = list(DeptChecklistConf.instances.values())
-        departments = session.query(Department).options(
+        departments = session.scalars(select(Department).options(
             subqueryload(Department.members_who_can_admin_checklist),
-            subqueryload(Department.dept_checklist_items)) \
-            .order_by(Department.name)
+            subqueryload(Department.dept_checklist_items))
+            .order_by(Department.name)).all()
 
         header_row = ['Department']
         header_row.extend(item.name for item in checklist)
@@ -189,11 +189,11 @@ class Root:
     def item(self, session, slug):
         _check_dept_checklist_open()
         conf = DeptChecklistConf.instances[slug]
-        departments = session.query(Department) \
-            .options(
-                subqueryload(Department.checklist_admins),
-                subqueryload(Department.dept_checklist_items)) \
-            .order_by(Department.name)
+        departments = session.scalars(select(Department)
+                                      .options(
+            subqueryload(Department.checklist_admins),
+            subqueryload(Department.dept_checklist_items))
+            .order_by(Department.name)).all()
 
         emails = []
         for dept in departments:
@@ -214,11 +214,11 @@ class Root:
     @csv_file
     def item_csv(self, out, session, slug):
         conf = DeptChecklistConf.instances[slug]
-        departments = session.query(Department) \
-            .options(
-                subqueryload(Department.checklist_admins),
-                subqueryload(Department.dept_checklist_items)) \
-            .order_by(Department.name)
+        departments = session.scalars(select(Department)
+                                      .options(
+            subqueryload(Department.checklist_admins),
+            subqueryload(Department.dept_checklist_items))
+            .order_by(Department.name)).all()
         out.writerow([
             "Complete",
             "Completed By",
@@ -248,11 +248,11 @@ class Root:
 
         if department_id != '':
             dept_filter = [] if not department_id else [Attendee.dept_memberships.any(department_id=department_id)]
-            placeholders = session.query(Attendee).filter(
+            placeholders = session.scalars(select(Attendee).filter(
                 Attendee.placeholder == True,  # noqa: E712
                 Attendee.staffing == True,  # noqa: E712
                 Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]),
-                *dept_filter).order_by(Attendee.full_name).all()  # noqa: E712
+                *dept_filter).order_by(Attendee.full_name)).all()  # noqa: E712
 
         try:
             checklist = session.checklist_status('placeholders', department_id)
@@ -281,9 +281,10 @@ class Root:
 
         _check_dept_checklist_open(department_id)
 
-        requests = session.query(BulkPrintingRequest)
+        requests = session.scalars(select(BulkPrintingRequest)).all()
         if department_id not in ['', None]:
-            requests = session.query(BulkPrintingRequest).filter(BulkPrintingRequest.department_id == department_id)
+            requests = session.scalars(select(BulkPrintingRequest).filter(
+                BulkPrintingRequest.department_id == department_id)).all()
 
         request_forms = {}
         request_forms['new'] = load_forms(params, BulkPrintingRequest(), ['BulkPrintingRequestInfo'],
@@ -342,11 +343,11 @@ class Root:
             return {"error": all_errors}
 
         return {"success": True}
-    
+
     @csv_file
     def bulk_print_jobs_csv(self, out, session):
-        requests = session.query(BulkPrintingRequest, Department.name).join(
-            Department, BulkPrintingRequest.department_id == Department.id).order_by(Department.name)
+        requests = session.execute(select(BulkPrintingRequest, Department.name).join(
+            Department, BulkPrintingRequest.department_id == Department.id).order_by(Department.name)).all()
         out.writerow([
             "Department", "Document Link", "# Copies", "Print Orientation", "Cut Orientation", "Color/B&W",
             "Paper Type", "Print Size", "Double-Sided?", "Stapled?", "Required?", "Notes", "Last Updated"
@@ -396,10 +397,10 @@ class Root:
         attendees = []
 
         if department_id != '':
-            attendees = session.query(Attendee).filter(Attendee.hotel_eligible == True,  # noqa: E712
+            attendees = session.scalars(select(Attendee).filter(Attendee.hotel_eligible == True,  # noqa: E712
                                                        Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]),
                                                        Attendee.dept_memberships.any(department_id=department_id)
-                                                       ).order_by(Attendee.full_name).all()
+                                                       ).order_by(Attendee.full_name)).all()
 
         try:
             checklist = session.checklist_status('hotel_eligible', department_id)
@@ -429,13 +430,13 @@ class Root:
             Attendee.dept_memberships.any(department_id=department_id)]
 
         if department_id != '':
-            requests = session.query(HotelRequests) \
-                .join(HotelRequests.attendee) \
-                .options(joinedload(HotelRequests.attendee)) \
-                .filter(
+            requests = session.scalars(select(HotelRequests)
+                                       .join(HotelRequests.attendee)
+                                       .options(joinedload(HotelRequests.attendee))
+                                       .filter(
                 Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]),
-                *dept_filter) \
-                .order_by(Attendee.full_name).all()
+                *dept_filter)
+                .order_by(Attendee.full_name)).all()
 
         attendee = session.admin_attendee()
 
@@ -452,23 +453,23 @@ class Root:
             'department_name': c.DEPARTMENTS.get(department_id, 'All'),
             'declined_count': len([r for r in requests if r.nights == '']),
             'checklist': checklist,
-            'staffer_count': session.query(Attendee).filter(
-                Attendee.hotel_eligible == True, *dept_filter).count()  # noqa: E712
+            'staffer_count': len(session.scalars(select(Attendee.id).filter(
+                Attendee.hotel_eligible == True, *dept_filter)).all())  # noqa: E712
         }
 
     def hours(self, session):
-        staffers = session.query(Attendee) \
-            .filter(Attendee.hotel_eligible == True, Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS])) \
-            .options(joinedload(Attendee.hotel_requests), subqueryload(Attendee.shifts).subqueryload(Shift.job)) \
-            .order_by(Attendee.full_name).all()  # noqa: E712
+        staffers = session.scalars(select(Attendee)
+            .filter(Attendee.hotel_eligible == True, Attendee.badge_status.in_([c.NEW_STATUS, c.COMPLETED_STATUS]))
+            .options(joinedload(Attendee.hotel_requests), subqueryload(Attendee.shifts).subqueryload(Shift.job))
+            .order_by(Attendee.full_name)).all()  # noqa: E712
 
         return {'staffers': [s for s in staffers if s.hotel_shifts_required
                              and s.weighted_hours < c.HOURS_FOR_HOTEL_SPACE]}
 
     def no_shows(self, session):
-        room_assignments = session.query(RoomAssignment).options(
+        room_assignments = session.scalars(select(RoomAssignment).options(
             joinedload(RoomAssignment.attendee).joinedload(Attendee.hotel_requests),
-            joinedload(RoomAssignment.attendee).subqueryload(Attendee.room_assignments))
+            joinedload(RoomAssignment.attendee).subqueryload(Attendee.room_assignments))).all()
         staffers = [ra.attendee for ra in room_assignments if not ra.attendee.checked_in]
         return {'staffers': sorted(staffers, key=lambda a: a.full_name)}
 

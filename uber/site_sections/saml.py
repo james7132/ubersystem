@@ -47,8 +47,8 @@ class Root:
                 account_email = auth.get_nameid()
                 admin_account = None
                 account = None
-                matching_attendee = session.query(Attendee).filter_by(
-                    is_valid=True, normalized_email=normalize_email_legacy(account_email)).first()
+                matching_attendee = session.scalars(select(Attendee).filter_by(
+                    is_valid=True, normalized_email=normalize_email_legacy(account_email))).first()
                 message = "We could not find any accounts from the email {}. "\
                     "Please contact your administrator.".format(account_email)
 
@@ -62,7 +62,7 @@ class Root:
                             session.commit()
 
                         admin_account, pwd = session.create_admin_account(matching_attendee, generate_pwd=False)
-                        all_access_group = session.query(AccessGroup).filter_by(name="All Access").first()
+                        all_access_group = session.scalars(select(AccessGroup).filter_by(name="All Access")).first()
                         if not all_access_group:
                             all_access_group = AccessGroup(
                                 name='All Access',
@@ -78,8 +78,8 @@ class Root:
                 try:
                     account = session.get_attendee_account_by_email(account_email)
                 except NoResultFound:
-                    all_matching_attendees = session.query(Attendee).filter_by(
-                        normalized_email=normalize_email_legacy(account_email)).all()
+                    all_matching_attendees = session.scalars(select(Attendee).filter_by(
+                        normalized_email=normalize_email_legacy(account_email))).all()
                     if all_matching_attendees:
                         account = session.create_attendee_account(account_email)
                         for attendee in all_matching_attendees:

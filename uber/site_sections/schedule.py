@@ -25,7 +25,7 @@ class Root:
     @schedule_view
     @csv_file
     def time_ordered(self, out, session):
-        for event in session.query(Event).order_by('start_time', 'duration', 'location').all():
+        for event in session.scalars(select(Event).order_by('start_time', 'duration', 'location')).all():
             out.writerow([event.timespan(), event.name, event.guidebook_desc, event.location_name])
 
     @site_mappable(download=True)
@@ -33,9 +33,9 @@ class Root:
     def xml(self, session):
         cherrypy.response.headers['Content-type'] = 'text/xml'
         schedule = defaultdict(list)
-        for event in session.query(Event).order_by('start_time').all():
+        for event in session.scalars(select(Event).order_by('start_time')).all():
             schedule[event.location_name].append(event)
-        ordered_event_locations = session.query(EventLocation).order_by(EventLocation.name).all()
+        ordered_event_locations = session.scalars(select(EventLocation).order_by('name')).all()
         return render('schedule/schedule.xml', {
             'schedule': sorted(schedule.items(), key=lambda tup: c.ORDERED_EVENT_LOCS.index(tup[1][0].location))
         })
@@ -58,9 +58,9 @@ class Root:
         calname = '{}_{}_schedule'.format(c.EVENT_NAME, calname).lower().replace(' ', '_')
 
         for location in locations:
-            for event in session.query(Event)\
-                    .filter_by(event_location_id=location)\
-                    .order_by('start_time').all():
+            for event in session.scalars(select(Event)
+                                         .filter_by(event_location_id=location)
+                                         .order_by('start_time')).all():
                 icalendar.events.add(ics.Event(
                     name=event.name,
                     begin=event.start_time,
@@ -82,7 +82,7 @@ class Root:
     @csv_file
     def panels(self, out, session):
         out.writerow(['Panel', 'Time', 'Duration', 'Room', 'Description', 'Panelists'])
-        for event in sorted(session.query(Event).all(), key=lambda e: [e.start_time, e.location_name]):
+        for event in sorted(session.scalars(select(Event)).all(), key=lambda e: [e.start_time, e.location_name]):
             if 'Panel' in event.location_name or 'Autograph' in event.location_name:
                 panelist_names = ' / '.join(ap.attendee.full_name for ap in sorted(
                     event.assigned_panelists, key=lambda ap: ap.attendee.full_name))
@@ -110,7 +110,7 @@ class Root:
                 'description': event.public_description or event.description,
                 'panelists': [panelist.attendee.full_name for panelist in event.assigned_panelists]
             }
-            for event in sorted(session.query(Event).all(), key=lambda e: [e.start_time, e.location_name])
+            for event in sorted(session.scalars(select(Event)).all(), key=lambda e: [e.start_time, e.location_name])
         ], indent=4).encode('utf-8')
 
     @schedule_view
@@ -122,17 +122,17 @@ class Root:
 
         current, upcoming = [], []
         for location_id, name in c.SCHEDULE_LOCATION_OPTS:
-            approx = session.query(Event).join(Event.location).filter(
+            approx = session.scalars(select(Event).join(Event.location).filter(
                 EventLocation.id == location_id,
-                Event.start_time >= now - timedelta(hours=6), Event.start_time <= now).all()
+                Event.start_time >= now - timedelta(hours=6), Event.start_time <= now)).all()
             for event in approx:
                 if now in event.minutes:
                     current.append(event)
 
-            next_events = session.query(Event).join(Event.location).filter(
+            next_events = session.scalars(select(Event).join(Event.location).filter(
                 EventLocation.id == location_id,
                 Event.start_time >= now + timedelta(minutes=30),
-                Event.start_time <= now + timedelta(hours=4)).order_by('start_time').all()
+                Event.start_time <= now + timedelta(hours=4)).order_by('start_time')).all()
 
             if next_events:
                 upcoming.extend(event for event in next_events if event.start_time == next_events[0].start_time)
@@ -226,9 +226,9 @@ class Root:
 
         assigned_panelists = sorted(event.assigned_panelists, reverse=True, key=lambda a: a.attendee.first_name)
 
-        approved_panel_apps = session.query(PanelApplication).filter(
+        approved_panel_apps = session.scalars(select(PanelApplication).filter(
             PanelApplication.status == c.ACCEPTED,
-            PanelApplication.event_id == None).order_by('applied')  # noqa: E711
+            PanelApplication.event_id == None).order_by(PanelApplication.applied)).all()  # noqa: E711
 
         if cherrypy.request.method == 'POST':
             for form in forms.values():
@@ -299,8 +299,8 @@ class Root:
 
     def edit(self, session, message='', view_date=c.PANELS_EPOCH.date(), view_event=''):
         panelists = defaultdict(dict)
-        assigned_panelists = session.query(AssignedPanelist).options(
-            joinedload(AssignedPanelist.event), joinedload(AssignedPanelist.attendee)).all()
+        assigned_panelists = session.scalars(select(AssignedPanelist).options(
+            joinedload(AssignedPanelist.event), joinedload(AssignedPanelist.attendee))).all()
 
         for ap in assigned_panelists:
             panelists[ap.event.id][ap.attendee.id] = ap.attendee.full_name
@@ -310,7 +310,7 @@ class Root:
             view_date = event.start_time_local.date()
 
         event_list = []
-        for event in session.query(Event).order_by('start_time').all():
+        for event in session.scalars(select(Event).order_by('start_time')).all():
             event_list.append({
                 'id': event.id,
                 'resourceIds': [f"{event.location.id}" if event.location else "None"],
@@ -320,16 +320,16 @@ class Root:
                 'backgroundColor': "#198754" if event.id == view_event else "#0d6efd",
                 'extendedProps': {
                     'desc': event.description,
-                    }
+                }
             })
 
         locations = []
 
-        event_locations = session.query(EventLocation).options(
+        event_locations = session.scalars(select(EventLocation).options(
             selectinload(EventLocation.events), joinedload(EventLocation.department)
-        )
+        )).all()
 
-        if not event_locations.first():
+        if not event_locations:
             load_locations_from_config(session)
 
         location_filters = set()
@@ -351,8 +351,8 @@ class Root:
             })
             if location.department:
                 location_filters.add((location.department_id, location.department.name))
-        
-        if session.query(Event).filter(Event.event_location_id == None).first():
+
+        if session.scalars(select(Event).filter(Event.event_location_id == None)).first():
             locations.append({
                 'id': "None",
                 'title': "No Location",
@@ -383,13 +383,13 @@ class Root:
 
     def panelists_owed_refunds(self, session):
         return {
-            'panelists': [a for a in session.query(Attendee)
-                                            .filter_by(ribbon=c.PANELIST_RIBBON)
-                                            .options(joinedload(Attendee.group))
-                                            .order_by(Attendee.full_name).all()
+            'panelists': [a for a in session.scalars(select(Attendee)
+                                                     .filter_by(ribbon=c.PANELIST_RIBBON)
+                                                     .options(joinedload(Attendee.group))
+                                                     .order_by(Attendee.full_name)).all()
                           if a.paid_for_badge and not a.has_been_refunded]
         }
-    
+
     @csv_file
     def event_panel_info(self, out, session):
         content_opts_enabled = len(c.PANEL_CONTENT_OPTS) > 1
@@ -410,7 +410,7 @@ class Root:
             'Recording OK',
         ])
 
-        for app in session.query(PanelApplication).join(PanelApplication.event).order_by(Event.start_time):
+        for app in session.scalars(select(PanelApplication).join(PanelApplication.event).order_by(Event.start_time)).all():
             app_presentation = app.other_presentation if app.presentation == c.OTHER else app.presentation_label
             app_length = app.length_text if app.length == c.OTHER else app.length_label
             app_record_label = app.livestream_label if len(c.LIVESTREAM_OPTS) > 2 else app.record_label
@@ -430,13 +430,13 @@ class Root:
     @csv_file
     def panel_tech_needs(self, out, session):
         panels = defaultdict(dict)
-        panel_applications = session.query(PanelApplication).join(PanelApplication.event).join(
+        panel_applications = session.scalars(select(PanelApplication).join(PanelApplication.event).join(
             Event.location).join(EventLocation.department).filter(
                 Department.manages_panels == True,
-                PanelApplication.event_id == Event.id)
-        
-        panel_rooms = session.query(EventLocation).join(EventLocation.department).filter(
-            Department.manages_panels == True)
+                PanelApplication.event_id == Event.id)).all()
+
+        panel_rooms = session.scalars(select(EventLocation).join(EventLocation.department).filter(
+            Department.manages_panels == True)).all()
 
         for panel in panel_applications:
             panels[panel.event.start_time_local][panel.event.event_location_id] = panel

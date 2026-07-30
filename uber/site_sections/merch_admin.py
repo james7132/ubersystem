@@ -27,14 +27,15 @@ def attendee_from_id_or_badge_num(session, badge_num_or_qr_code):
         message = 'Invalid badge number.'
 
     if id:
-        attendee = session.query(Attendee).filter(or_(Attendee.id == id, Attendee.public_id == id)).first()
+        attendee = session.scalars(select(Attendee).filter(or_(Attendee.id == id, Attendee.public_id == id))).first()
         if not attendee:
             message = f"No attendee found with ID {id}."
     elif not message:
-        attendee = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == badge_num_or_qr_code).first()
+        attendee = session.scalars(select(Attendee).join(BadgeInfo).filter(
+            BadgeInfo.ident == badge_num_or_qr_code)).first()
         if not attendee:
             message = f'No attendee has badge number {badge_num_or_qr_code}.'
-    
+
     if attendee:
         if not attendee.has_badge:
             message = f'{attendee.name_and_badge_info} has an invalid badge status: {attendee.badge_status_label}.'
@@ -79,10 +80,10 @@ class Root:
         elif not badge_num.isdigit():
             message = 'Invalid badge number.'
         else:
-            attendee = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == badge_num).first()
+            attendee = session.scalars(select(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == badge_num)).first()
             if not attendee:
                 message = f'No attendee has badge number {badge_num}.'
-        
+
         if attendee:
             if not attendee.has_badge:
                 message = f'This badge has an invalid status: {attendee.badge_status_label}.'
@@ -148,7 +149,8 @@ class Root:
         if csrf_token:
             check_csrf(csrf_token)
             try:
-                picker_upper = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == int(picker_upper)).one()
+                picker_upper = session.scalars(select(Attendee).join(
+                    BadgeInfo).filter(BadgeInfo.ident == int(picker_upper))).one()
             except Exception:
                 message = 'Please enter a valid badge number for the person picking up the merch: ' \
                     '{} is not in the system'.format(picker_upper)
@@ -156,7 +158,8 @@ class Root:
                 for badge_num in set(badges):
                     if badge_num:
                         try:
-                            attendee = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == int(badge_num)).one()
+                            attendee = session.scalars(select(Attendee).join(
+                                BadgeInfo).filter(BadgeInfo.ident == int(badge_num))).one()
                         except Exception:
                             picked_up.append('{!r} is not a valid badge number'.format(badge_num))
                         else:
@@ -315,7 +318,7 @@ class Root:
         if attendee.badge_type != c.STAFF_BADGE:
             return {'error': 'Only staff badges are eligible for discount.'}
 
-        discount = session.query(MerchDiscount).filter_by(attendee_id=attendee.id).first()
+        discount = session.scalars(select(MerchDiscount).filter_by(attendee_id=attendee.id)).first()
         if not apply:
             if discount:
                 return {
@@ -387,7 +390,8 @@ class Root:
         message = check(sale)
         if not message and badge_num is not None:
             try:
-                sale.attendee = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == badge_num).one()
+                sale.attendee = session.scalars(select(Attendee).join(
+                    BadgeInfo).filter(BadgeInfo.ident == badge_num)).one()
             except Exception:
                 message = 'No attendee has that badge number'
 

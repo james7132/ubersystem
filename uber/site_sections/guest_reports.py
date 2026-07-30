@@ -38,7 +38,7 @@ class Root:
             'Travel Mode(s)', 'Travel Mode(s) Text', 'Travel Details',
             'Needs Rehearsal?',
         ])
-        for guest in [guest for guest in session.query(GuestGroup).all() if session.admin_can_see_guest_group(guest)]:
+        for guest in [guest for guest in session.scalars(select(GuestGroup)).all() if session.admin_can_see_guest_group(guest)]:
             absolute_pic_url, absolute_stageplot_url = '', ''
             if guest.bio:
                 bio_pic_file = FileService.get_existing_files(session, guest.bio, and_flags=['bio_pic'])
@@ -77,7 +77,7 @@ class Root:
         out.writerow(['Guest Type', 'Group Name', 'Travel Mode', 'Travel Mode Text', 'Traveller', 'Companions',
                       'Luggage Needs', 'Contact Email', 'Contact Phone', 'Arrival Time',
                       'Arrival Details', 'Departure Time', 'Departure Details', 'Extra Details'])
-        for travel_plan in [plan for plan in session.query(GuestTravelPlans).all() if session.admin_can_see_guest_group(plan.guest)]:
+        for travel_plan in [plan for plan in session.scalars(select(GuestTravelPlans)).all() if session.admin_can_see_guest_group(plan.guest)]:
             for plan in travel_plan.detailed_travel_plans:
                 content_row = [travel_plan.guest.group_type_label, travel_plan.guest.group.name]
                 content_row.extend([plan.mode_label, plan.mode_text, plan.traveller, plan.companions,
@@ -86,12 +86,12 @@ class Root:
                                     time_day_local(plan.departure_time), plan.departure_details,
                                     plan.extra_details])
                 out.writerow(content_row)
-    
+
     @csv_file
     def panel_info_csv(self, out, session):
         out.writerow(['Guest', 'App Status', 'Name', 'Description', 'Schedule Description', 'Length',
                       'Department', 'Type of Panel', 'Location', 'Date/Time'])
-        for guest in [guest for guest in session.query(GuestGroup).all() if session.admin_can_see_guest_group(guest)]:
+        for guest in [guest for guest in session.scalars(select(GuestGroup)).all() if session.admin_can_see_guest_group(guest)]:
             if guest.group and guest.group.leader:
                 for app in guest.group.leader.submitted_panels:
                     out.writerow([
@@ -106,27 +106,26 @@ class Root:
                         app.event.timespan() if app.event else '(not scheduled)',
                     ])
 
-
     @site_mappable
     def rock_island(self, session, message='', only_empty=None, id=None, **params):
-        query = session.query(GuestGroup).options(
-                subqueryload(GuestGroup.group)).options(
-                subqueryload(GuestGroup.merch))
+        query = select(GuestGroup).options(
+            subqueryload(GuestGroup.group)).options(
+            subqueryload(GuestGroup.merch))
         if id:
-            guest_groups = [query.get(id)]
+            guest_groups = [session.get(GuestGroup, id)]
         else:
             if only_empty:
                 empty_filter = [GuestMerch.inventory == '{}']
             else:
                 empty_filter = []
-            guest_groups = query.filter(
+            guest_groups = session.scalars(query.filter(
                 GuestGroup.id == GuestMerch.guest_id,
                 GuestMerch.selling_merch == c.ROCK_ISLAND,
                 GuestGroup.group_id == Group.id).filter(
-                *empty_filter).order_by(Group.name).all()
-        
+                *empty_filter).order_by(Group.name)).all()
+
         guest_tracks = defaultdict(list)
-        tracks = session.query(File).filter(File.fk_model == 'GuestGroup')
+        tracks = session.scalars(select(File).filter(File.fk_model == 'GuestGroup')).all()
         for track in tracks:
             guest_tracks[track.fk_id].append(track.html_link)
 
@@ -148,21 +147,21 @@ class Root:
             'Online Sale Price', 'Archived', 'Sellable', 'Contains Alcohol', 'Stockable', 'Skip Detail Screen in POS',
             'Option Name 1', 'Option Value 1', 'Current Quantity MAGFest Rock Island', 'New Quantity MAGFest Rock Island',
             'Stock Alert Enabled MAGFest Rock Island', 'Stock Alert Count MAGFest Rock Island', 'Tax - Sales Tax (6%)'
-            ]
-        
-        query = session.query(GuestGroup).options(
-                subqueryload(GuestGroup.group)).options(
-                subqueryload(GuestGroup.merch))
-        
+        ]
+
+        query = select(GuestGroup).options(
+            subqueryload(GuestGroup.group)).options(
+            subqueryload(GuestGroup.merch))
+
         if id:
-            guest_groups = [query.get(id)]
+            guest_groups = [session.get(GuestGroup, id)]
         else:
-            guest_groups = query.filter(
+            guest_groups = session.scalars(query.filter(
                 GuestGroup.id == GuestMerch.guest_id,
                 GuestMerch.selling_merch == c.ROCK_ISLAND,
                 GuestGroup.group_id == Group.id).order_by(
-                Group.name).all()
-        
+                Group.name)).all()
+
         rows = []
         item_type_square_name = {
             c.CD: "MUSIC",
@@ -212,17 +211,17 @@ class Root:
         out.writerow([
             'Group Name', 'Inventory Type', 'Inventory Name', 'Price', 'Media', 'Quantity', 'Promo Picture URL',
         ])
-        query = session.query(GuestGroup).options(
-                subqueryload(GuestGroup.group)).options(
-                subqueryload(GuestGroup.merch))
+        query = select(GuestGroup).options(
+            subqueryload(GuestGroup.group)).options(
+            subqueryload(GuestGroup.merch))
         if id:
-            guest_groups = [query.get(id)]
+            guest_groups = [session.get(GuestGroup, id)]
         else:
-            guest_groups = query.filter(
+            guest_groups = session.scalars(query.filter(
                 GuestGroup.id == GuestMerch.guest_id,
                 GuestMerch.selling_merch == c.ROCK_ISLAND,
                 GuestGroup.group_id == Group.id).order_by(
-                Group.name).all()
+                Group.name)).all()
 
         def _inventory_sort_key(item):
             return ' '.join([
@@ -258,18 +257,18 @@ class Root:
 
     @multifile_zipfile
     def rock_island_image_zip(self, zip_file, session, id=None, **params):
-        query = session.query(GuestGroup).options(
-                subqueryload(GuestGroup.group)).options(
-                subqueryload(GuestGroup.merch))
+        query = select(GuestGroup).options(
+            subqueryload(GuestGroup.group)).options(
+            subqueryload(GuestGroup.merch))
         if id:
-            guest_groups = [query.get(id)]
+            guest_groups = [session.get(GuestGroup, id)]
         else:
-            guest_groups = query.filter(
+            guest_groups = session.scalars(query.filter(
                 GuestGroup.id == GuestMerch.guest_id,
                 GuestMerch.selling_merch == c.ROCK_ISLAND,
                 GuestGroup.group_id == Group.id).order_by(
-                Group.name).all()
-            
+                Group.name)).all()
+
         def _inventory_sort_key(item):
             return ' '.join([
                 c.MERCH_TYPES[int(item['type'])],
@@ -291,13 +290,13 @@ class Root:
 
     @csv_file
     def rock_island_info_csv(self, out, session):
-        guest_groups = session.query(GuestGroup).options(
-                subqueryload(GuestGroup.group)).options(
-                subqueryload(GuestGroup.merch)).filter(
-                    GuestGroup.id == GuestMerch.guest_id,
-                    GuestMerch.selling_merch == c.ROCK_ISLAND,
-                    GuestGroup.group_id == Group.id).order_by(
-                        Group.name).all()
+        guest_groups = session.scalars(select(GuestGroup).options(
+            subqueryload(GuestGroup.group)).options(
+            subqueryload(GuestGroup.merch)).filter(
+            GuestGroup.id == GuestMerch.guest_id,
+            GuestMerch.selling_merch == c.ROCK_ISLAND,
+            GuestGroup.group_id == Group.id).order_by(
+            Group.name)).all()
 
         out.writerow(['Group Name', 'PoC Name', 'PoC Phone #', 'PoC Email', 'PoC Address 1', 'PoC Address 2',
                       'PoC City', 'PoC Region', 'PoC ZipCode', 'PoC Country', 'Meet N Greet', 'Delivery Method',
@@ -347,9 +346,9 @@ class Root:
             'Meet & Greet Length (Minutes)'
         ])
 
-        autograph_sessions = session.query(GuestAutograph
+        autograph_sessions = session.scalars(select(GuestAutograph
                                            ).filter(or_(GuestAutograph.num > 0,
-                                                        GuestAutograph.rock_island_autographs == True))  # noqa: E712
+                                                        GuestAutograph.rock_island_autographs == True))).all()  # noqa: E712
         for request in autograph_sessions:
             out.writerow([request.guest.group.name,
                           request.num,

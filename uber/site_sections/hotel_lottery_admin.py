@@ -24,14 +24,15 @@ from uber.utils import Order, get_page, localized_now, validate_model, get_age_f
 
 log = logging.getLogger(__name__)
 
+
 def _search(session, text):
-    applications = session.query(LotteryApplication)
+    applications = select(LotteryApplication)
 
     terms = text.split()
     if len(terms) == 1 and terms[0].isdigit():
         if len(terms[0]) == 10:
             return applications.filter(or_(LotteryApplication.confirmation_num == terms[0])), ''
-    
+
     check_list = []
     for attr in [col for col in LotteryApplication().__table__.columns if isinstance(col.type, String)]:
         check_list.append(attr.ilike('%' + text + '%'))
@@ -175,39 +176,40 @@ def solve_lottery(applications, hotel_rooms, lottery_type=c.ROOM_ENTRY):
         log.error(f"Error solving room lottery: {status}")
         return None
 
+
 @all_renderable()
 class Root:
     def index(self, session, message='', page='0', search_text='', order='status'):
         if c.DEV_BOX and not int(page):
             page = 1
 
-        total_count = session.query(LotteryApplication.id).count()
-        complete_valid_entries = session.query(LotteryApplication.id).filter(LotteryApplication.status == c.COMPLETE).join(
+        total_count = len(session.scalars(select(LotteryApplication.id)).all())
+        complete_valid_entries = select(LotteryApplication.id).filter(LotteryApplication.status == c.COMPLETE).join(
             LotteryApplication.attendee).filter(Attendee.hotel_lottery_eligible == True)
         room_count_base = complete_valid_entries.filter(LotteryApplication.entry_type != c.GROUP_ENTRY)
         count = 0
         search_text = search_text.strip()
         if search_text:
             search_results, message = _search(session, search_text)
-            if search_results and search_results.count():
+            if search_results and len(session.scalars(search_results).all()):
                 applications = search_results
-                count = applications.count()
+                count = len(session.scalars(applications).all())
                 if count == total_count:
                     message = 'Every lottery application matched this search.'
             elif not message:
                 message = 'No matches found. Try searching the lottery tracking history instead.'
         if not count:
-            applications = session.query(LotteryApplication)
-            count = applications.count()
+            applications = select(LotteryApplication)
+            count = len(session.scalars(applications).all())
 
-        applications = applications.order(order).options(joinedload(LotteryApplication.attendee))
+        all_apps = session.scalars(applications.order(order).options(joinedload(LotteryApplication.attendee))).all()
 
         page = int(page)
         if search_text:
             page = page or 1
 
         pages = range(1, int(math.ceil(count / 100)) + 1)
-        applications = applications[-100 + 100*page: 100*page] if page else []
+        applications = all_apps[-100 + 100*page: 100*page] if page else []
 
         return {
             'message':        message if isinstance(message, str) else message[-1],
@@ -219,14 +221,14 @@ class Root:
             'order':          Order(order),
             'search_count':   count,
             'total_count':    total_count,
-            'complete_count': complete_valid_entries.count(),
-            'suite_count': room_count_base.filter(LotteryApplication.entry_type == c.SUITE_ENTRY).count(),
-            'room_count': room_count_base.filter(or_(LotteryApplication.entry_type == c.ROOM_ENTRY,
-                                                     LotteryApplication.room_opt_out == False)).count(),
+            'complete_count': len(session.scalars(complete_valid_entries).all()),
+            'suite_count': len(session.scalars(room_count_base.filter(LotteryApplication.entry_type == c.SUITE_ENTRY)).all()),
+            'room_count': len(session.scalars(room_count_base.filter(or_(LotteryApplication.entry_type == c.ROOM_ENTRY,
+                                                     LotteryApplication.room_opt_out == False))).all()),
         }  # noqa: E711
 
     def feed(self, session, message='', page='1', who='', what='', action=''):
-        feed = session.query(Tracking).filter(Tracking.model == 'LotteryApplication').order_by(Tracking.when.desc())
+        feed = select(Tracking).filter(Tracking.model == 'LotteryApplication').order_by(Tracking.when.desc())
         what = what.strip()
         if who:
             feed = feed.filter_by(who=who)
@@ -238,30 +240,31 @@ class Root:
             feed = feed.filter(or_(*or_filters))
         if action:
             feed = feed.filter_by(action=action)
+        all_feed = session.scalars(feed).all()
         return {
             'message': message,
             'who': who,
             'what': what,
             'page': page,
             'action': action,
-            'count': feed.count(),
-            'feed': get_page(page, feed),
+            'count': len(all_feed),
+            'feed': get_page(page, all_feed),
             'action_opts': c.TRACKING_OPTS,
             'who_opts': [
-                who for [who] in session.query(Tracking).filter(
-                    Tracking.model == 'LotteryApplication').distinct().order_by(Tracking.who).values(Tracking.who)]
+                who for [who] in session.execute(select(Tracking.who).filter(
+                    Tracking.model == 'LotteryApplication').distinct().order_by(Tracking.who)).all()]
         }
-    
+
     def mark_staff_processed(self, session, **params):
-        for app in session.query(LotteryApplication).filter(LotteryApplication.is_staff_entry,
-                                                            LotteryApplication.status == c.COMPLETE):
+        for app in session.scalars(select(LotteryApplication).filter(LotteryApplication.is_staff_entry,
+                                                                     LotteryApplication.status == c.COMPLETE)):
             app.status = c.PROCESSED
             session.add(app)
             session.commit()
 
         raise HTTPRedirect('index?message={}',
                            "All complete staff entries marked as processed.")
-    
+
     @ajax
     def validate_hotel_lottery(self, session, id=None, form_list=[], **params):
         application = session.lottery_application(id)
@@ -320,37 +323,36 @@ class Root:
         application = session.lottery_application(id)
         return {
             'application':  application,
-            'changes': session.query(Tracking).filter(Tracking.model == 'LotteryApplication', Tracking.fk_id == id
-                                                      ).order_by(Tracking.when).all(),
-            'pageviews': session.query(PageViewTracking).filter(PageViewTracking.which == repr(application)
-                                                                ).order_by(PageViewTracking.when).all(),
+            'changes': session.scalars(select(Tracking).filter(Tracking.model == 'LotteryApplication', Tracking.fk_id == id
+                                                               ).order_by(Tracking.when)).all(),
+            'pageviews': session.scalars(select(PageViewTracking).filter(PageViewTracking.which == repr(application)
+                                                                         ).order_by(PageViewTracking.when)).all(),
         }
-    
+
     def emails(self, session, id):
         application = session.lottery_application(id)
         return {
             'application':  application,
-            'emails': session.query(Email).filter(Email.fk_id == id).order_by(Email.generated).all(),
+            'emails': session.scalars(select(Email).filter(Email.fk_id == id).order_by(Email.generated)).all(),
             'depts_by_sender': EmailService.emails_from_depts(session),
         }
-    
+
     def show_awards(self, session, **params):
-        applications = session.query(LotteryApplication).filter(LotteryApplication.status.in_([c.AWARDED, c.REJECTED, c.REMOVED]),
-                                                                LotteryApplication.final_status_hidden == True)
-        total = applications.count()
-        for app in applications:
+        all_apps = session.scalars(select(LotteryApplication).filter(LotteryApplication.status.in_([c.AWARDED, c.REJECTED, c.REMOVED]),
+                                                                     LotteryApplication.final_status_hidden == True)).all()
+        total = len(all_apps)
+        for app in all_apps:
             app.final_status_hidden = False
             session.add(app)
 
         raise HTTPRedirect('index?message={}',
                            f"{total} awarded, rejected, and removed from group lottery entries can now see their status.")
-        
 
     def publish_booking_links(self, session, **params):
-        applications = session.query(LotteryApplication).filter(LotteryApplication.booking_url != '',
-                                                                LotteryApplication.booking_url_hidden == True)
-        total = applications.count()
-        for app in applications:
+        all_apps = session.scalars(select(LotteryApplication).filter(LotteryApplication.booking_url != '',
+                                                                     LotteryApplication.booking_url_hidden == True)).all()
+        total = len(all_apps)
+        for app in all_apps:
             app.booking_url_hidden = False
             session.add(app)
 
@@ -358,14 +360,14 @@ class Root:
                            f"{total} lottery entries can now see their booking link.")
 
     def close_waitlist(self, session, **params):
-        applications = session.query(LotteryApplication).filter(LotteryApplication.status == c.COMPLETE,
-                                                                LotteryApplication.last_submitted < c.HOTEL_LOTTERY_FORM_WAITLIST)
+        all_apps = session.scalars(select(LotteryApplication).filter(LotteryApplication.status == c.COMPLETE,
+                                                                     LotteryApplication.last_submitted < c.HOTEL_LOTTERY_FORM_WAITLIST)).all()
 
-        total = applications.count()
-        for app in applications:
+        total = len(all_apps)
+        for app in all_apps:
             app.last_submitted = localized_now()
             session.add(app)
-        
+
         raise HTTPRedirect('index?message={}',
                            f"{total} locked 'first-round' lottery entries are now unlocked.")
 
@@ -377,8 +379,8 @@ class Root:
             lottery_type = c.SUITE_ENTRY
         else:
             raise ValueError(f"Unknown lottery_type {lottery_type_val}")
-        
-        applications = session.query(LotteryApplication).filter(LotteryApplication.status == c.PROCESSED)
+
+        applications = select(LotteryApplication).filter(LotteryApplication.status == c.PROCESSED)
 
         if lottery_type == c.SUITE_ENTRY:
             applications = applications.filter(LotteryApplication.assigned_suite_type != None)
@@ -390,11 +392,11 @@ class Root:
             applications = applications.filter(LotteryApplication.is_staff_entry == False)
         elif lottery_group_val == "staff":
             applications = applications.filter(LotteryApplication.is_staff_entry == True)
-        
-        total = applications.count()
-        applications = applications.all()
-        
-        for app in applications:
+
+        all_apps = session.scalars(applications).all()
+        total = len(all_apps)
+
+        for app in all_apps:
             app.status = c.COMPLETE
             app.assigned_hotel = None
             app.assigned_room_type = None
@@ -413,8 +415,8 @@ class Root:
             lottery_type = c.SUITE_ENTRY
         else:
             raise ValueError(f"Unknown lottery_type {lottery_type_val}")
-        
-        applications = session.query(LotteryApplication).join(LotteryApplication.attendee).filter(
+
+        applications = select(LotteryApplication).join(LotteryApplication.attendee).filter(
             LotteryApplication.status == c.PROCESSED, Attendee.hotel_lottery_eligible == True)
 
         if lottery_type == c.SUITE_ENTRY:
@@ -427,11 +429,11 @@ class Root:
             applications = applications.filter(LotteryApplication.is_staff_entry == False)
         elif lottery_group_val == "staff":
             applications = applications.filter(LotteryApplication.is_staff_entry == True)
-        
-        total = applications.count()
-        applications = applications.all()
-        
-        for app in applications:
+
+        all_apps = session.scalars(applications).all()
+        total = len(all_apps)
+
+        for app in all_apps:
             app.status = c.AWARDED
             if c.HOTEL_LOTTERY_GUARANTEE_HOURS:
                 dt = localized_now() + timedelta(hours=c.HOTEL_LOTTERY_GUARANTEE_HOURS).date()
@@ -440,15 +442,15 @@ class Root:
         session.commit()
         raise HTTPRedirect('index?message={}',
                            f"{total} {lottery_type_val} {lottery_group_val} processed lottery entries have been awarded.")
-        
+
     def run_lottery(self, session, lottery_group="attendee", lottery_type="room", **params):
         if lottery_type == "room":
             lottery_type_val = c.ROOM_ENTRY
         if lottery_type == "suite":
             lottery_type_val = c.SUITE_ENTRY
-        applications = session.query(LotteryApplication).join(LotteryApplication.attendee
-                                                              ).filter(LotteryApplication.status == c.COMPLETE,
-                                                                       Attendee.hotel_lottery_eligible == True)
+        applications = select(LotteryApplication).join(LotteryApplication.attendee
+                                                       ).filter(LotteryApplication.status == c.COMPLETE,
+                                                                Attendee.hotel_lottery_eligible == True)
 
         if params.get('cutoff', ''):
             last_time = dateparser.parse(params['cutoff']).replace(tzinfo=c.EVENT_TIMEZONE)
@@ -467,16 +469,16 @@ class Root:
             applications = applications.filter(LotteryApplication.is_staff_entry == True)
         elif lottery_group == "attendee":
             applications = applications.filter(LotteryApplication.is_staff_entry == False)
-            
-        applications = applications.all()
-        assigned_applications = session.query(LotteryApplication.assigned_hotel,
-                                              LotteryApplication.assigned_room_type,
-                                              func.count(LotteryApplication.id)).join(LotteryApplication.attendee).filter(
-                                                  LotteryApplication.status.in_(c.HOTEL_LOTTERY_AWARD_STATUSES),
-                                                  LotteryApplication.entry_type != c.GROUP_ENTRY,
-                                                  ).group_by(LotteryApplication.assigned_hotel).group_by(
-                                                      LotteryApplication.assigned_room_type).all()
-        
+
+        applications = session.scalars(applications).all()
+        assigned_applications = session.execute(select(LotteryApplication.assigned_hotel,
+                                                       LotteryApplication.assigned_room_type,
+                                                       func.count(LotteryApplication.id)).join(LotteryApplication.attendee).filter(
+            LotteryApplication.status.in_(c.HOTEL_LOTTERY_AWARD_STATUSES),
+            LotteryApplication.entry_type != c.GROUP_ENTRY,
+        ).group_by(LotteryApplication.assigned_hotel,
+                   LotteryApplication.assigned_room_type)).all()
+
         assigned_applications_dict = {(hotel, room_type): count for hotel, room_type, count in assigned_applications}
 
         if lottery_type_val == c.SUITE_ENTRY:
@@ -526,16 +528,17 @@ class Root:
             'hotel_lookup': dict(c.HOTEL_LOTTERY_HOTELS_OPTS),
             'room_or_suite_lookup': room_or_suite_lookup,
         }
-    
+
     def hotel_inventory(self, session, message=''):
-        assigned_applications = session.query(
+        assigned_applications = session.execute(select(
             LotteryApplication.assigned_hotel, LotteryApplication.assigned_room_or_suite_type, LotteryApplication.status,
             func.count(LotteryApplication.id)).join(LotteryApplication.attendee).filter(
                 LotteryApplication.status.in_(c.HOTEL_LOTTERY_AWARD_STATUSES),
                 LotteryApplication.entry_type != c.GROUP_ENTRY,
-                ).group_by(LotteryApplication.assigned_hotel).group_by(
-                    LotteryApplication.assigned_room_or_suite_type).group_by(LotteryApplication.status).all()
-        
+        ).group_by(LotteryApplication.assigned_hotel,
+                   LotteryApplication.assigned_room_or_suite_type,
+                   LotteryApplication.status)).all()
+
         assigned_applications_dict = defaultdict(list)
         for hotel, room_type, status, count in assigned_applications:
             assigned_applications_dict[(hotel, room_type)].append((status, count))
@@ -576,9 +579,9 @@ class Root:
                       'Guest3CheckInDate', 'Guest3CheckOutDate', 'Guest3FirstName', 'Guest3LastName', 'Guest3Phone', 'Guest3Email',
                       'Guest4CheckInDate', 'Guest4CheckOutDate', 'Guest4FirstName', 'Guest4LastName', 'Guest4Phone', 'Guest4Email',])
 
-        assigned_entries = session.query(LotteryApplication).filter(
+        assigned_entries = session.scalars(select(LotteryApplication).filter(
             or_(LotteryApplication.status == c.AWARDED, LotteryApplication.status == c.SECURED),
-            LotteryApplication.entry_type != c.GROUP_ENTRY).order_by(LotteryApplication.assigned_hotel)
+            LotteryApplication.entry_type != c.GROUP_ENTRY).order_by(LotteryApplication.assigned_hotel)).all()
 
         for entry in assigned_entries:
             check_in_date = entry.assigned_check_in_date
@@ -589,56 +592,60 @@ class Root:
                    entry.ada_requests, entry.wants_ada,
                    check_in_date, check_out_date, entry.legal_first_name, entry.legal_last_name, entry.cellphone, entry.email]
             for member in entry.valid_group_members:
-                row.extend([check_in_date, check_out_date, member.legal_first_name, member.legal_last_name, member.cellphone, member.email])
+                row.extend([check_in_date, check_out_date, member.legal_first_name,
+                           member.legal_last_name, member.cellphone, member.email])
             out.writerow(row)
-    
+
     @xlsx_file
     def hotel_inventory_xlsx(self, out, session, hotel_enum):
         rows = []
-        
-        assigned_entries = session.query(LotteryApplication).filter(
+
+        assigned_entries = select(LotteryApplication).filter(
             LotteryApplication.status.in_(c.HOTEL_LOTTERY_AWARD_STATUSES),
             LotteryApplication.entry_type != c.GROUP_ENTRY,
             LotteryApplication.assigned_hotel == int(hotel_enum)
-            )
-        
-        earliest_check_in = assigned_entries.order_by(LotteryApplication.assigned_check_in_date).first().assigned_check_in_date
-        latest_check_out = assigned_entries.order_by(LotteryApplication.assigned_check_out_date.desc()).first().assigned_check_out_date
-        date_range = [earliest_check_in + timedelta(days=x) for x in range(0, (latest_check_out - earliest_check_in).days)] + [latest_check_out]
+        )
+
+        earliest_check_in = session.scalars(assigned_entries.order_by(
+            LotteryApplication.assigned_check_in_date)).first().assigned_check_in_date
+        latest_check_out = session.scalars(assigned_entries.order_by(
+            LotteryApplication.assigned_check_out_date.desc())).first().assigned_check_out_date
+        date_range = [earliest_check_in + timedelta(days=x) for x in range(0,
+                                                                           (latest_check_out - earliest_check_in).days)] + [latest_check_out]
 
         header_row = [''] + [date.strftime("%A %-m/%-d") for date in date_range]
         for _, room_item in c.HOTEL_LOTTERY_ROOM_TYPES.items():
             room_enum, room_info = room_item
             row = [room_info['name']]
             for date in date_range:
-                row.append(assigned_entries.filter(LotteryApplication.assigned_room_type == room_enum,
-                                                   LotteryApplication.assigned_check_in_date <= date,
-                                                   LotteryApplication.assigned_check_out_date >= date).count())
+                row.append(len(session.scalars(assigned_entries.filter(LotteryApplication.assigned_room_type == room_enum,
+                                                                       LotteryApplication.assigned_check_in_date <= date,
+                                                                       LotteryApplication.assigned_check_out_date >= date)).all()))
             rows.append(row)
-        
-        if assigned_entries.filter(LotteryApplication.assigned_suite_type != None).count():
+
+        if len(session.scalars(assigned_entries.filter(LotteryApplication.assigned_suite_type != None)).all()):
             for _, suite_item in c.HOTEL_LOTTERY_SUITE_ROOM_TYPES.items():
                 suite_enum, suite_info = suite_item
                 row = [suite_info['name']]
                 for date in date_range:
-                    row.append(assigned_entries.filter(LotteryApplication.assigned_suite_type == suite_enum,
-                                                    LotteryApplication.assigned_check_in_date <= date,
-                                                    LotteryApplication.assigned_check_out_date >= date).count())
+                    row.append(len(session.scalars(assigned_entries.filter(LotteryApplication.assigned_suite_type == suite_enum,
+                                                                           LotteryApplication.assigned_check_in_date <= date,
+                                                                           LotteryApplication.assigned_check_out_date >= date)).all()))
                 rows.append(row)
-        
+
         out.writerows(header_row, rows)
 
     @multifile_zipfile
     def hotel_inventory_zip(self, zip_file, session):
         for key, hotel_item in c.HOTEL_LOTTERY_HOTELS.items():
             hotel_enum, _ = hotel_item
-            assigned_entries = session.query(LotteryApplication).filter(
+            assigned_entries = select(LotteryApplication).filter(
                 LotteryApplication.status.in_(c.HOTEL_LOTTERY_AWARD_STATUSES),
                 LotteryApplication.entry_type != c.GROUP_ENTRY,
                 LotteryApplication.assigned_hotel == int(hotel_enum)
-                )
+            )
 
-            if assigned_entries.count():
+            if len(session.scalars(assigned_entries).all()):
                 output = self.hotel_inventory_xlsx(hotel_enum=hotel_enum, set_headers=False)
                 zip_file.writestr(f'hotel_inventory_{key}.xlsx', output)
 
@@ -646,8 +653,8 @@ class Root:
     def accepted_dealers(self, out, session):
         out.writerow(['Group Name', 'Group ID', 'Reg ID'])
 
-        for dealer in session.query(Attendee).join(Group, Attendee.group_id == Group.id).filter(
-            Group.is_dealer, Group.status.in_(c.DEALER_ACCEPTED_STATUSES)):
+        for dealer in session.scalars(select(Attendee).join(Group, Attendee.group_id == Group.id).filter(
+                Group.is_dealer, Group.status.in_(c.DEALER_ACCEPTED_STATUSES))).all():
             out.writerow([dealer.group.name, dealer.group.id, dealer.id])
 
     @csv_file
@@ -705,15 +712,15 @@ class Root:
 
         out.writerow(header_row)
 
-        applications = session.query(LotteryApplication).join(LotteryApplication.attendee
-                                                              ).filter(LotteryApplication.status != c.PROCESSED,
-                                                                       Attendee.hotel_lottery_eligible == True)
+        applications = select(LotteryApplication).join(LotteryApplication.attendee
+                                                       ).filter(LotteryApplication.status != c.PROCESSED,
+                                                                Attendee.hotel_lottery_eligible == True)
         if staff_lottery:
             applications = applications.filter(LotteryApplication.is_staff_entry == True)
         else:
             applications = applications.filter(LotteryApplication.is_staff_entry == False)
 
-        for app in applications:
+        for app in session.scalars(applications).all():
             attendee = app.attendee
             row = []
 

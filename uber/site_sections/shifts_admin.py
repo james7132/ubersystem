@@ -100,9 +100,9 @@ class Root:
             jobs = session.jobs(department_id).all()
             for job in jobs:
                 by_start[job.start_time_local].append(job)
-            dept_shifts_days = session.query(date_trunc_day(Job.start_time)).filter(
+            dept_shifts_days = session.scalars(select(date_trunc_day(Job.start_time)).filter(
                 Job.department_id == department.id
-                ).group_by(date_trunc_day(Job.start_time)).order_by(date_trunc_day(Job.start_time)).all()
+            ).group_by(date_trunc_day(Job.start_time)).order_by(date_trunc_day(Job.start_time))).all()
 
         try:
             checklist = session.checklist_status('creating_shifts', department_id)
@@ -397,7 +397,8 @@ class Root:
             job_template = session.get(JobTemplate, params.get('id'), options=[
                 defaultload(JobTemplate.department).selectinload(Department.dept_roles)
             ])
-            num_jobs = session.query(Job).filter(Job.job_template_id == params.get('id')).count()
+            num_jobs = session.scalars(select(func.count()).select_from(
+                Job).filter(Job.job_template_id == params.get('id'))).one()
             department = job_template.department
 
         if params.get('department_id'):
@@ -572,8 +573,8 @@ class Root:
             'departments': sorted(departments.items(), key=lambda d: d[1]['regular_signups'] - d[1]['regular_total'])}
 
     def all_shifts(self, session):
-        departments = session.query(Department).options(
-            selectinload(Department.jobs)).order_by(Department.name)
+        departments = session.scalars(select(Department).options(
+            selectinload(Department.jobs)).order_by(Department.name)).all()
         return {
             'depts': [(d.name, d.jobs) for d in departments]
         }
@@ -583,13 +584,15 @@ class Root:
         filters = []
 
         if day != 'all':
-            date = datetime.combine(datetime.strptime(day, '%Y-%m-%d'), datetime.min.time()).replace(tzinfo=c.EVENT_TIMEZONE)
+            date = datetime.combine(datetime.strptime(day, '%Y-%m-%d'),
+                                    datetime.min.time()).replace(tzinfo=c.EVENT_TIMEZONE)
             filters.extend([Job.start_time >= date, Job.start_time < date + timedelta(days=1)])
-        
-        jobs = session.query(Job).filter(Job.department_id == department_id).filter(*filters).order_by(Job.start_time).order_by(Job.name)
+
+        jobs = session.scalars(select(Job).filter(Job.department_id == department_id).filter(
+            *filters).order_by(Job.start_time, Job.name)).all()
 
         out.writerow(["Name", "Description", "Start Time", "Duration", "Extra 15?", "Slots", "Weight", "Roles"])
-        
+
         for job in jobs:
             duration_str = f"{job.duration // 60} hours"
             if job.duration % 60:
@@ -600,15 +603,14 @@ class Root:
     @site_mappable
     @csv_file
     def unique_jobs_csv(self, out, session, department_id='All', **params):
-        unique_jobs_query = session.query(Job.department_name, Job.name, Job.description,
-                                          func.string_agg(DeptRole.name, aggregate_order_by(' / ', DeptRole.name)).label('required_roles')
-                                          ).outerjoin(Job.required_roles).group_by(Job.id).distinct()
+        unique_jobs_query = select(Job.department_name, Job.name, Job.description,
+                                   func.string_agg(DeptRole.name, aggregate_order_by(
+                                       ' / ', DeptRole.name)).label('required_roles')
+                                   ).outerjoin(Job.required_roles).group_by(Job.id).distinct()
         out.writerow(['Department', 'Job Name', 'Description', 'Required Roles'])
 
         if department_id and department_id != 'All':
             unique_jobs_query = unique_jobs_query.filter(Job.department_id == department_id)
-        
-        for dept_name, job_name, desc, roles in unique_jobs_query.all():
+
+        for dept_name, job_name, desc, roles in session.execute(unique_jobs_query).all():
             out.writerow([dept_name, job_name, desc, roles])
-
-

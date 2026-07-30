@@ -12,16 +12,16 @@ from uber.utils import validate_model
 class Root:
     @log_pageview
     def index(self, session, message='', **params):
-        active_entries = session.query(WatchList).filter(WatchList.active == True  # noqa: E712
-                                                         ).order_by(WatchList.last_name).all()
+        active_entries = session.scalars(select(WatchList).filter(WatchList.active == True  # noqa: E712
+                                                         ).order_by(WatchList.last_name)).all()
         for entry in active_entries:
             entry.attendees_and_guesses = entry.attendees.copy()
             for attendee in session.guess_watchentry_attendees(entry):
                 if attendee not in entry.attendees_and_guesses:
                     entry.attendees_and_guesses.append(attendee)
 
-        inactive_entries = session.query(WatchList).filter(WatchList.active == False  # noqa: E712
-                                                           ).order_by(WatchList.last_name).all()
+        inactive_entries = session.scalars(select(WatchList).filter(WatchList.active == False  # noqa: E712
+                                                           ).order_by(WatchList.last_name)).all()
 
         return {
             'active_entries': active_entries,

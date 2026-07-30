@@ -291,7 +291,7 @@ class PreregCart:
         """
         from uber.models import PromoCode
 
-        promo_code = session.query(PromoCode).filter(PromoCode.id == attendee.promo_code_id).one()
+        promo_code = session.scalars(select(PromoCode).filter(PromoCode.id == attendee.promo_code_id)).one()
 
         if not promo_code.is_unlimited and (not promo_code.uses_remaining or
                                             promo_code.uses_remaining - self.used_promo_codes[promo_code.code] <= 0):
@@ -730,17 +730,18 @@ class AuthNetRequestMixin:
 
     def log_authorizenet_response(self, intent_id, txn_info, card_info):
         from uber.models import ReceiptInfo, ReceiptTransaction, Session
-        
+
         session = Session()
-        matching_txns = session.query(ReceiptTransaction).filter_by(intent_id=intent_id).all()
+        matching_txns = session.scalars(select(ReceiptTransaction).filter_by(intent_id=intent_id)).all()
 
         # AuthNet returns "StringElement" but we want strings
         txn_info['response'] = {key: str(val) for key, val in txn_info['response'].items()}
         txn_info['fraud_info'] = {key: str(val) for key, val in txn_info['fraud_info'].items()}
 
         if not matching_txns:
-            log.debug(f"Tried to save receipt info for intent ID {intent_id} but we couldn't find any matching payments!")
-        
+            log.debug(
+                f"Tried to save receipt info for intent ID {intent_id} but we couldn't find any matching payments!")
+
         for txn in matching_txns:
             txn.receipt_info = ReceiptInfo(txn_info=txn_info, card_data=card_info, charged=datetime.now())
             session.add(txn.receipt_info)
@@ -1218,7 +1219,7 @@ class SpinTerminalRequest(TransactionRequest):
 
             self.log_api_response(void_response_json)
             if self.api_response_successful(void_response_json):
-                matching_txns = session.query(ReceiptTransaction).filter_by(intent_id=self.intent.id)
+                matching_txns = session.scalars(select(ReceiptTransaction).filter_by(intent_id=self.intent.id)).all()
                 model_receipt_info = {}
                 for txn in matching_txns:
                     txn.cancelled = datetime.now()
@@ -1240,7 +1241,7 @@ class SpinTerminalRequest(TransactionRequest):
             c.REDIS_STORE.hset(c.REDIS_PREFIX + 'spin_terminal_txns:' + self.terminal_id,
                                'last_error', "Partial approval")
 
-        matching_txns = session.query(ReceiptTransaction).filter_by(intent_id=intent_id).all()
+        matching_txns = session.scalars(select(ReceiptTransaction).filter_by(intent_id=intent_id)).all()
         if not matching_txns:
             error_message = "Payment was successful, but did not have any matching transactions"
             log.error(f"Error while processing terminal sale for transaction {self.tracking_id}: {error_message}")
@@ -1326,7 +1327,7 @@ class SpinTerminalRequest(TransactionRequest):
                                          who=self.tracker.who)
         self.tracker = new_tracker
         new_intent_id = self.intent_id_from_txn_tracker(self.tracker)
-        matching_txns = session.query(ReceiptTransaction).filter_by(intent_id=self.intent.id)
+        matching_txns = session.scalars(select(ReceiptTransaction).filter_by(intent_id=self.intent.id)).all()
         for txn in matching_txns:
             txn.intent_id = new_intent_id
             session.add(txn)
@@ -1894,10 +1895,10 @@ class ReceiptManager:
         from uber.models import Attendee, ArtShowApplication, Group, ReceiptTransaction, Session
         from uber.email import EmailService
 
-        matching_txns = session.query(ReceiptTransaction).filter(
+        matching_txns = session.scalars(select(ReceiptTransaction).filter(
             ReceiptTransaction.intent_id == intent_id,
             ReceiptTransaction.charge_id == '').options(
-                selectinload(ReceiptTransaction.receipt_items)).all()
+                selectinload(ReceiptTransaction.receipt_items))).all()
 
         if not matching_txns:
             log.debug(f"Tried to mark payments with intent ID {intent_id} as paid but we couldn't find any!")

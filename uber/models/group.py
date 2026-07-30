@@ -175,7 +175,7 @@ class Group(MagModel, TakesPaymentMixin, table=True):
             self.shared_with = None
         elif self.is_dealer and self.status == c.SHARED:
             with Session() as session:
-                shared_group = session.query(Group).filter(Group.name == value).first()
+                shared_group = session.scalars(select(Group).filter(Group.name == value)).first()
                 if not shared_group:
                     raise ValueError(f"Could not find group name {value}.")
                 elif shared_group.status == c.SHARED:

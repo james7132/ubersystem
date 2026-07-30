@@ -140,14 +140,14 @@ class Root:
         HTTPRedirect('../group_admin/index#dealers?message={}', message)
 
     def waitlist(self, session, decline_and_convert=False):
-        query = session.query(Group).filter(
+        query = select(Group).filter(
             Group.tables > 0,
             Group.status == c.WAITLISTED).order_by(Group.name, Group.id)
 
         if cherrypy.request.method == 'POST':
-            groups = query.options(
+            groups = session.scalars(query.options(
                 subqueryload(Group.attendees).subqueryload(Attendee.admin_account),
-                subqueryload(Group.attendees).subqueryload(Attendee.shifts)).all()
+                subqueryload(Group.attendees).subqueryload(Attendee.shifts))).all()
 
             message = ''
             if decline_and_convert:
@@ -158,15 +158,16 @@ class Root:
                     .format(c.DEALER_TERM)
             raise HTTPRedirect('../group_admin/index?message={}#dealers', message)
 
-        return {'groups': query.all()}
-    
+        return {'groups': session.scalars(query).all()}
+
     def convert_declined(self, session, **params):
-        declined_groups = session.query(Group).filter(Group.status == c.DECLINED)
+        declined_groups = session.scalars(select(Group).filter(Group.status == c.DECLINED)).all()
         for group in declined_groups:
             session.add(group)
             group.convert_badges = True
-        raise HTTPRedirect('../group_admin/index?message={}#dealers', "All declined groups marked for badge conversion.")
-    
+        raise HTTPRedirect('../group_admin/index?message={}#dealers',
+                           "All declined groups marked for badge conversion.")
+
     def convert_example(self, session, id, **params):
         from uber.models import Email
 

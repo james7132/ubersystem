@@ -83,8 +83,8 @@ def update_problem_names():
     rsession = c.REDIS_STORE.pipeline()
 
     with Session() as session:
-        attendees = session.query(Attendee).filter(Attendee.badge_printed_name.regexp_match(any_(posix_regex_list),
-                                                                                            flags="i")).all()
+        attendees = session.scalars(select(Attendee).filter(Attendee.badge_printed_name.regexp_match(any_(posix_regex_list),
+                                                                                                     flags="i"))).all()
 
         attendee_ids = [attendee.id for attendee in attendees]
         current_problem_names = c.REDIS_STORE.smembers(c.REDIS_PREFIX + 'problem_name_ids')

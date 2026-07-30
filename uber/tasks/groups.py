@@ -23,7 +23,7 @@ def check_document_signed():
     if not c.SIGNNOW_DEALER_TEMPLATE_ID:
         return
     with Session() as session:
-        for document in session.query(SignedDocument).filter_by(model="Group"):
+        for document in session.scalars(select(SignedDocument).filter_by(model="Group")).all():
             if not document.signed:
                 try:
                     group = session.group(document.fk_id)
@@ -45,9 +45,9 @@ def convert_declined_groups():
     from uber.site_sections.dealer_admin import decline_and_convert_dealer_group
 
     with Session() as session:
-        declined_groups = session.query(Group).filter(Group.status == c.DECLINED,
-                                                      Group.convert_badges == True,
-                                                      Group.badges_purchased > 0)
+        declined_groups = session.scalars(select(Group).filter(Group.status == c.DECLINED,
+                                                               Group.convert_badges == True,
+                                                               Group.badges_purchased > 0)).all()
         for group in declined_groups:
             name = group.name
             result = decline_and_convert_dealer_group(session, group, delete_group=c.DELETE_DECLINED_GROUPS)
@@ -57,10 +57,10 @@ def convert_declined_groups():
 @celery.schedule(crontab(minute=0, hour=0))
 def rock_island_updates():
     with Session() as session:
-        updated_ri_inventories = session.query(GuestGroup).join(
+        updated_ri_inventories = session.scalars(select(GuestGroup).join(
             GuestMerch, GuestGroup.merch).filter(
-                GuestMerch.inventory_updated > datetime.now(pytz.UTC) - timedelta(hours=24))
-        if updated_ri_inventories.count():
+                GuestMerch.inventory_updated > datetime.now(pytz.UTC) - timedelta(hours=24))).all()
+        if updated_ri_inventories:
             EmailService.queue_email(session, 'rock_island_updates_admin', to=c.ROCK_ISLAND_EMAIL,
                                      subject=f'{c.EVENT_NAME} Rock Island Inventory Updates for {localized_now().strftime('%Y-%m-%d')}',
                                      data={'updated_ri_inventories': updated_ri_inventories}, replace_unsent=True)

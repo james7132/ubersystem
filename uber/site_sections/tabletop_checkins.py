@@ -28,9 +28,9 @@ class Root:
             '# Checkouts',
         ])
 
-        tt_games_and_counts = session.query(
+        tt_games_and_counts = session.execute(select(
             TabletopGame, label('checkout_count', func.count(TabletopCheckout.id)),
-        ).outerjoin(TabletopGame.checkouts).group_by(TabletopGame.id).all()
+        ).outerjoin(TabletopGame.checkouts).group_by(TabletopGame.id)).all()
 
         all_checkouts_count = 0
         for result in tt_games_and_counts:
@@ -88,8 +88,8 @@ class Root:
 
 
 def _attendees(session):
-    attendee_attrs = session.query(Attendee.id, Attendee.full_name, BadgeInfo.ident) \
-        .outerjoin(Attendee.active_badge).filter(Attendee.first_name != '', Attendee.is_valid == True).order_by(Attendee.full_name.asc())
+    attendee_attrs = session.execute(select(Attendee.id, Attendee.full_name, BadgeInfo.ident)
+                                     .outerjoin(Attendee.active_badge).filter(Attendee.first_name != '', Attendee.is_valid == True).order_by(Attendee.full_name.asc())).all()
 
     attendees = [
         {
@@ -124,7 +124,7 @@ def _games(session):
         'attendee_id': g.attendee_id,
         'attendee': _attendee(g.attendee),
         'checked_out': _checked_out(g.checked_out)
-    } for g in session.query(TabletopGame)
-                      .options(joinedload(TabletopGame.attendee),
+    } for g in session.scalars(select(TabletopGame)
+                               .options(joinedload(TabletopGame.attendee),
                                subqueryload(TabletopGame.checkouts))
-                      .order_by(TabletopGame.name).all()]
+                               .order_by(TabletopGame.name)).all()]
