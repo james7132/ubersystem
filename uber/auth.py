@@ -8,8 +8,10 @@ import requests
 import traceback
 import logging
 import secrets
+from typing import Any, cast
 from jose import jwt, jwk
 from jose.exceptions import ExpiredSignatureError
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import NoResultFound
 from urllib.parse import urlparse, parse_qsl
 
@@ -18,7 +20,14 @@ from uber.config import c
 from uber.custom_tags import email_only
 from uber.errors import HTTPRedirect
 from uber.decorators import render
-from uber.models import Attendee, AdminAccount, AttendeeAccount, AccessGroup, Session, PasswordReset
+from uber.models import (
+    Attendee,
+    AdminAccount,
+    AttendeeAccount,
+    AccessGroup,
+    PasswordReset,
+    Session as DbSession,
+)
 from uber.utils import normalize_email_legacy
 
 log = logging.getLogger(__name__)
@@ -72,15 +81,34 @@ class OIDC(cherrypy.Tool):
                                  subject=custom_subject, data={'admin_account': admin_account, 'token': token})
 
     @classmethod
-    def process_account_claim_token(cls, session, account_claim_token, sso_id=None, existing_account=None, dry_run=False):
+    def process_account_claim_token(
+        cls,
+        session: Session,
+        account_claim_token: str | None,
+        sso_id: str | None = None,
+        existing_account: AttendeeAccount | None = None,
+        dry_run: bool = False,
+    ) -> tuple[AttendeeAccount | None, AdminAccount | None]:
         # Validates and processes our SSO account claim token, including merging with an existing account if there is one
         message = ''
-        attendee_account = session.query(AttendeeAccount).join(AttendeeAccount.password_reset).filter(
-                PasswordReset.token == account_claim_token).first()
-        admin_account = session.query(AdminAccount).join(AdminAccount.password_reset).filter(
-                PasswordReset.token == account_claim_token).first()
-        
-        badges_pluralized = 'your badges' if attendee_account and len(attendee_account.valid_attendees) > 1 else 'your badge'
+        attendee_account = (
+            session.query(AttendeeAccount)
+            .join(AttendeeAccount.password_reset)
+            .filter(cast(Any, PasswordReset.token == account_claim_token))
+            .first()
+        )
+        admin_account = (
+            session.query(AdminAccount)
+            .join(AdminAccount.password_reset)
+            .filter(cast(Any, PasswordReset.token == account_claim_token))
+            .first()
+        )
+
+        badges_pluralized = (
+            'your badges'
+            if attendee_account and len(attendee_account.valid_attendees) > 1
+            else 'your badge'
+        )
         accounts_to_claim = 2 if attendee_account and admin_account else 1
         already_claimed = 0
 
@@ -98,12 +126,14 @@ class OIDC(cherrypy.Tool):
                 admin_account = None
         
         if already_claimed == accounts_to_claim:
-            cherrypy.request.attendee_account = getattr(attendee_account, 'id', None)
-            cherrypy.request.admin_account = getattr(admin_account, 'id', None)
+            cherrypy.request.attendee_account = (
+                attendee_account.id if attendee_account else None
+            )
+            cherrypy.request.admin_account = admin_account.id if admin_account else None
             return attendee_account, admin_account
 
         if not attendee_account and not admin_account:
-            message = f"Invalid claim link. This link may have already been used OR a new link is already on its way."
+            message = "Invalid claim link. This link may have already been used OR a new link is already on its way."
         elif existing_account and admin_account and existing_account.admin_account_id:
             message = f"You cannot have more than one admin account associated with your {c.OIDC_ACCOUNT_NAME} account for this event."
         elif (sso_id or existing_account) and not cherrypy.session.get('oidc_email_verified'):
@@ -118,7 +148,11 @@ class OIDC(cherrypy.Tool):
                         message = f"Your account has been set up incorrectly. Please contact us at {email_only(c.CONTACT_EMAIL)}."
         
         if message:
-            raise ValueError(message or f"Invalid claim link. This link may have already been used OR a new link is already on its way to {attendee_account.email}.")
+            claim_email = attendee_account.email if attendee_account else ''
+            raise ValueError(
+                message
+                or f"Invalid claim link. This link may have already been used OR a new link is already on its way to {claim_email}."
+            )
         
         if sso_id and not dry_run:
             if admin_account:
@@ -128,7 +162,9 @@ class OIDC(cherrypy.Tool):
                 if existing_account:
                     duplicate_account = attendee_account
                     for attendee in duplicate_account.attendees:
-                        session.add_attendee_to_account(attendee, existing_account)
+                        cast(Any, session).add_attendee_to_account(
+                            attendee, existing_account
+                        )
                     session.delete(duplicate_account)
                     attendee_account = existing_account
                 else:
@@ -143,8 +179,10 @@ class OIDC(cherrypy.Tool):
                         session.add(attendee.admin_account)
             session.commit()
 
-            cherrypy.request.attendee_account = getattr(attendee_account, 'id', None)
-            cherrypy.request.admin_account = getattr(admin_account, 'id', None)
+            cherrypy.request.attendee_account = (
+                attendee_account.id if attendee_account else None
+            )
+            cherrypy.request.admin_account = admin_account.id if admin_account else None
         return attendee_account, admin_account
 
     def _fetch_key(self, kid):
@@ -221,7 +259,7 @@ class OIDC(cherrypy.Tool):
 
         login_account = None
 
-        with Session() as session:
+        with DbSession() as session:
             accounts = session.query(AttendeeAccount).filter(AttendeeAccount.sso_id == claims['sub'])
             if accounts.count() > 1:
                 for account in accounts:
@@ -233,13 +271,15 @@ class OIDC(cherrypy.Tool):
                 login_account = accounts.first()
             return login_account.id if login_account else None
 
-    def _init_accounts_from_claims(self, claims):
+    def _init_accounts_from_claims(
+        self, claims: dict[str, Any]
+    ) -> tuple[str | None, str | None]:
         roles = claims.get('realm_access', {}).get('roles', [])
         email = claims.get('workspace_email', claims.get('email', ''))
         sso_id = claims.get('sub', None)
         admin_account = None
 
-        with Session() as session:
+        with DbSession() as session:
             existing_account = session.query(AttendeeAccount).filter(
                 AttendeeAccount.normalized_email == normalize_email_legacy(email)).first()
             if existing_account:
@@ -252,7 +292,10 @@ class OIDC(cherrypy.Tool):
                             admin_account.sso_id = sso_id
                             session.add(admin_account)
                     session.commit()
-                    return existing_account.id, getattr(admin_account, 'id', None)
+                    return (
+                        existing_account.id,
+                        admin_account.id if admin_account else None,
+                    )
                 else:
                     return None, None
 
@@ -265,9 +308,12 @@ class OIDC(cherrypy.Tool):
                 matching_attendee = session.query(Attendee).filter_by(
                     is_valid=True, normalized_email=normalize_email_legacy(email)).first()
                 if not matching_attendee:
-                    matching_attendee = Attendee(placeholder=True, email=email,
-                                                first_name=claims.get('given_name', 'Test'),
-                                                last_name=claims.get('family_name', 'Staff'))
+                    matching_attendee = cast(Any, Attendee)(
+                        placeholder=True,
+                        email=email,
+                        first_name=claims.get('given_name', 'Test'),
+                        last_name=claims.get('family_name', 'Staff'),
+                    )
                     session.add(matching_attendee)
                 session.add_attendee_to_account(matching_attendee, attendee_account)
                 session.commit()
@@ -279,14 +325,16 @@ class OIDC(cherrypy.Tool):
                     if not all_access_group:
                         all_access_group = AccessGroup(
                             name='All Access',
-                            access={section: '5' for section in c.ADMIN_PAGES}
+                            access={
+                                section: AccessGroup.FULL for section in c.ADMIN_PAGES
+                            },
                         )
                         session.add(all_access_group)
 
                     admin_account.access_groups.append(all_access_group)
                 admin_account.sso_id = sso_id
             session.commit()
-            return attendee_account.id, getattr(admin_account, 'id', None)
+            return attendee_account.id, admin_account.id if admin_account else None
     
     def _exchange_code_for_tokens(self, code, redirect_uri=c.OIDC_REDIRECT_URL):
         """

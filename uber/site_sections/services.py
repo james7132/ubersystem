@@ -1,4 +1,5 @@
 import os
+from typing import Any, cast
 import stripe
 import logging
 import cherrypy
@@ -13,7 +14,8 @@ import base64
 from uber.config import c
 from uber.decorators import any_admin_access, ajax, all_renderable, not_site_mappable, requires_account
 from uber.errors import HTTPRedirect
-from uber.models import AdminAccount, AttendeeAccount, Session
+from uber.models import AdminAccount, AttendeeAccount, Session as DbSession
+from sqlalchemy.orm import Session
 from uber.model_checks import mivs_show_info_required_fields
 from uber.utils import check, filename_extension, SignNowRequest
 from uber.files import FileService
@@ -43,7 +45,14 @@ class Root:
         return {'message': "File deleted."}
 
     @not_site_mappable
-    def oidc_handler(self, session, code=None, error=None, post_login_url='', **kwargs):
+    def oidc_handler(
+        self,
+        session: Session,
+        code: str | None = None,
+        error: str | None = None,
+        post_login_url: str = '',
+        **kwargs: Any,
+    ) -> None:
         if error:
             raise HTTPRedirect("../landing/index?message={}", f"Login failed: {error}")
 
@@ -69,17 +78,19 @@ class Root:
         attendee_account_id = getattr(cherrypy.request, 'attendee_account', None)
         now = datetime.now(pytz.UTC)
         if admin_account_id:
-            login_account = session.get(AdminAccount, admin_account_id)
-            login_account.last_signed_in = now
-            session.add(login_account)
+            admin_account = session.get(AdminAccount, admin_account_id)
+            if admin_account:
+                admin_account.last_signed_in = cast(Any, now)
+                session.add(admin_account)
         if attendee_account_id:
-            login_account = session.get(AttendeeAccount, attendee_account_id)
-            login_account.last_signed_in = now
-            session.add(login_account)
+            attendee_account = session.get(AttendeeAccount, attendee_account_id)
+            if attendee_account:
+                attendee_account.last_signed_in = cast(Any, now)
+                session.add(attendee_account)
         
-        if getattr(cherrypy.request, 'admin_account', None) and c.AT_THE_CON:
+        if admin_account_id and c.AT_THE_CON:
             raise HTTPRedirect(redirect_url or '../accounts/homepage')
-        elif getattr(cherrypy.request, 'attendee_account', None):
+        elif attendee_account_id:
             raise HTTPRedirect(redirect_url or '../preregistration/homepage')
     
     @not_site_mappable
@@ -117,7 +128,7 @@ class Root:
 
     @any_admin_access
     def send_signnow_link(self, session, id, cls="Group", return_to='../group_admin/form'):
-        model = session.get(Session.resolve_model(cls), id)
+        model = session.get(DbSession.resolve_model(cls), id)
 
         signnow_request = SignNowRequest(session=session, model=model, create_if_none=True)
         signnow_request.send_signing_invite_email()
@@ -131,7 +142,7 @@ class Root:
 
     @requires_account()
     def download_signnow_document(self, session, id, cls="Group", return_to='../preregistration/group_members'):
-        model = session.get(Session.resolve_model(cls), id)
+        model = session.get(DbSession.resolve_model(cls), id)
 
         signnow_request = SignNowRequest(session=session, model=model)
         if signnow_request.error_message:

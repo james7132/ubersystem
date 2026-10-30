@@ -1,4 +1,6 @@
+from typing import Any
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 from uber.config import c
 from uber.decorators import all_renderable, csv_file, render, site_mappable
 from uber.models import Attendee, FoodRestrictions, GuestCharity
@@ -6,7 +8,7 @@ from uber.models import Attendee, FoodRestrictions, GuestCharity
 
 @all_renderable()
 class Root:
-    def food_restrictions(self, session):
+    def food_restrictions(self, session: Session) -> dict[str, Any]:
         all_fr = session.query(FoodRestrictions).all()
         guests = session.query(Attendee).filter_by(badge_type=c.GUEST_BADGE).count()
         volunteers = len([
@@ -16,7 +18,7 @@ class Root:
         return {
             'guests': guests,
             'volunteers': volunteers,
-            'notes': filter(bool, [getattr(fr, 'freeform', '') for fr in all_fr]),
+            'notes': [fr.freeform for fr in all_fr if fr.freeform],
             'standard': {
                 c.FOOD_RESTRICTIONS[getattr(c, category)]: len([fr for fr in all_fr if getattr(fr, category)])
                 for category in c.FOOD_RESTRICTION_VARS

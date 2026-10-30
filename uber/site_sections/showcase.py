@@ -1,9 +1,12 @@
 import shutil
+from typing import Any, cast
+import uuid
 
 import bcrypt
 import cherrypy
 import logging
 from cherrypy.lib.static import serve_file
+from sqlalchemy.orm import Session
 
 from uber.config import c
 from uber.custom_tags import format_image_size
@@ -234,8 +237,14 @@ class Root:
                                'Your game has been submitted to our panel of judges.')
     
     @requires_account(IndieStudio)
-    def confirm(self, session, id, decision=None, **params):
-        studio = session.indie_studio(id)
+    def confirm(
+        self,
+        session: Session,
+        id: str | uuid.UUID,
+        decision: str | None = None,
+        **params: Any,
+    ) -> dict[str, Any]:
+        studio = cast(Any, session).indie_studio(id)
 
         if not studio.comped_badges:
             raise HTTPRedirect('index?id={}&message={}', studio.id,
@@ -257,7 +266,10 @@ class Root:
             else:
                 dev.comped = False
 
-            if not has_leader and not getattr(dev.matching_attendee, 'group_id', None):
+            matching_group_id = (
+                dev.matching_attendee.group_id if dev.matching_attendee else None
+            )
+            if not has_leader and not matching_group_id:
                 dev.leader = has_leader = True
             else:
                 dev.leader = False
@@ -274,7 +286,7 @@ class Root:
                 group = studio.group = Group(name='Showcase Studio: ' + studio.name, can_add=True)
                 session.add(group)
                 session.commit()
-                leader_account = session.current_attendee_account()
+                leader_account = cast(Any, session).current_attendee_account()
                 for dev in developers:
                     if dev.matching_attendee:
                         add_opt(dev.matching_attendee.ribbon_ints, c.MIVS)
@@ -286,7 +298,7 @@ class Root:
                                     leader_account = dev.matching_attendee.managers[0]
                         dev.matching_attendee.indie_developer = dev
                     else:
-                        attendee = Attendee(
+                        attendee = cast(Any, Attendee)(
                             placeholder=True,
                             badge_type=c.ATTENDEE_BADGE,
                             ribbon=c.MIVS,
@@ -302,11 +314,17 @@ class Root:
                         if dev.leader:
                             group.leader_id = attendee.id
                 for i in range(badges_remaining):
-                    group.attendees.append(Attendee(badge_type=c.ATTENDEE_BADGE, paid=c.NEED_NOT_PAY))
+                    group.attendees.append(
+                        cast(Any, Attendee)(
+                            badge_type=c.ATTENDEE_BADGE, paid=c.NEED_NOT_PAY
+                        )
+                    )
                 if c.ATTENDEE_ACCOUNTS_ENABLED:
                     for attendee in group.attendees:
                         if not attendee.managers and not attendee.is_unassigned:
-                            session.add_attendee_to_account(attendee, leader_account)
+                            cast(Any, session).add_attendee_to_account(
+                                attendee, leader_account
+                            )
                 group.cost = group.calc_default_cost()
                 group.guest = GuestGroup()
                 group.guest.group_type = c.MIVS
@@ -420,4 +438,3 @@ class Root:
         session.add(image)
         raise HTTPRedirect('show_info?id={}&message={}', game.id,
                            'Screenshot unmarked as one of your "best" images.')
-

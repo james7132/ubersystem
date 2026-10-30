@@ -1,12 +1,13 @@
 import os
+from typing import Any, cast
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import Session, joinedload
 
 from uber.config import c
 from uber.custom_tags import humanize_timedelta
 from uber.decorators import all_renderable, csv_file, multifile_zipfile, xlsx_file
 from uber.files import FileService
-from uber.models import Group, IndieGame, IndieJudge, IndieStudio, GuestGroup
+from uber.models import Attendee, Group, IndieGame, IndieJudge, IndieStudio, GuestGroup
 from uber.utils import localized_now, normalize_newlines
 
 
@@ -166,12 +167,21 @@ class Root:
                     zip_file.write(filepath, os.path.join('mivs_accepted_game_images', filename))
 
     @csv_file
-    def presenters(self, out, session):
-        presenters = set()
-        for game in (session.query(IndieGame).filter(IndieGame.showcase_type == c.MIVS,
-                                                     IndieGame.status == c.ACCEPTED).options(
-                                                         joinedload(IndieGame.studio).joinedload(IndieStudio.group))):
-            for attendee in getattr(game.studio.group, 'attendees', []):
+    def presenters(self, out: Any, session: Session) -> None:
+        presenters: set[Attendee] = set()
+        for game in (
+            session.query(IndieGame)
+            .filter(IndieGame.showcase_type == c.MIVS, IndieGame.status == c.ACCEPTED)
+            .options(
+                joinedload(cast(Any, IndieGame.studio)).joinedload(
+                    cast(Any, IndieStudio.group)
+                )
+            )
+        ):
+            group_attendees = (
+                game.studio.group.attendees if game.studio and game.studio.group else []
+            )
+            for attendee in group_attendees:
                 if not attendee.is_unassigned and attendee not in presenters:
                     presenters.add(attendee)
                     out.writerow([attendee.full_name, game.studio.name])
