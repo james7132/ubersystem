@@ -10,6 +10,7 @@ from sqlalchemy.types import DateTime, Uuid, JSON
 from sqlalchemy.dialects.postgresql.json import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 from typing import Any, ClassVar
+from sqlalchemy.orm import Session
 
 from uber.config import c
 from uber.custom_tags import format_currency
@@ -315,7 +316,13 @@ class ModelReceipt(MagModel, table=True):
             else:
                 return txn
 
-    def process_full_refund(self, session, model, who='non-admin', exclude_fees=False):
+    def process_full_refund(
+        self,
+        session: Session,
+        model: MagModel,
+        who: str = "non-admin",
+        exclude_fees: bool = False,
+    ) -> tuple[int, str]:
         from uber.payments import RefundRequest
 
         refund_total = 0
@@ -327,11 +334,10 @@ class ModelReceipt(MagModel, table=True):
         else:
             if not refunds:
                 session.add_all(receipt_manager.items_to_add)
-            for _, (refund_amount, txns) in refunds.items():
+            for refund_amount, txns in refunds.values():
                 refund = RefundRequest(session, txns, refund_amount, skip_errors=True)
 
-                error = refund.process_refund()
-                if error:
+                if error := refund.process_refund():
                     return refund_total, error
 
                 refund_total += refund_amount

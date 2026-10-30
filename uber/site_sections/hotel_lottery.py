@@ -7,7 +7,9 @@ import logging
 from datetime import datetime, timedelta
 from dateutil import parser as dateparser
 from pytz import UTC
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import NoResultFound
+from typing import Any
 
 from uber.config import c
 from uber.custom_tags import readable_join
@@ -1273,8 +1275,14 @@ class Root:
             message='Billing address updated.'))
 
     @requires_account(Attendee)
-    def copy_occupants(self, session, target_assignment_id, attendee_id='',
-                       source_attendee_ids='', csrf_token=None):
+    def copy_occupants(
+        self,
+        session: Session,
+        target_assignment_id: str | uuid.UUID,
+        attendee_id: str = "",
+        source_attendee_ids: str = "",
+        csrf_token: str | None = None,
+    ) -> None:
         """Bulk-add occupants the leader already invited to a sibling
         room of theirs. No new invite is sent because they're already
         on file with one of the leader's other rooms."""
@@ -1289,7 +1297,11 @@ class Root:
         _require_room_access(session, ra, attendee_id)
         _require_live(ra, attendee_id)
 
-        ids = [i.strip() for i in (source_attendee_ids or '').split(',') if i.strip()]
+        ids = [
+            clean
+            for i in (source_attendee_ids or "").split(",")
+            if (clean := i.strip())
+        ]
         if not ids:
             raise HTTPRedirect(_room_url(
                 target_assignment_id, attendee_id,
@@ -1297,10 +1309,15 @@ class Root:
 
         # Only allow attendees who are occupants of another room booked
         # by the same leader.
-        my_other_rooms = (session.query(RoomAssignment)
-                          .filter(RoomAssignment.attendee_id == ra.attendee_id,
-                                  RoomAssignment.id != ra.id,
-                                  RoomAssignment.is_released).all())
+        my_other_rooms = (
+            session.query(RoomAssignment)
+            .filter(
+                RoomAssignment.attendee_id == ra.attendee_id,  # type: ignore[arg-type]
+                RoomAssignment.id != ra.id,  # type: ignore[arg-type]
+                RoomAssignment.is_released,
+            )
+            .all()
+        )  # type: ignore[arg-type]
         allowed = set()
         for other in my_other_rooms:
             for occ in (other.occupants or []):
@@ -1314,7 +1331,7 @@ class Root:
                 break
             if aid not in allowed or aid in existing or aid == ra.attendee_id:
                 continue
-            a = session.attendee(aid)
+            a = session.attendee(aid)  # type: ignore[attr-defined]
             if not a:
                 continue
             ra.occupants.append(a)
@@ -2412,7 +2429,7 @@ class Root:
         return {'success': True}
 
     @ajax_gettable
-    def vault_webhook(self, session, **params):
+    def vault_webhook(self, session: Session, **params: Any) -> dict[str, Any]:
         """Webhook called by PCI Vault after a card is captured.
 
         Updates card metadata from the webhook payload. Structure:
@@ -2507,7 +2524,7 @@ class Root:
                         type(safe_data).__name__, assignment_id)
             safe_data = {}
 
-        def _first_of(mapping, *keys):
+        def _first_of(mapping: dict[str, Any], *keys: str) -> Any:
             for key in keys:
                 if mapping.get(key):
                     return mapping[key]
@@ -2526,10 +2543,16 @@ class Root:
         if not ra.cc_last_four:
             # safe_data may carry only a masked card number rather than a
             # separate last-four field - derive it from the trailing digits.
-            masked = _first_of(safe_data, 'masked_card', 'masked_pan',
-                               'masked_number', 'card_number', 'number', 'pan')
-            match = re.search(r'(\d{4})\s*$', str(masked)) if masked else None
-            if match:
+            masked = _first_of(
+                safe_data,
+                "masked_card",
+                "masked_pan",
+                "masked_number",
+                "card_number",
+                "number",
+                "pan",
+            )
+            if masked and (match := re.search(r"(\d{4})\s*$", str(masked))):
                 ra.cc_last_four = match.group(1)
                 updated.append('cc_last_four(masked)')
 
@@ -2851,4 +2874,3 @@ class Root:
         session.add(invite_app)
         session.commit()
         raise HTTPRedirect('room_group?id={}&message={}', id, 'Invite cancelled.')
-

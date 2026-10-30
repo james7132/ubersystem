@@ -1,6 +1,9 @@
 import cherrypy
 import re
+from typing import Any
 from sqlalchemy import or_
+
+from sqlalchemy.orm import Session
 
 from uber.config import c
 from uber.decorators import ajax, all_renderable, credit_card, public, kiosk_login, site_mappable
@@ -335,14 +338,15 @@ class Root:
 
     @ajax
     @kiosk_login()
-    def record_mpoint_cashout(self, session, badge_num_or_qr_code, amount):
+    def record_mpoint_cashout(
+        self, session: Session, badge_num_or_qr_code: str, amount: int
+    ) -> dict[str, Any]:
         attendee, message = attendee_from_id_or_badge_num(session, badge_num_or_qr_code)
         if message:
             return {'success': False, 'message': message}
 
         mfc = MPointsForCash(attendee=attendee, amount=amount)
-        message = check(mfc)
-        if message:
+        if message := check(mfc):
             return {'success': False, 'message': message}
         else:
             session.add(mfc)
@@ -358,14 +362,15 @@ class Root:
 
     @ajax
     @kiosk_login()
-    def record_old_mpoint_exchange(self, session, badge_num_or_qr_code, amount):
+    def record_old_mpoint_exchange(
+        self, session: Session, badge_num_or_qr_code: str, amount: int
+    ) -> dict[str, Any]:
         attendee, message = attendee_from_id_or_badge_num(session, badge_num_or_qr_code)
         if message:
             return {'success': False, 'message': message}
 
         ome = OldMPointExchange(attendee=attendee, amount=amount)
-        message = check(ome)
-        if message:
+        if message := check(ome):
             return {'success': False, 'message': message}
         else:
             session.add(ome)

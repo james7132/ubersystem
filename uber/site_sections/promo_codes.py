@@ -2,14 +2,15 @@ import shlex
 import urllib
 from collections import defaultdict
 from datetime import timedelta
+from typing import Any
 
 import cherrypy
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import Session, joinedload
 
 from uber.config import c
 from uber.decorators import ajax, all_renderable, csv_file, log_pageview, site_mappable
 from uber.errors import HTTPRedirect
-from uber.models import PromoCode, PromoCodeWord, Session
+from uber.models import PromoCode, PromoCodeWord
 from uber.utils import check, check_all, localized_now, RegistrationCode
 
 
@@ -75,12 +76,16 @@ class Root:
 
         return {'result': result}
 
-    def delete_promo_codes(self, session, id=None, **params):
-        query = session.query(PromoCode).filter(PromoCode.uses_count == 0,
-                                                PromoCode.group == None)
+    def delete_promo_codes(
+        self, session: Session, id: str | None = None, **params: Any
+    ) -> None:
+        query = session.query(PromoCode).filter(
+            PromoCode.uses_count == 0,  # type: ignore[arg-type]
+            PromoCode.group == None,  # type: ignore[arg-type]
+        )
         if id is not None:
-            ids = [s.strip() for s in id.split(',') if s.strip()]
-            query = query.filter(PromoCode.id.in_(ids))
+            ids = [clean for s in id.split(",") if (clean := s.strip())]
+            query = query.filter(PromoCode.id.in_(ids))  # type: ignore[union-attr]
         result = query.delete(synchronize_session=False)
 
         referer = cherrypy.request.headers.get('Referer', 'index')
@@ -200,15 +205,20 @@ class Root:
         return result
     
     @ajax
-    def update_all(self, session, message='', **params):
-        if 'id' in params:
-            for id in params.get('id'):
-                code_params = {key.replace(f'_{id}', ''): val for key, val in params.items() if f'_{id}' in key}
-                code_params['id'] = id
+    def update_all(
+        self, session: Session, message: str | None = "", **params: Any
+    ) -> dict[str, Any] | None:
+        if "id" in params:
+            for id in params.get("id") or []:
+                code_params = {
+                    key.replace(f"_{id}", ""): val
+                    for key, val in params.items()
+                    if f"_{id}" in key
+                }
+                code_params["id"] = id
 
-                promo_code = session.promo_code(code_params)
-                message = check(promo_code)
-                if message:
+                promo_code = session.promo_code(code_params)  # type: ignore[attr-defined]
+                if message := check(promo_code):
                     session.rollback()
                     return {'success': False,
                             'message': f"Could not save promo code {promo_code.code}: {message}"}
@@ -216,13 +226,14 @@ class Root:
                     session.commit()
             return {'success': True,
                     'message': "Promo codes updated!"}
+        return None
 
-
-    def update_promo_code(self, session, message='', **params):
+    def update_promo_code(
+        self, session: Session, message: str | None = "", **params: Any
+    ) -> None:
         if 'id' in params:
-            promo_code = session.promo_code(params)
-            message = check(promo_code)
-            if message:
+            promo_code = session.promo_code(params)  # type: ignore[attr-defined]
+            if message := check(promo_code):
                 session.rollback()
             else:
                 if 'expire' in params:

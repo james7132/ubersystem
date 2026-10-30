@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import checkdigit.verhoeff as verhoeff
 import pytz
-from typing import Iterable
+from typing import TYPE_CHECKING
+from collections.abc import Iterable
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 from uuid import uuid4
 from sqlalchemy.orm import selectinload
+
+if TYPE_CHECKING:
+    from uber.models.commerce import ReceiptTransaction
 
 import logging
 import cherrypy
@@ -901,7 +907,7 @@ class RefundRequest(TransactionRequest):
         else:
             self.process_refund = self.process_txn_refund
 
-    def validate_or_add_txn(self, txn):
+    def validate_or_add_txn(self, txn: ReceiptTransaction) -> str | None:
         if not txn.intent_id:
             return f"{txn.id} is not an automated payment"
 
@@ -910,8 +916,7 @@ class RefundRequest(TransactionRequest):
             if not charge_id:
                 return f"no record of {txn.id} being completed"
 
-        error = txn.check_stripe_id()
-        if error:
+        if error := txn.check_stripe_id():
             return f"payment gateway error for {txn.id}: {error}"
 
         if not txn.amount_left:
@@ -929,6 +934,7 @@ class RefundRequest(TransactionRequest):
 
         self.txns.append(txn)
         self.total_refundable += txn.amount - already_refunded
+        return None
 
     def process_txn_refund(self, department=None):
         log.debug('REFUND: attempting to refund card transaction with ID {} {} cents.',

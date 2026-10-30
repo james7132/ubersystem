@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import bcrypt
 import cherrypy
 import importlib
@@ -18,6 +20,7 @@ import six
 
 from collections import defaultdict, OrderedDict
 from collections.abc import Iterable, Mapping, Sized
+from typing import TYPE_CHECKING, Any
 from datetime import date, datetime, timedelta, timezone
 from glob import glob
 from os.path import basename
@@ -27,8 +30,11 @@ from uuid import uuid4
 from phonenumbers import PhoneNumberFormat
 from pytz import UTC
 from sqlalchemy import func, or_, cast, literal, DateTime
-from sqlalchemy.orm import make_transient
+from sqlalchemy.orm import Session, make_transient
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+
+if TYPE_CHECKING:
+    from uber.models import MagModel
 
 from uber.config import c, _config, signnow_sdk, threadlocal
 from uber.errors import CSRFException, HTTPRedirect
@@ -774,7 +780,7 @@ def date_trunc_day(dt):
     return func.date_trunc(literal('day'), dt_correct_time)
 
 
-def load_locations_from_config(session):
+def load_locations_from_config(session: Session) -> None:
     from uber.models import EventLocation
 
     existing_location = session.query(EventLocation).first()
@@ -782,8 +788,7 @@ def load_locations_from_config(session):
         return
 
     for _, name in c.EVENT_LOCATION_OPTS:
-        name_room = re.match(r'^(.*) \((.*?)\)$', name)
-        if name_room:
+        if name_room := re.match(r"^(.*) \((.*?)\)$", name):
             new_location = EventLocation(name=name_room[1], room=name_room[2])
         else:
             new_location = EventLocation(name=name)
@@ -1020,7 +1025,8 @@ class days_between(DateBase):
 # Security
 # ======================================================================
 
-def check(model, *, prereg=False):
+
+def check(model: MagModel, *, prereg: bool = False) -> str | None:
     """
     Runs all default validations against the supplied model instance.
 
@@ -1032,7 +1038,9 @@ def check(model, *, prereg=False):
     Returns:
         str: None for success, or a failure message if validation fails.
     """
-    errors = []
+    errors: list[str] = []
+    field: str
+    name: str
     for field, name in model.required:
         if not getattr(model, field) or not str(getattr(model, field)).strip():
             errors.append(name + ' is a required field')
@@ -1041,8 +1049,7 @@ def check(model, *, prereg=False):
     prereg_validations = [uber.model_checks.prereg_validation.validations] if prereg else []
     for v in validations + prereg_validations:
         for validator in v[model.__class__.__name__].values():
-            message = validator(model)
-            if message:
+            if message := validator(model):
                 if isinstance(message, tuple):
                     message = message[1]
                 errors.append(message)
@@ -1177,16 +1184,22 @@ class GuidebookUtils():
         return cl_updates, schedule_updates, image_updates
 
 
-def validate_model(session, forms, model, create_preview_model=True, is_admin=False):
+def validate_model(
+    session: Session,
+    forms: Mapping[str, Any],
+    model: MagModel,
+    create_preview_model: bool = True,
+    is_admin: bool = False,
+) -> defaultdict[str, list[str]] | None:
     # Create_preview_model should only be false if we're re-checking a model with no changes
 
-    from uber.models import File
     from uber.files import FileService
+    from uber.models import File
 
-    all_errors = defaultdict(list)
+    all_errors: defaultdict[str, list[str]] = defaultdict(list)
     rollback_session = None
 
-    extra_validators = {}
+    extra_validators: dict[Any, dict[str, list[Any]]] = {}
 
     for form in forms.values():
         extra_validators[form] = defaultdict(list)
@@ -1230,12 +1243,12 @@ def validate_model(session, forms, model, create_preview_model=True, is_admin=Fa
 
     for v in validations + prereg_validations:
         for validator in v[model.__class__.__name__].values():
-            error = validator(preview_model)
-            if error and isinstance(error, tuple):
-                all_errors[error[0]].append(error[1])
-            elif error:
-                all_errors[''].append(error)
-    
+            if error := validator(preview_model):
+                if isinstance(error, tuple):
+                    all_errors[error[0]].append(error[1])
+                else:
+                    all_errors[""].append(error)
+
     if rollback_session:
         for obj in list(session.new) + new_objs:
             if isinstance(obj, File):
@@ -1249,6 +1262,7 @@ def validate_model(session, forms, model, create_preview_model=True, is_admin=Fa
 
     if all_errors:
         return all_errors
+    return None
 
 
 def check_csrf(csrf_token=None):

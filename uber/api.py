@@ -3,6 +3,7 @@ import uuid
 from collections import defaultdict
 from datetime import datetime
 from functools import wraps
+from typing import Any
 
 import cherrypy
 import pytz
@@ -264,16 +265,25 @@ def _prepare_attendees_export(attendees, include_account_ids=False, include_apps
     return attendee_list
 
 
-def _query_to_names_emails_ids(query, split_names=True):
+def _query_to_names_emails_ids(
+    query: str, split_names: bool = True
+) -> tuple[
+    dict[tuple[str, str] | str, str],
+    dict[str, str],
+    dict[tuple[str, str, str], str],
+    set[str],
+]:
     _re_name_email = re.compile(r'^\s*(.*?)\s*<\s*(.*?@.*?)\s*>\s*$')
     _re_sep = re.compile(r'[\n,]')
     _re_whitespace = re.compile(r'\s+')
-    queries = [s.strip() for s in _re_sep.split(normalize_newlines(query)) if s.strip()]
+    queries = [
+        clean for s in _re_sep.split(normalize_newlines(query)) if (clean := s.strip())
+    ]
 
-    names = dict()
-    emails = dict()
-    names_and_emails = dict()
-    ids = set()
+    names: dict[tuple[str, str] | str, str] = {}
+    emails: dict[str, str] = {}
+    names_and_emails: dict[tuple[str, str, str], str] = {}
+    ids: set[str] = set()
     for q in queries:
         if '@' in q:
             match = _re_name_email.match(q)
@@ -518,15 +528,14 @@ class MivsLookup:
 
             return judges_list
     
-    def lookup_judge(self, id):
+    def lookup_judge(self, id: str) -> dict[str, Any]:
         try:
             str(uuid.UUID(id))
         except Exception as e:
-            raise HTTPError(400, f"Invalid ID: {str(e)}")
+            raise HTTPError(400, f"Invalid ID: {e}")
 
         with Session() as session:
-            judge = session.get(IndieJudge, id)
-            if judge:
+            if judge := session.get(IndieJudge, id):
                 return judge.to_dict()
             else:
                 raise HTTPError(404, f'No judge found with ID {id}.')

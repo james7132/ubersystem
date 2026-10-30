@@ -1,6 +1,8 @@
 import os
 import json
 import re
+from collections.abc import Callable
+from typing import Any
 
 from uber.config import c
 
@@ -77,9 +79,13 @@ def no_retry_error(response_json):
     error_message = error_message_from_response(response_json)
     return error_message and error_message != strings.get("duplicate_error")
 
-def better_error_message(error_message, response, terminal_id, format_currency):
-    status_code_message = re.match(r'^(\d+): (.*)$', error_message)
-    if status_code_message:
+def better_error_message(
+    error_message: str,
+    response: dict[str, Any],
+    terminal_id: str | int,
+    format_currency: Callable[[Any], str],
+) -> dict[str, str] | None:
+    if status_code_message := re.match(r"^(\d+): (.*)$", error_message):
         status_code = status_code_message[1]
         message = status_code_message[2]
     else:
@@ -96,6 +102,7 @@ def better_error_message(error_message, response, terminal_id, format_currency):
         return {'message': f"{format_currency(response['Amounts']['TotalAmount'])} has been paid. Retry the payment to charge the remaining balance."}
     if message == strings.get("error_register"):
         return {'error': f'Register {terminal_id} not found.'}
+    return None
 
 def get_call_url(base_url, type=''):
     if type in secrets.get("lists", {}).get("call_url_types", []):

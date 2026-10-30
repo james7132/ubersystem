@@ -268,11 +268,10 @@ class GuestGroup(MagModel, table=True):
         return f"../guests/bio?guest_id={self.id}"
     
     @property
-    def guidebook_data(self):
-        name = self.group.name if self.group else ''
-        brackets = re.match(r'^\[.*\] ', name)
-        if brackets:
-            name = name[len(brackets[0]):]
+    def guidebook_data(self) -> dict[str, str]:
+        name = self.group.name if self.group else ""
+        if brackets := re.match(r"^\[.*\] ", name):
+            name = name[len(brackets[0]) :]
 
         return {
             'guidebook_name': name,
@@ -515,7 +514,7 @@ class GuestMerch(MagModel, table=True):
         return cls.extract_json_params(params, 'handlers')
 
     @classmethod
-    def validate_inventory(cls, inventory):
+    def validate_inventory(cls, inventory: dict[str, Any] | None) -> str:
         if not inventory:
             return 'You must add some merch to your inventory!'
         messages = []
@@ -541,7 +540,9 @@ class GuestMerch(MagModel, table=True):
                         if file_size > max_size_mb * 1024 * 1024:
                             messages.append('{} files must be under {}MB'.format(file_type.title(), max_size_mb))
 
-        return '. '.join(dict.fromkeys([s.strip() for s in messages if s.strip()]))
+        return ". ".join(
+            dict.fromkeys([clean for s in messages if (clean := s.strip())])
+        )
 
     def _prune_inventory_file(self, item, new_inventory, *, prune_missing=False):
 

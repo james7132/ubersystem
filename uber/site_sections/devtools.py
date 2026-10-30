@@ -13,6 +13,8 @@ import pypsutil
 import cherrypy
 import threading
 from datetime import datetime
+from typing import Any
+from sqlalchemy.orm import Session
 
 from sqlalchemy.dialects.postgresql.json import JSONB
 from pytz import UTC
@@ -21,7 +23,14 @@ from sqlalchemy import text
 
 from uber.config import c
 from uber.decorators import all_renderable, csv_file, public, site_mappable
-from uber.models import Choice, UniqueList, MultiChoice, Session
+from uber.models import (
+    Attendee,
+    Choice,
+    MagModel,
+    MultiChoice,
+    Session as UberSession,
+    UniqueList,
+)
 from uber.serializer import serializer
 from uber.tasks.health import ping
 
@@ -123,12 +132,16 @@ def general_system_info():
     return '\n'.join(out)
 
 def database_pool_information():
-    return Session.engine.pool.status()
+    return UberSession.engine.pool.status()
 
 
-def _get_or_create(session, model, defaults=None, **lookup):
-    instance = session.query(model).filter_by(**lookup).first()
-    if instance:
+def _get_or_create(
+    session: Session,
+    model: type[MagModel],
+    defaults: dict[str, Any] | None = None,
+    **lookup: Any,
+) -> MagModel:
+    if instance := session.query(model).filter_by(**lookup).first():
         return instance
     params = dict(lookup)
     if defaults:
@@ -167,14 +180,19 @@ _LASTS = ['Anderson', 'Blackwood', 'Castellanos', 'Duarte', 'Ellison',
           'Chen', 'Delacroix', 'Eastman', 'Farouk']
 
 
-def _make_attendee(session, first, last, email, staff=False,
-                   hotel_eligible=False, cellphone=''):
+def _make_attendee(
+    session: Session,
+    first: str,
+    last: str,
+    email: str,
+    staff: bool = False,
+    hotel_eligible: bool = False,
+    cellphone: str = "",
+) -> tuple[Attendee, bool]:
     """Get-or-create by email. Returns (attendee, created)."""
-    from uber.models import Attendee
-    existing = session.query(Attendee).filter_by(email=email).first()
-    if existing:
+    if existing := session.query(Attendee).filter_by(email=email).first():
         return existing, False
-    attendee = Attendee(
+    attendee = Attendee(  # type: ignore[call-arg]
         first_name=first, last_name=last, email=email,
         badge_type=c.STAFF_BADGE if staff else c.ATTENDEE_BADGE,
         badge_status=c.COMPLETED_STATUS,
