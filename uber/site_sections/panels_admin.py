@@ -10,9 +10,11 @@ from uber.email import EmailService
 from uber.config import c
 from uber.decorators import ajax, all_renderable, csrf_protected, csv_file, render
 from uber.errors import HTTPRedirect
+from sqlmodel import col
+from sqlalchemy.orm import Session
 from uber.models import AssignedPanelist, Attendee, AutomatedEmail, Event, EventFeedback, EventLocation, Department, \
     PanelApplicant, PanelApplication, GuestGroup
-from uber.utils import add_opt, check, localized_now, validate_model, groupify
+from uber.utils import add_opt, check, localized_now, validate_model
 from uber.forms import load_forms
 
 log = logging.getLogger(__name__)
@@ -151,10 +153,23 @@ class Root:
         raise HTTPRedirect('app?id={}&message={} was successfully {}.',
                            app.id, panelist.full_name, 'created' if prefix == 'new' else 'updated')
 
-    def email_statuses(self, session):
-        emails = session.query(AutomatedEmail).filter(AutomatedEmail.ident.in_(
-            ['panel_accepted', 'panel_declined', 'panel_waitlisted', 'panel_scheduled']))
-        return {'emails': groupify(emails, 'ident')}
+    def email_statuses(
+        self, session: Session
+    ) -> dict[str, dict[str, list[AutomatedEmail]]]:
+        emails = session.query(AutomatedEmail).filter(
+            col(AutomatedEmail.ident).in_(
+                [
+                    'panel_accepted',
+                    'panel_declined',
+                    'panel_waitlisted',
+                    'panel_scheduled',
+                ]
+            )
+        )
+        emails_by_ident: defaultdict[str, list[AutomatedEmail]] = defaultdict(list)
+        for email in emails:
+            emails_by_ident[email.ident].append(email)
+        return {'emails': emails_by_ident}
 
     def assigned_to(self, session, id):
         attendee = session.attendee(id)

@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 
 import pytz
@@ -9,7 +9,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import Uuid, String, DateTime
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from uber.config import c
 from uber.custom_tags import humanize_timedelta, location_event_name, location_room_name
@@ -17,7 +17,7 @@ from uber.decorators import presave_adjustment, render, classproperty
 from uber.models import MagModel, Attendee
 from uber.models.types import (DefaultColumn as Column, default_relationship as relationship, Choice, utcmin,
                                DefaultField as Field, DefaultRelationship as Relationship)
-from uber.utils import evening_datetime, noon_datetime, localized_now, slugify, listify, groupify
+from uber.utils import evening_datetime, noon_datetime, localized_now, slugify, listify
 
 
 __all__ = [
@@ -227,8 +227,11 @@ class Attraction(MagModel, AttractionMixin, table=True):
         return OrderedDict(self.location_opts)
 
     @property
-    def locations_by_feature_id(self):
-        return groupify(self.features, 'id', lambda f: f.locations)
+    def locations_by_feature_id(self) -> dict[Any, list[str]]:
+        res: defaultdict[Any, list[str]] = defaultdict(list)
+        for f in self.features:
+            res[f.id].extend(f.locations)
+        return res
 
     def cascade_feature_event_attrs(self, session):
         schedule_synced = False
@@ -325,7 +328,10 @@ class Attraction(MagModel, AttractionMixin, table=True):
         if options:
             query = query.options(*listify(options))
         query.order_by(AttractionSignup.id)
-        return groupify(query, lambda x: x[0], lambda x: x[1])
+        res: defaultdict[Any, list[Any]] = defaultdict(list)
+        for x in query:
+            res[x[0]].append(x[1])
+        return res
 
 
 class AttractionFeature(MagModel, AttractionMixin, table=True):
@@ -418,14 +424,27 @@ class AttractionFeature(MagModel, AttractionMixin, table=True):
         return OrderedDict(self.location_opts)
 
     @property
-    def events_by_location(self):
+    def events_by_location(self) -> dict[Any, list['AttractionEvent']]:
         events = sorted(self.events, key=lambda e: (c.SCHEDULE_LOCATIONS[e.event_location_id], e.start_time))
-        return groupify(events, 'event_location_id')
+        res: defaultdict[Any, list[AttractionEvent]] = defaultdict(list)
+        for e in events:
+            res[e.event_location_id].append(e)
+        return res
 
     @property
-    def events_by_location_by_day(self):
-        events = sorted(self.events, key=lambda e: (c.SCHEDULE_LOCATIONS[e.event_location_id], e.start_time))
-        return groupify(events, ['event_location_id', 'start_day_local'])
+    def events_by_location_by_day(
+        self,
+    ) -> dict[Any, Any]:
+        events = sorted(
+            self.events,
+            key=lambda e: (c.SCHEDULE_LOCATIONS[e.event_location_id], e.start_time),
+        )
+        res: defaultdict[Any, defaultdict[str, list[AttractionEvent]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        for e in events:
+            res[e.event_location_id][e.start_day_local].append(e)
+        return res
 
     @property
     def available_events(self):
@@ -453,8 +472,11 @@ class AttractionFeature(MagModel, AttractionMixin, table=True):
         return summary
 
     @property
-    def available_events_by_day(self):
-        return groupify(self.available_events, 'start_day_local')
+    def available_events_by_day(self) -> dict[str, list['AttractionEvent']]:
+        res: defaultdict[str, list[AttractionEvent]] = defaultdict(list)
+        for e in self.available_events:
+            res[e.start_day_local].append(e)
+        return res
 
 
 class AttractionEvent(MagModel, AttractionMixin, table=True):

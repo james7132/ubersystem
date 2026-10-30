@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 import math
 import re
@@ -21,10 +22,28 @@ from uber.custom_tags import safe_string, time_day_local, readable_join
 from uber.decorators import presave_adjustment, render, cached_property, classproperty
 from uber.models import MagModel
 from uber.models.group import Group
-from uber.models.types import default_relationship as relationship, Choice, DefaultColumn as Column, \
-    MultiChoice, TakesPaymentMixin, DefaultField as Field, DefaultRelationship as Relationship
-from uber.utils import add_opt, get_age_from_birthday, get_age_conf_from_birthday, hour_day_format, \
-    localized_now, mask_string, normalize_email, normalize_email_legacy, remove_opt, RegistrationCode, listify, groupify
+from uber.models.types import (
+    default_relationship as relationship,
+    Choice,
+    DefaultColumn as Column,
+    MultiChoice,
+    TakesPaymentMixin,
+    DefaultField as Field,
+    DefaultRelationship as Relationship,
+)
+from uber.utils import (
+    add_opt,
+    get_age_from_birthday,
+    get_age_conf_from_birthday,
+    hour_day_format,
+    localized_now,
+    mask_string,
+    normalize_email,
+    normalize_email_legacy,
+    remove_opt,
+    RegistrationCode,
+    listify,
+)
 
 log = logging.getLogger(__name__)
 
@@ -2843,10 +2862,13 @@ class AttendeeAccount(MagModel, table=True):
                                                                   ) and attendee.paid != c.PENDING]
 
     @property
-    def valid_badges_by_group(self):
+    def valid_badges_by_group(self) -> dict[Group, list['Attendee']]:
         group_attendees = [attendee for attendee in self.valid_attendees if attendee.group and attendee.group.is_valid]
         if group_attendees:
-            return groupify(group_attendees, 'group')
+            res: defaultdict[Group, list[Attendee]] = defaultdict(list)
+            for a in group_attendees:
+                res[a.group].append(a)
+            return res
         return {}
 
     @property

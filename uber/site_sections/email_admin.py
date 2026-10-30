@@ -1,3 +1,5 @@
+from collections import defaultdict
+from typing import Any
 import cherrypy
 from datetime import datetime, timedelta
 import logging
@@ -13,8 +15,15 @@ from uber.decorators import ajax, all_renderable, reconcile_fixtures, csv_file, 
 from uber.email import EmailHandler, EmailService
 from uber.errors import HTTPRedirect
 from uber.forms import load_forms
-from uber.models import AdminAccount, Attendee, AutomatedEmail, Email, Department, DeptChecklistItem
-from uber.utils import check, get_page, listify, groupify, validate_model, localized_now
+from uber.models import (
+    AdminAccount,
+    Attendee,
+    AutomatedEmail,
+    Email,
+    Department,
+    DeptChecklistItem,
+)
+from uber.utils import check, get_page, listify, validate_model, localized_now
 from uber.tasks.email import check_emails_for_fixture
 
 log = logging.getLogger(__name__)
@@ -149,7 +158,9 @@ class Root:
             queued_email_counts[email.id] = all_queued_emails.filter(Email.status != c.SENT).count()
             sent_email_counts[email.id] = all_queued_emails.filter(Email.status == c.SENT).count()
 
-        emails_by_sender = groupify(emails, 'sender')
+        emails_by_sender: defaultdict[str, list[AutomatedEmail]] = defaultdict(list)
+        for email in emails:
+            emails_by_sender[email.sender].append(email)
 
         if not checklist:
             checklist = {'conf': None, 'relevant': False, 'completed': None}

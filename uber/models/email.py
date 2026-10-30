@@ -3,7 +3,7 @@ import traceback
 import logging
 import pytz
 import json
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 from dateutil import parser as dateparser
 
@@ -21,7 +21,7 @@ from uber.decorators import presave_adjustment, renderable_data, cached_property
 from uber.jinja import JinjaEnv
 from uber.models import MagModel
 from uber.models.types import DefaultField as Field, DefaultRelationship as Relationship, Choice, DefaultColumn as Column
-from uber.utils import normalize_newlines, request_cached_context, groupify, listify
+from uber.utils import normalize_newlines, request_cached_context, listify
 
 log = logging.getLogger(__name__)
 
@@ -197,8 +197,11 @@ class AutomatedEmail(MagModel, BaseEmailMixin, table=True):
         return ''
 
     @cached_property
-    def emails_by_fk_id(self):
-        return groupify(self.emails, 'fk_id')
+    def emails_by_fk_id(self) -> dict[str | None, list['Email']]:
+        res: defaultdict[str | None, list['Email']] = defaultdict(list)
+        for email in self.emails:
+            res[email.fk_id].append(email)
+        return res
 
     @hybrid_property
     def email_count(self):

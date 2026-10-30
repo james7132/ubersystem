@@ -5,6 +5,7 @@ import cherrypy
 import math
 import re
 from collections import defaultdict
+from typing import Any
 from datetime import datetime
 from sqlalchemy import or_, func, and_
 from sqlalchemy.types import String
@@ -18,8 +19,15 @@ from uber.errors import HTTPRedirect
 from uber.models import AdminAccount, ApiJob, ArtShowApplication, Attendee, Group, ModelReceipt, ReceiptItem, \
     ReceiptInfo, ReceiptTransaction, Tracking, WorkstationAssignment, EscalationTicket
 from uber.site_sections import devtools
-from uber.utils import check, get_api_service_from_server, normalize_email, normalize_email_legacy, valid_email, \
-    TaskUtils, Order, groupify
+from uber.utils import (
+    check,
+    get_api_service_from_server,
+    normalize_email,
+    normalize_email_legacy,
+    valid_email,
+    TaskUtils,
+    Order,
+)
 from uber.payments import ReceiptManager, RefundRequest
 
 
@@ -1482,11 +1490,16 @@ class Root:
 
             if models and which_import == 'attendees':
                 attendees = models
-                attendees_by_name_email = groupify(attendees, lambda a: (
-                    a['first_name'].lower(),
-                    a['last_name'].lower(),
-                    normalize_email_legacy(a['email']),
-                ))
+                attendees_by_name_email: defaultdict[
+                    tuple[str, str, str], list[dict[str, Any]]
+                ] = defaultdict(list)
+                for a in attendees:
+                    key = (
+                        a['first_name'].lower(),
+                        a['last_name'].lower(),
+                        normalize_email_legacy(a['email']),
+                    )
+                    attendees_by_name_email[key].append(a)
 
                 filters = [
                     and_(
@@ -1517,7 +1530,11 @@ class Root:
 
             if models and which_import == 'groups':
                 groups = models
-                groups_by_name = groupify(groups, lambda g: g['name'])
+                groups_by_name: defaultdict[str, list[dict[str, Any]]] = defaultdict(
+                    list
+                )
+                for g in groups:
+                    groups_by_name[g['name']].append(g)
 
                 existing_groups = session.query(Group).filter(Group.name.in_(groups_by_name.keys())) \
                     .options(subqueryload(Group.attendees)).all()

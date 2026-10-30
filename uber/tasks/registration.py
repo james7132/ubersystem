@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Any
 from datetime import datetime, timedelta
 from itertools import chain
 
@@ -20,7 +21,7 @@ from uber.decorators import render
 from uber.models import (ApiJob, Attendee, AttendeeAccount, BadgeInfo, BadgePickupGroup, Email, Group, ModelReceipt,
                          ReceiptInfo, ReceiptItem, ReceiptTransaction, Session, TerminalSettlement)
 from uber.tasks import celery
-from uber.utils import localized_now, TaskUtils, normalize_email, groupify
+from uber.utils import localized_now, TaskUtils, normalize_email
 from uber.payments import ReceiptManager, TransactionRequest
 
 log = logging.getLogger(__name__)
@@ -551,7 +552,11 @@ def check_authnet_held_txns():
             txn.on_hold = True
             session.add(txn)
 
-        release_txns_by_charge_id = groupify(release_txns, 'charge_id')
+        release_txns_by_charge_id: defaultdict[str, list[ReceiptTransaction]] = (
+            defaultdict(list)
+        )
+        for txn in release_txns:
+            release_txns_by_charge_id[txn.charge_id].append(txn)
 
         for charge_id, txns in release_txns_by_charge_id.items():
             txn_status = TransactionRequest(session)
@@ -601,8 +606,13 @@ def import_attendee_accounts(admin_id, admin_name, target_server, api_token, mod
     already_queued = 0
 
     with Session() as session:
+
         def process_accounts(accounts):
-            accounts_by_email = groupify(accounts, lambda a: normalize_email(a['email']))
+            accounts_by_email: defaultdict[str, list[dict[str, Any]]] = defaultdict(
+                list
+            )
+            for a in accounts:
+                accounts_by_email[normalize_email(a['email'])].append(a)
 
             existing_accounts = session.query(AttendeeAccount).filter(
                 AttendeeAccount.email.in_(accounts_by_email.keys())) \

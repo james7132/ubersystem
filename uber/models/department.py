@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, timedelta, time
 
 import six
@@ -7,12 +8,11 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.schema import ForeignKey, Table, UniqueConstraint, Index
 from sqlalchemy.sql import text
 from sqlalchemy.types import Uuid, DateTime
-from typing import ClassVar
+from typing import ClassVar, Any
 
 from uber.config import c
 from uber.custom_tags import readable_join
 from uber.decorators import presave_adjustment, cached_property, classproperty
-from uber.utils import groupify
 from uber.models import MagModel
 from uber.models.attendee import Attendee
 from uber.models.types import (default_relationship as relationship, Choice, DefaultColumn as Column, MultiChoice,
@@ -403,12 +403,18 @@ class Department(MagModel, table=True):
         return [(role.id, role.name) for role in self.dept_roles]
 
     @property
-    def dept_roles_by_id(self):
-        return groupify(self.dept_roles, 'id')
+    def dept_roles_by_id(self) -> dict[Any, list[DeptRole]]:
+        res: defaultdict[Any, list[DeptRole]] = defaultdict(list)
+        for r in self.dept_roles:
+            res[r.id].append(r)
+        return res
 
     @property
-    def dept_roles_by_name(self):
-        return groupify(self.dept_roles, 'name')
+    def dept_roles_by_name(self) -> dict[str, list[DeptRole]]:
+        res: defaultdict[str, list[DeptRole]] = defaultdict(list)
+        for r in self.dept_roles:
+            res[r.name].append(r)
+        return res
     
     @property
     def job_templates_choices(self):
@@ -428,12 +434,18 @@ class Department(MagModel, table=True):
         return data
     
     @property
-    def job_templates_by_id(self):
-        return groupify(self.job_templates, 'id')
+    def job_templates_by_id(self) -> dict[Any, list['JobTemplate']]:
+        res: defaultdict[Any, list['JobTemplate']] = defaultdict(list)
+        for t in self.job_templates:
+            res[t.id].append(t)
+        return res
 
     @property
-    def job_templates_by_name(self):
-        return groupify(self.job_templates, 'template_name')
+    def job_templates_by_name(self) -> dict[str, list['JobTemplate']]:
+        res: defaultdict[str, list['JobTemplate']] = defaultdict(list)
+        for t in self.job_templates:
+            res[t.template_name].append(t)
+        return res
 
 
 class Job(MagModel, table=True):
