@@ -3,11 +3,21 @@ import logging
 from dateutil import parser as dateparser
 
 from markupsafe import escape, Markup
+from wtforms import Field
 from wtforms.widgets import NumberInput, html_params, CheckboxInput, TextInput, Select, HiddenInput
+from typing import Any, NamedTuple
 from uber.config import c
 from uber.custom_tags import linebreaksbr
 
 log = logging.getLogger(__name__)
+
+
+class SelectOption(NamedTuple):
+    """Option container for dropdown select elements."""
+
+    value: str | int | float | bool | None
+    label: str
+    alt_spellings: str = ""
 
 
 class MultiCheckbox():
@@ -275,7 +285,12 @@ class UniqueList(TextInput):
     or a set of string fields. This widget handles both.
     """
 
-    def tagify_js(self, field, choices=None, **kwargs):
+    def tagify_js(
+        self,
+        field: Field,
+        choices: list[Any] | tuple[Any, ...] | None = None,
+        **kwargs: Any,
+    ) -> str:
         id = kwargs.pop('id', field.id)
         enforce = 'false'
         text_prop = 'value'
@@ -283,7 +298,10 @@ class UniqueList(TextInput):
         if hasattr(field, 'choices'):
             choices = choices or field.choices
             if isinstance(choices[0], tuple):
-                choices = [{'value': choice[0], 'label': choice[1]} for choice in choices]
+                choices = [
+                    SelectOption(value=choice[0], label=choice[1])._asdict()
+                    for choice in choices
+                ]
                 text_prop = 'label'
             if hasattr(field, 'validate_choice'):
                 enforce = 'true' if field.validate_choice == True else 'false'

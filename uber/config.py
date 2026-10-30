@@ -23,6 +23,7 @@ from tempfile import NamedTemporaryFile
 from collections import defaultdict, OrderedDict
 from datetime import date, datetime, time, timedelta
 from hashlib import sha512
+from typing import Any, NamedTuple
 from markupsafe import Markup
 from itertools import chain
 
@@ -34,6 +35,35 @@ from sqlalchemy.orm import joinedload, selectinload
 import uber
 
 log = logging.getLogger(__name__)
+
+
+class DonationTierRecord(NamedTuple):
+    """Record container for donation tiers and kick-in perks."""
+
+    price: int
+    name: str = ""
+    description: str = ""
+    all_descriptions: list[tuple[str, str]] = []
+    value: int = 0
+
+
+class BadgeTypeRecord(NamedTuple):
+    """Record container for formatted badge type options."""
+
+    name: str
+    desc: str
+    value: int | str
+    price: int
+
+    def __getitem__(self, item: int | slice | str) -> Any:  # type: ignore[override]
+        if isinstance(item, str):
+            return getattr(self, item)
+        return super().__getitem__(item)
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, str) and hasattr(self, item):
+            return True
+        return super().__contains__(item)
 
 plugins_dir = pathlib.Path(__file__).parents[1] / "plugins"
 
@@ -848,31 +878,37 @@ class Config(_Overridable):
         return badge_types
 
     @property
-    def FORMATTED_BADGE_TYPES(self):
-        badge_types = []
+    def FORMATTED_BADGE_TYPES(self) -> list[BadgeTypeRecord]:
+        badge_types: list[BadgeTypeRecord] = []
         if c.AT_THE_CON and self.ONE_DAYS_ENABLED:
             if self.PRESELL_ONE_DAYS:
                 badge_types.extend(self.build_presold_one_days())
             elif self.ONE_DAY_BADGE_AVAILABLE:
-                badge_types.append({
-                    'name': 'Single Day',
-                    'desc': 'Can be upgraded to an Attendee badge later.',
-                    'value': c.ONE_DAY_BADGE,
-                    'price': c.ONEDAY_BADGE_PRICE
-                })
-        badge_types.append({
-            'name': 'Attendee',
-            'desc': 'Allows access to the convention for its duration.',
-            'value': c.ATTENDEE_BADGE,
-            'price': c.get_attendee_price()
-            })
+                badge_types.append(
+                    BadgeTypeRecord(
+                        name="Single Day",
+                        desc="Can be upgraded to an Attendee badge later.",
+                        value=c.ONE_DAY_BADGE,
+                        price=c.ONEDAY_BADGE_PRICE,
+                    )
+                )
+        badge_types.append(
+            BadgeTypeRecord(
+                name="Attendee",
+                desc="Allows access to the convention for its duration.",
+                value=c.ATTENDEE_BADGE,
+                price=c.get_attendee_price(),
+            )
+        )
         for badge_type in sorted(c.BADGE_TYPE_PRICES, key=c.BADGE_TYPE_PRICES.get):
-            badge_types.append({
-                'name': c.BADGES[badge_type],
-                'desc': 'Donate extra to get an upgraded badge with perks.',
-                'value': badge_type,
-                'price': c.BADGE_TYPE_PRICES[badge_type]
-            })
+            badge_types.append(
+                BadgeTypeRecord(
+                    name=c.BADGES[badge_type],
+                    desc="Donate extra to get an upgraded badge with perks.",
+                    value=badge_type,
+                    price=c.BADGE_TYPE_PRICES[badge_type],
+                )
+            )
         return badge_types
 
     @request_cached_property

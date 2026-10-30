@@ -3,6 +3,7 @@ import uuid
 from collections import defaultdict
 from datetime import datetime
 from functools import wraps
+from typing import Any, NamedTuple
 
 import cherrypy
 import pytz
@@ -31,7 +32,14 @@ from uber.models.hotel import (HotelExportLog, HotelRoomInventory, LotteryHotel,
 from uber.hotel.queries import shared_room_eligible_query
 from uber.models.badge_printing import PrintJob
 from uber.serializer import serializer
-from uber.utils import check, check_csrf, normalize_email_legacy, normalize_newlines, is_listy
+from uber.utils import (
+    check,
+    check_csrf,
+    is_listy,
+    is_namedtuple_instance,
+    normalize_email_legacy,
+    normalize_newlines,
+)
 
 log = logging.getLogger(__name__)
 
@@ -58,9 +66,35 @@ def force_json_in():
 
 cherrypy.tools.force_json_in = cherrypy.Tool('before_request_body', force_json_in, priority=30)
 
-def json_handler(*args, **kwargs):
+def json_handler(*args: Any, **kwargs: Any) -> bytes:
     value = cherrypy.serving.request._json_inner_handler(*args, **kwargs)
+    if is_namedtuple_instance(value):
+        value = value._asdict()
     return json.dumps(value, cls=serializer).encode('utf-8')
+
+
+class JSONRPCErrorDetails(NamedTuple):
+    """Payload container for JSON-RPC 2.0 error details."""
+
+    code: int
+    message: str
+
+
+class JSONRPCErrorPayload(NamedTuple):
+    """Payload container for JSON-RPC 2.0 error responses."""
+
+    jsonrpc: str = "2.0"
+    id: str | int | None = None
+    error: JSONRPCErrorDetails | None = None
+
+
+class JSONRPCResponsePayload(NamedTuple):
+    """Payload container for JSON-RPC 2.0 success responses."""
+
+    jsonrpc: str = "2.0"
+    id: str | int | None = None
+    result: dict[str, Any] | list[Any] | str | int | float | bool | None = None
+
 
 def _make_jsonrpc_handler(services, debug=c.DEV_BOX, precall=lambda body: None):
 
@@ -70,14 +104,15 @@ def _make_jsonrpc_handler(services, debug=c.DEV_BOX, precall=lambda body: None):
     def _jsonrpc_handler(self=None):
         id = None
 
-        def error(status, code, message):
-            response = {'jsonrpc': '2.0', 'id': id, 'error': {'code': code, 'message': message}}
+        def error(status: int, code: int, message: str) -> JSONRPCErrorPayload:
+            err_details = JSONRPCErrorDetails(code=code, message=message)
+            response = JSONRPCErrorPayload(id=id, error=err_details)
             log.debug('Returning error message: {}', repr(response).encode('utf-8'))
             cherrypy.response.status = status
             return response
 
-        def success(result):
-            response = {'jsonrpc': '2.0', 'id': id, 'result': result}
+        def success(result: Any) -> JSONRPCResponsePayload:
+            response = JSONRPCResponsePayload(id=id, result=result)
             log.debug('Returning success message: {}', {
                 'jsonrpc': '2.0', 'id': id, 'result': len(result) if is_listy(result) else str(result).encode('utf-8')})
             cherrypy.response.status = 200

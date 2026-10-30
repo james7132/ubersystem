@@ -12,7 +12,7 @@ from itertools import chain
 from pydantic import ConfigDict
 from uuid import uuid4
 from types import MethodType
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast
 
 import cherrypy
 import six
@@ -45,6 +45,41 @@ from uber.utils import check_csrf, normalize_email_legacy, create_new_hash, Dept
 from uber.payments import ReceiptManager
 
 log = logging.getLogger(__name__)
+
+
+class ChecklistStatus(NamedTuple):
+    """Status container for department checklist items."""
+
+    conf: dict[str, Any] | bool | str | None = None
+    relevant: bool = False
+    completed: bool | datetime | str | None = None
+
+    def __getitem__(self, item: int | slice | str) -> Any:  # type: ignore[override]
+        if isinstance(item, str):
+            return getattr(self, item)
+        return super().__getitem__(item)
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, str) and hasattr(self, item):
+            return True
+        return super().__contains__(item)
+
+
+class StafferDropdownOption(NamedTuple):
+    """Option container for staffer dropdown selections."""
+
+    id: str | int
+    full_name: str
+
+    def __getitem__(self, item: int | slice | str) -> Any:  # type: ignore[override]
+        if isinstance(item, str):
+            return getattr(self, item)
+        return super().__getitem__(item)
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, str) and hasattr(self, item):
+            return True
+        return super().__contains__(item)
 
 def _make_getter(model):
     def getter(
@@ -1155,31 +1190,37 @@ class UberSession(sqlalchemy.orm.Session):
 
             return subqueries[0].union(*subqueries[1:])
 
-        def checklist_status(self, slug, department_id):
+        def checklist_status(
+            self: Any, slug: str, department_id: str | None = None
+        ) -> ChecklistStatus:
+            """Retrieve the checklist status for a given section slug and department ID."""
             attendee = self.admin_attendee()
             conf = DeptChecklistConf.instances.get(slug)
             if not conf:
                 raise ValueError(
-                    "Can't access dept checklist INI settings for section '{}', check your INI file".format(slug))
+                    f"Can't access dept checklist INI settings for section '{slug}', check your INI file"
+                )
 
             if not department_id:
-                return {'conf': conf, 'relevant': False, 'completed': None}
+                return ChecklistStatus(conf=conf, relevant=False, completed=None)
 
-            department = self.get(Department, department_id, options=[
-                selectinload(Department.dept_checklist_items)
-            ])
+            department = self.get(
+                Department,
+                department_id,
+                options=[selectinload(cast(Any, Department.dept_checklist_items))],
+            )
             if department:
-                return {
-                    'conf': conf,
-                    'relevant': attendee.can_admin_checklist_for(department.id),
-                    'completed': department.checklist_item_for_slug(conf.slug)
-                }
+                return ChecklistStatus(
+                    conf=conf,
+                    relevant=attendee.can_admin_checklist_for(department.id),
+                    completed=department.checklist_item_for_slug(conf.slug),
+                )
             else:
-                return {
-                    'conf': conf,
-                    'relevant': attendee.can_admin_checklist,
-                    'completed': attendee.checklist_item_for_slug(conf.slug)
-                }
+                return ChecklistStatus(
+                    conf=conf,
+                    relevant=attendee.can_admin_checklist,
+                    completed=attendee.checklist_item_for_slug(conf.slug),
+                )
 
         def jobs_for_signups(self, id, all=False):
             jobs = self.volunteer_from_id(id).possible
@@ -1839,12 +1880,15 @@ class UberSession(sqlalchemy.orm.Session):
                     subqueryload(Job.shifts).subqueryload(Shift.attendee).subqueryload(Attendee.group)) \
                 .order_by(Job.start_time, Job.name)
 
-        def staffers_for_dropdown(self):
-            query = self.query(Attendee.id, Attendee.full_name).filter(Attendee.is_valid == True,
-                                                                       Attendee.staffing == True)
+        def staffers_for_dropdown(self: Any) -> list[StafferDropdownOption]:
+            """Return a list of valid staffers formatted for UI dropdown options."""
+            query = self.query(Attendee.id, Attendee.full_name).filter(
+                Attendee.is_valid == True, Attendee.staffing == True
+            )
             return [
-                {'id': id, 'full_name': full_name.title()}
-                for id, full_name in query.order_by(Attendee.full_name)]
+                StafferDropdownOption(id=id, full_name=full_name.title())
+                for id, full_name in query.order_by(Attendee.full_name)
+            ]
 
         def dept_heads(self, department_id=None):
             if department_id:
@@ -2433,7 +2477,8 @@ class HybridSessionProxy:
     """
     A smart proxy that mimics the old Session class behavior.
     """
-    def __getattr__(self, name):
+
+    def __getattr__(self, name: str) -> Any:
         """
         Return thread-scoped session as expected by modern sqlalchemy usage on 'Session.query()'
         """
@@ -2445,7 +2490,11 @@ class HybridSessionProxy:
         """
         return SessionFactory(*args, **kwargs)
 
-Session = HybridSessionProxy()
+
+if TYPE_CHECKING:
+    Session = UberSession
+else:
+    Session = HybridSessionProxy()
 
 def initialize_db():
     """Explicitly create tables."""

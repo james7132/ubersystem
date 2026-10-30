@@ -1,19 +1,35 @@
-import cherrypy
 import logging
-
 from datetime import datetime
+from typing import Any, NamedTuple
 
-from uber.email import EmailService
+import cherrypy
+
 from uber.config import c
 from uber.custom_tags import email_only
-from uber.decorators import ajax, all_renderable, render, credit_card, requires_account, public
+from uber.decorators import (
+    ajax,
+    all_renderable,
+    credit_card,
+    public,
+    render,
+    requires_account,
+)
+from uber.email import EmailService
 from uber.errors import HTTPRedirect
 from uber.forms import load_forms
-from uber.models import Attendee, ArtistMarketplaceApplication
-from uber.utils import check, validate_model, SignNowRequest
-from uber.payments import TransactionRequest, ReceiptManager, RefundRequest
+from uber.models import ArtistMarketplaceApplication, Attendee, Session
+from uber.payments import ReceiptManager, RefundRequest, TransactionRequest
+from uber.utils import SignNowRequest, check, validate_model
 
 log = logging.getLogger(__name__)
+
+
+class MarketplaceResponse(NamedTuple):
+    """Structured response container for marketplace application validation."""
+
+    success: bool = True
+    message: str = ""
+    error: dict[str, Any] | list[str] | str | None = None
 
 
 @all_renderable(public=True)
@@ -135,7 +151,10 @@ class Root:
     
     @ajax
     @requires_account(ArtistMarketplaceApplication)
-    def validate_marketplace_app(self, session, form_list=[], **params):
+    def validate_marketplace_app(
+        self, session: Session, form_list: list[str] | str | None = None, **params: Any
+    ) -> MarketplaceResponse:
+        """Validate marketplace application form data and return structured MarketplaceResponse."""
         if params.get('id') in [None, '', 'None']:
             app = ArtistMarketplaceApplication()
         else:
@@ -149,9 +168,9 @@ class Root:
 
         all_errors = validate_model(session, forms, app, is_admin=False)
         if all_errors:
-            return {"error": all_errors}
+            return MarketplaceResponse(success=False, error=all_errors)
 
-        return {"success": True}
+        return MarketplaceResponse(success=True)
 
     def confirmation(self, session, id):
         return {

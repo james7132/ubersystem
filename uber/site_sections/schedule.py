@@ -1,23 +1,58 @@
 import json
-import ics
-import pytz
-import cherrypy
 import logging
-
 from collections import defaultdict
 from datetime import datetime, time, timedelta
-from dateutil import parser as dateparser
 from time import mktime
+from typing import Any, NamedTuple
+
+import cherrypy
+import ics
+import pytz
+from dateutil import parser as dateparser
 from sqlalchemy.orm import joinedload, selectinload
 
 from uber.config import c
-from uber.decorators import ajax, ajax_gettable, all_renderable, cached, csrf_protected, csv_file, render, schedule_view, site_mappable
+from uber.decorators import (
+    ajax,
+    ajax_gettable,
+    all_renderable,
+    cached,
+    csrf_protected,
+    csv_file,
+    render,
+    schedule_view,
+    site_mappable,
+)
 from uber.errors import HTTPRedirect
 from uber.forms import load_forms
-from uber.models import AssignedPanelist, Attendee, Event, EventLocation, PanelApplication, Department
-from uber.utils import check, localized_now, normalize_newlines, validate_model, load_locations_from_config, listify
+from uber.models import (
+    AssignedPanelist,
+    Attendee,
+    Department,
+    Event,
+    EventLocation,
+    PanelApplication,
+    Session,
+)
+from uber.utils import (
+    check,
+    listify,
+    load_locations_from_config,
+    localized_now,
+    normalize_newlines,
+    validate_model,
+)
 
 log = logging.getLogger(__name__)
+
+
+class APIResponse(NamedTuple):
+    """Structured response container for AJAX and API endpoints."""
+
+    success: bool = True
+    message: str = ""
+    data: dict[str, Any] | list[Any] | str | int | bool | None = None
+    error: dict[str, Any] | list[str] | str | None = None
 
 
 @all_renderable()
@@ -169,7 +204,10 @@ class Root:
         }
     
     @ajax
-    def validate_location(self, session, form_list=[], **params):
+    def validate_location(
+        self, session: Session, form_list: list[str] | str | None = None, **params: Any
+    ) -> APIResponse:
+        """Validate location form data and return structured APIResponse."""
         if params.get('id') in [None, '', 'None']:
             location = EventLocation()
         else:
@@ -184,9 +222,9 @@ class Root:
         all_errors = validate_model(session, forms, location, is_admin=True)
 
         if all_errors:
-            return {"error": all_errors}
+            return APIResponse(success=False, error=all_errors)
 
-        return {"success": True}
+        return APIResponse(success=True)
     
     @csrf_protected
     def delete_location(self, session, id):
@@ -271,7 +309,10 @@ class Root:
         }
     
     @ajax
-    def validate_event(self, session, form_list=[], **params):
+    def validate_event(
+        self, session: Session, form_list: list[str] | str | None = None, **params: Any
+    ) -> APIResponse:
+        """Validate event form data and return structured APIResponse."""
         if params.get('id') in [None, '', 'None']:
             event = Event()
         else:
@@ -286,9 +327,9 @@ class Root:
         all_errors = validate_model(session, forms, event, is_admin=True)
 
         if all_errors:
-            return {"error": all_errors}
+            return APIResponse(success=False, error=all_errors)
 
-        return {"success": True}
+        return APIResponse(success=True)
 
     @csrf_protected
     def delete(self, session, id):

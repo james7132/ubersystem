@@ -4,15 +4,33 @@ import logging
 import ics
 from sqlalchemy.orm import joinedload, selectinload
 
+from typing import Any, NamedTuple
 from uber.config import c
 from uber.custom_tags import safe_string
 from uber.decorators import ajax, ajax_gettable, all_renderable, check_shutdown, csrf_protected, id_required, render, requires_account
 from uber.errors import HTTPRedirect
 from uber.forms import load_forms
-from uber.models import Attendee, Job, FoodRestrictions, Shift
+from uber.models import Attendee, Job, FoodRestrictions, Shift, Session
 from uber.utils import check_csrf, create_valid_user_supplied_redirect_url, ensure_csrf_token_exists, localized_now, extract_urls, validate_model
 
 log = logging.getLogger(__name__)
+
+
+class ShiftFilterOption(NamedTuple):
+    """Record container for shift filter options."""
+
+    id: str | int
+    title: str
+
+    def __getitem__(self, item: int | slice | str) -> Any:  # type: ignore[override]
+        if isinstance(item, str):
+            return getattr(self, item)
+        return super().__getitem__(item)
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, str) and hasattr(self, item):
+            return True
+        return super().__contains__(item)
 
 
 def _convert_urls(desc):
@@ -207,7 +225,7 @@ class Root:
     @id_required(Attendee)
     @requires_account(Attendee)
     @check_shutdown
-    def shifts(self, session, id, **params):
+    def shifts(self, session: Session, id: str, **params: Any) -> dict[str, Any]:
         volunteer = session.volunteer_from_id(id)
 
         # Covers the case when signups are only available for staff
@@ -229,30 +247,39 @@ class Root:
                 event_dates.append(day.strftime('%Y-%m-%d'))
             day += timedelta(days=1)
 
-        default_filters = [{'id': 'public_assigned', 'title': "Assigned Shifts (Public)"}]
+        default_filters = [
+            ShiftFilterOption(id="public_assigned", title="Assigned Shifts (Public)")
+        ]
         for department in volunteer.assigned_depts:
-            default_filters.append({
-                'id': department.id,
-                'title': department.name,
-            })
+            default_filters.append(
+                ShiftFilterOption(
+                    id=department.id,
+                    title=department.name,
+                )
+            )
         other_filters = [
-            {'id': 'public', 'title': "Public Shifts",},
-            ]
+            ShiftFilterOption(id="public", title="Public Shifts"),
+        ]
 
         return {
-            'attendee': volunteer,
-            'has_public_jobs': session.query(Job).filter(Job.is_public == True).first(),
-            'depts_with_roles': [membership.department.name for membership in volunteer.dept_memberships_with_role],
-            'assigned_depts_list': [(dept.id, dept.name) for dept in volunteer.assigned_depts],
-            'hours': volunteer.weighted_hours,
-            'assigned_depts_labels': volunteer.assigned_depts_labels,
-            'default_filters': default_filters,
-            'all_filters': default_filters + other_filters,
-            'start': c.SHIFTS_EPOCH.date(),
-            'total_duration': total_duration,
-            'highlighted_dates': event_dates,
-            'setup_duration': (c.EPOCH - c.SHIFTS_EPOCH).days,
-            'teardown_duration': (c.SHIFTS_ESCHATON - c.ESCHATON).days,
+            "attendee": volunteer,
+            "has_public_jobs": session.query(Job).filter(Job.is_public == True).first(),  # type: ignore[arg-type]
+            "depts_with_roles": [
+                membership.department.name
+                for membership in volunteer.dept_memberships_with_role
+            ],
+            "assigned_depts_list": [
+                (dept.id, dept.name) for dept in volunteer.assigned_depts
+            ],
+            "hours": volunteer.weighted_hours,
+            "assigned_depts_labels": volunteer.assigned_depts_labels,
+            "default_filters": [f._asdict() for f in default_filters],
+            "all_filters": [f._asdict() for f in default_filters + other_filters],
+            "start": c.SHIFTS_EPOCH.date(),
+            "total_duration": total_duration,
+            "highlighted_dates": event_dates,
+            "setup_duration": (c.EPOCH - c.SHIFTS_EPOCH).days,
+            "teardown_duration": (c.SHIFTS_ESCHATON - c.ESCHATON).days,
         }
 
     @requires_account(Attendee)

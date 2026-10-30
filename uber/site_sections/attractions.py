@@ -1,16 +1,34 @@
 import uuid
 from datetime import datetime
+from typing import Any, NamedTuple
 
 import cherrypy
 from pytz import UTC
 from sqlalchemy import or_
-from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm import Session, subqueryload
 
 from uber.decorators import ajax, all_renderable, requires_account
 from uber.errors import HTTPRedirect
-from uber.models import Attendee, Attraction, AttractionFeature, AttractionEvent, AttractionSignup, BadgeInfo
+from uber.models import (
+    Attendee,
+    Attraction,
+    AttractionEvent,
+    AttractionFeature,
+    AttractionSignup,
+    BadgeInfo,
+)
 from uber.site_sections.preregistration import check_post_con
 from uber.utils import slugify
+
+
+class AttractionResponse(NamedTuple):
+    """Structured response container for attractions signup and verification endpoints."""
+
+    success: bool = True
+    message: str = ""
+    error: str | None = None
+    first_name: str | None = None
+    badge_num: int | None = None
 
 def _attendee_for_badge_num(session, badge_num, options=None):
     from uber.barcode import get_badge_num_from_barcode
@@ -177,60 +195,99 @@ class Root:
 
     @requires_account()
     @ajax
-    def verify_badge_num(self, session, badge_num, **params):
+    def verify_badge_num(
+        self, session: Session, badge_num: str | int, **params: Any
+    ) -> AttractionResponse:
+        """Verify attendee badge number for attraction signups."""
         attendee = _attendee_for_badge_num(session, badge_num)
         if not attendee:
-            return {'error': 'Unrecognized badge number: {}'.format(badge_num)}
+            return AttractionResponse(
+                success=False, error=f"Unrecognized badge number: {badge_num}"
+            )
 
         if attendee.attractions_opt_out:
-            return {'error': 'That attendee has disabled attraction signups'}
+            return AttractionResponse(
+                success=False, error="That attendee has disabled attraction signups"
+            )
 
-        return {
-            'first_name': attendee.first_name,
-            'badge_num': attendee.badge_num}
+        return AttractionResponse(
+            success=True,
+            first_name=attendee.first_name,
+            badge_num=attendee.badge_num,
+        )
 
     @requires_account()
     @ajax
-    def signup_for_event(self, session, id, badge_num='', first_name='',
-                         last_name='', email='', zip_code='', **params):
+    def signup_for_event(
+        self,
+        session: Session,
+        id: str,
+        badge_num: str | int = "",
+        first_name: str = "",
+        last_name: str = "",
+        email: str = "",
+        zip_code: str = "",
+        **params: Any,
+    ) -> AttractionResponse | dict[str, Any]:
+        """Sign up an attendee for an attraction event."""
         event = _model_for_id(session, AttractionEvent, id)
         if not event:
-            return {'error': 'Unrecognized event id: {}'.format(id)}
+            return AttractionResponse(
+                success=False, error=f"Unrecognized event id: {id}"
+            )
 
         if badge_num or event.feature.badge_num_required:
             attendee = _attendee_for_badge_num(session, badge_num)
             if not attendee:
-                return {
-                    'error': 'Unrecognized badge number: {}'.format(badge_num)
-                }
+                return AttractionResponse(
+                    success=False, error=f"Unrecognized badge number: {badge_num}"
+                )
         else:
             attendee = _attendee_for_info(session, first_name, last_name,
                                           email, zip_code)
             if not attendee:
-                return {'error': 'We could not find you! Please check your information.'}
+                return AttractionResponse(
+                    success=False,
+                    error="We could not find you! Please check your information.",
+                )
 
         if attendee.amount_unpaid:
-            return {'error': 'That attendee is not fully paid up.'}
+            return AttractionResponse(
+                success=False, error="That attendee is not fully paid up."
+            )
 
         if attendee.attractions_opt_out:
-            return {'error': 'That attendee has disabled attraction signups.'}
+            return AttractionResponse(
+                success=False, error="That attendee has disabled attraction signups."
+            )
 
         old_remaining_slots = event.remaining_slots
         on_waitlist = False
 
         if event not in attendee.attraction_events:
             attraction = event.feature.attraction
-            if attraction.restriction == Attraction._PER_ATTRACTION:
-                if attraction in attendee.attractions:
-                    return {'error': '{} is already signed up for {}'.format(
-                            attendee.first_name, attraction.name)}
-            elif attraction.restriction == Attraction._PER_FEATURE:
-                if event.feature in attendee.attraction_features:
-                    return {'error': '{} is already signed up for {}'.format(
-                            attendee.first_name, event.feature.name)}
+            if (
+                attraction.restriction == Attraction._PER_ATTRACTION
+                and attraction in attendee.attractions
+            ):
+                return AttractionResponse(
+                    success=False,
+                    error=f"{attendee.first_name} is already signed up for {attraction.name}",
+                )
+            elif (
+                attraction.restriction == Attraction._PER_FEATURE
+                and event.feature in attendee.attraction_features
+            ):
+                return AttractionResponse(
+                    success=False,
+                    error=f"{attendee.first_name} is already signed up for {event.feature.name}",
+                )
 
             if not event.signups_open:
-                return {'error': '{} is not yet available for signups'.format(event.label)}
+                return AttractionResponse(
+                    success=False,
+                    error=f"{event.label} is not yet available for signups",
+                )
 
             if event.is_sold_out:
                 if event.waitlist_open:
@@ -242,7 +299,10 @@ class Root:
                     ))
                     on_waitlist = True
                 else:
-                    return {'error': '{} is already sold out'.format(event.label)}
+                    return AttractionResponse(
+                        success=False,
+                        error=f"{event.label} is already sold out",
+                    )
             else:
                 event.attendee_signups.append(attendee)
                 session.add(event)
