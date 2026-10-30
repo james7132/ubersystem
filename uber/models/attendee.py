@@ -13,7 +13,10 @@ from sqlalchemy.orm import subqueryload, aliased, selectinload, joinedload
 from sqlalchemy.schema import ForeignKey, Index, Table, UniqueConstraint
 from sqlalchemy.types import Boolean, Uuid, String, DateTime
 from sqlmodel import AutoString
-from typing import ClassVar
+from typing import ClassVar, Collection, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from uber.models.admin import WatchList
 
 import uber
 from uber.config import c
@@ -21,10 +24,28 @@ from uber.custom_tags import safe_string, time_day_local, readable_join
 from uber.decorators import presave_adjustment, render, cached_property, classproperty
 from uber.models import MagModel
 from uber.models.group import Group
-from uber.models.types import default_relationship as relationship, Choice, DefaultColumn as Column, \
-    MultiChoice, TakesPaymentMixin, DefaultField as Field, DefaultRelationship as Relationship
-from uber.utils import add_opt, get_age_from_birthday, get_age_conf_from_birthday, hour_day_format, \
-    localized_now, mask_string, normalize_email, normalize_email_legacy, remove_opt, RegistrationCode, listify, groupify
+from uber.models.types import (
+    default_relationship as relationship,
+    Choice,
+    DefaultColumn as Column,
+    MultiChoice,
+    TakesPaymentMixin,
+    DefaultField as Field,
+    DefaultRelationship as Relationship,
+)
+from uber.utils import (
+    add_opt,
+    get_age_from_birthday,
+    get_age_conf_from_birthday,
+    hour_day_format,
+    localized_now,
+    mask_string,
+    normalize_email,
+    normalize_email_legacy,
+    remove_opt,
+    RegistrationCode,
+    groupify,
+)
 
 log = logging.getLogger(__name__)
 
@@ -1654,12 +1675,14 @@ class Attendee(MagModel, TakesPaymentMixin, table=True):
             return None
 
     @property
-    def banned(self):
+    def banned(self) -> list['WatchList']:
         if self.watch_list:
-            return listify(self.watch_list)
+            return [self.watch_list]
 
         if self.is_new or self.badge_status not in [c.COMPLETED_STATUS, c.UNAPPROVED_DEALER_STATUS]:
-            return listify(self.watchlist_guess)
+            return self.watchlist_guess or []
+
+        return []
 
     @property
     def badge(self):
@@ -2124,13 +2147,13 @@ class Attendee(MagModel, TakesPaymentMixin, table=True):
         return [membership.department.name for membership in getattr(self, prop_name, [])]
 
     @property
-    def assigned_depts_ids(self):
+    def assigned_depts_ids(self) -> list[str]:
         _, ids = self._get_relation_ids('assigned_depts')
         return [str(d.id) for d in self.assigned_depts] if ids is None else ids
 
     @assigned_depts_ids.setter
-    def assigned_depts_ids(self, value):
-        values = set(s for s in listify(value) if s)
+    def assigned_depts_ids(self, ids: Collection[str]) -> None:
+        values = {i for i in ids if i and i != 'None'}
         for membership in list(self.dept_memberships):
             if membership.department_id not in values:
                 # Manually remove dept_memberships to ensure the associated
@@ -2144,20 +2167,19 @@ class Attendee(MagModel, TakesPaymentMixin, table=True):
         return [(v[0], v[1]) for v in c.PUBLIC_DEPARTMENT_OPTS_WITH_DESC if v[0] not in self.assigned_depts_ids]
 
     @property
-    def requested_depts_ids(self):
+    def requested_depts_ids(self) -> list[str]:
         return [d.department_id or 'All' for d in self.dept_membership_requests]
 
     @requested_depts_ids.setter
-    def requested_depts_ids(self, value):
+    def requested_depts_ids(self, ids: Collection[str]) -> None:
         from uber.models.department import DeptMembershipRequest
-        values = set(
-            None if s in ('None', 'All') else s
-            for s in listify(value) if s != '')
+
+        values = {None if s in ('None', 'All') else s for s in ids if s}
 
         for membership in list(self.dept_membership_requests):
             if membership.department_id not in values:
                 self.dept_membership_requests.remove(membership)
-        department_ids = set(str(d.department_id) for d in self.dept_membership_requests)
+        department_ids = {str(d.department_id) for d in self.dept_membership_requests}
         for department_id in values:
             if str(department_id) not in department_ids:
                 self.dept_membership_requests.append(

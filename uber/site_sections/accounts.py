@@ -13,7 +13,13 @@ from uber.config import c
 from uber.decorators import (ajax, all_renderable, any_admin_access, csrf_protected, csv_file,
                              not_site_mappable, render, site_mappable, public)
 from uber.errors import HTTPRedirect
-from uber.models import AdminAccount, Attendee, BadgeInfo, PasswordReset, WorkstationAssignment
+from uber.models import (
+    AdminAccount,
+    Attendee,
+    BadgeInfo,
+    PasswordReset,
+    WorkstationAssignment,
+)
 from uber.payments import PreregCart
 from uber.utils import (check, check_csrf, create_valid_user_supplied_redirect_url, ensure_csrf_token_exists, genpasswd,
                         create_new_hash)
@@ -64,8 +70,10 @@ class Root:
             message = "Please select an attendee to create an admin account for."
 
         if not message:
-            if 'access_groups_ids' not in params:
-                params['access_groups_ids'] = []
+            raw_groups = params.get('access_groups_ids', [])
+            params['access_groups_ids'] = (
+                [raw_groups] if isinstance(raw_groups, str) else list(raw_groups)
+            )
 
             account = session.admin_account(params)
 

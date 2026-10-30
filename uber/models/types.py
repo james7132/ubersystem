@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from collections import OrderedDict
 from datetime import datetime, time, timedelta
+from typing import Any
 from PIL import Image
 import re
 import shutil
@@ -15,7 +16,6 @@ from sqlalchemy.types import Boolean, Integer, TypeDecorator, String, DateTime, 
 from sqlmodel import Field, Relationship
 
 from uber.config import c, _config as config
-from uber.utils import listify
 
 __all__ = [
     'default_relationship', 'relationship', 'utcmin', 'utcnow', 'Choice',
@@ -302,18 +302,21 @@ class UniqueList(TypeDecorator):
     impl = String
     inherit_cache = True
 
-    def process_bind_param(self, value, dialect):
+    def process_bind_param(self, value: Any, dialect: Any) -> str:
         """
         A unique list may be in one of three forms: a single string,
         a single integer, or a list of strings. We want to end up with a single
         comma-separated string. We also want to make sure an object has only
-        unique values in its UniqueList columns. Therefore, we listify() the
-        object to make sure it's in list form, we convert it to a set to
-        make all the values unique, and we map the values inside it to strings
+        unique values in its UniqueList columns. Therefore, we ensure the
+        object is in list form, convert it to a set to
+        make all the values unique, and map the values inside it to strings
         before joining them with commas because the join function can't handle
         a list of integers.
         """
-        return ','.join(map(str, list(set(listify(value))))) if value else ''
+        if not value:
+            return ''
+        items = value if isinstance(value, (list, tuple, set)) else [value]
+        return ','.join(set(map(str, items)))
 
 
 class RankedList(UniqueList):
@@ -327,10 +330,11 @@ class RankedList(UniqueList):
     impl = String
     inherit_cache = True
 
-    def process_bind_param(self, value, dialect):
+    def process_bind_param(self, value: Any, dialect: Any) -> str:
         if not value:
             return ''
-        return ','.join(dict.fromkeys(map(str, listify(value))))
+        items = value if isinstance(value, (list, tuple, set)) else [value]
+        return ','.join(dict.fromkeys(map(str, items)))
 
 
 class MultiChoice(UniqueList):
@@ -358,10 +362,17 @@ class MultiChoice(UniqueList):
             value = self.convert_if_labels(value)
         return value
 
-    def convert_if_labels(self, value):
+    def convert_if_labels(self, value: Any) -> Any:
+        if not value:
+            return value
         try:
-            int(listify(value)[0])
-        except ValueError:
+            first = (
+                value[0]
+                if isinstance(value, (list, tuple))
+                else str(value).split(',')[0]
+            )
+            int(first)
+        except (ValueError, TypeError, IndexError):
             # This is a string list, is it the labels?
             try:
                 label_lookup = {val: key for key, val in self.choices}
@@ -370,7 +381,9 @@ class MultiChoice(UniqueList):
                 # The labels are unhashable, probably just a string list of the int values
                 return value
             try:
-                vals = [label_lookup[label] for label in re.split(r'; |, |\*|\n| / ', value)]  # noqa: W605
+                vals = [
+                    label_lookup[label] for label in re.split(r'; |, |\*|\n| / ', value)
+                ]  # noqa: W605
             except KeyError:
                 # It's probably just a string list of the int values
                 return value

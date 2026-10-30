@@ -23,10 +23,37 @@ from uber.decorators import ajax, ajax_gettable, all_renderable, credit_card, cs
     redirect_if_at_con_to_kiosk, render, requires_account
 from uber.errors import HTTPRedirect
 from uber.forms import load_forms
-from uber.models import AdminAccount, Attendee, AttendeeAccount, Attraction, BadgePickupGroup, Email, Group, PromoCode, PromoCodeGroup, \
-                        PasswordReset, ReceiptItem, ReceiptTransaction, Tracking
-from uber.utils import add_opt, remove_opt, check, localized_now, normalize_email, normalize_email_legacy, genpasswd, valid_email, \
-    valid_password, SignNowRequest, validate_model, create_new_hash, get_age_conf_from_birthday, RegistrationCode, listify
+from uber.models import (
+    AdminAccount,
+    Attendee,
+    AttendeeAccount,
+    Attraction,
+    BadgePickupGroup,
+    Email,
+    Group,
+    PromoCode,
+    PromoCodeGroup,
+    PasswordReset,
+    ReceiptItem,
+    ReceiptTransaction,
+    Tracking,
+)
+from uber.utils import (
+    add_opt,
+    remove_opt,
+    check,
+    localized_now,
+    normalize_email,
+    normalize_email_legacy,
+    genpasswd,
+    valid_email,
+    valid_password,
+    SignNowRequest,
+    validate_model,
+    create_new_hash,
+    get_age_conf_from_birthday,
+    RegistrationCode,
+)
 from uber.payments import PreregCart, TransactionRequest, ReceiptManager, RefundRequest
 
 log = logging.getLogger(__name__)
@@ -289,7 +316,9 @@ class Root:
             new_attendee = Attendee(**old_attendee_dict)
 
             if old_attendee.promo_code and not old_attendee.promo_code.is_expired:
-                unpaid_uses_count = PreregCart.get_unpaid_promo_code_uses_count(old_attendee.promo_code.id, new_attendee.id)
+                unpaid_uses_count = PreregCart.get_unpaid_promo_code_uses_count(
+                    old_attendee.promo_code.id, [new_attendee.id]
+                )
                 
                 if old_attendee.promo_code.is_unlimited or (old_attendee.promo_code.uses_remaining - unpaid_uses_count) > 0:
                     new_attendee.promo_code = old_attendee.promo_code

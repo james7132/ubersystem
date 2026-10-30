@@ -3,21 +3,23 @@ from datetime import datetime, timedelta
 
 import pytz
 from sqlalchemy import and_, cast, exists, func, not_
+from sqlalchemy.orm import Session
 from sqlalchemy.ext.associationproxy import AssociationProxy, association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import Uuid, String, DateTime
-from typing import ClassVar
+from typing import Any, ClassVar, Sequence
 
 from uber.config import c
 from uber.custom_tags import humanize_timedelta, location_event_name, location_room_name
 from uber.decorators import presave_adjustment, render, classproperty
 from uber.models import MagModel, Attendee
+from sqlmodel import col
 from uber.models.types import (DefaultColumn as Column, default_relationship as relationship, Choice, utcmin,
                                DefaultField as Field, DefaultRelationship as Relationship)
-from uber.utils import evening_datetime, noon_datetime, localized_now, slugify, listify, groupify
+from uber.utils import evening_datetime, noon_datetime, localized_now, slugify, groupify
 
 
 __all__ = [
@@ -282,7 +284,13 @@ class Attraction(MagModel, AttractionMixin, table=True):
                 event.schedule_item.last_updated = datetime.now(pytz.UTC)
                 session.add(event.schedule_item)
 
-    def signups_requiring_notification(self, session, from_time, to_time, options=None):
+    def signups_requiring_notification(
+        self,
+        session: Session,
+        from_time: datetime,
+        to_time: datetime,
+        options: Sequence[Any] | None = None,
+    ) -> dict[int, list[Any]]:
         """
         Returns a dict of AttractionSignups that require notification.
 
@@ -296,34 +304,55 @@ class Attraction(MagModel, AttractionMixin, table=True):
         subqueries = []
         checkin_reminder = [-1, self.checkin_reminder] if self.checkin_reminder else [-1]
         for advance_notice in sorted(checkin_reminder):
-            event_filters = [AttractionEvent.attraction_id == self.id,
-                             AttractionEvent.no_notifications == False]
+            event_filters = [
+                col(AttractionEvent.attraction_id) == self.id,
+                col(AttractionEvent.no_notifications) == False,
+            ]
+            notice_ident: Any
+            notice_param: Any
             if advance_notice == -1:
-                notice_ident = cast(AttractionSignup.attraction_event_id, String)
+                notice_ident = cast(col(AttractionSignup.attraction_event_id), String)
                 notice_param = bindparam('confirm_notice', advance_notice).label('advance_notice')
             else:
                 advance_notice = max(0, advance_notice) + advance_checkin
                 notice_delta = timedelta(minutes=advance_notice)
                 event_filters += [
-                    AttractionEvent.start_time >= from_time + notice_delta,
-                    AttractionEvent.start_time < to_time + notice_delta]
-                notice_ident = func.concat(AttractionSignup.attraction_event_id, '_{}'.format(advance_notice))
+                    col(AttractionEvent.start_time) >= from_time + notice_delta,
+                    col(AttractionEvent.start_time) < to_time + notice_delta,
+                ]
+                notice_ident = func.concat(
+                    col(AttractionSignup.attraction_event_id),
+                    '_{}'.format(advance_notice),
+                )
                 notice_param = bindparam(
                     'advance_notice_{}'.format(advance_notice), advance_notice).label('advance_notice')
 
-            subquery = session.query(AttractionSignup, notice_param).filter(
-                AttractionSignup.is_unchecked_in,
-                AttractionSignup.attraction_event_id.in_(
-                    session.query(AttractionEvent.id).filter(*event_filters)),
-                not_(exists().where(and_(
-                    AttractionNotification.ident == notice_ident,
-                    AttractionNotification.attraction_event_id == AttractionSignup.attraction_event_id,
-                    AttractionNotification.attendee_id == AttractionSignup.attendee_id)))).with_labels()
+            subquery = (
+                session.query(AttractionSignup, notice_param)
+                .filter(
+                    AttractionSignup.is_unchecked_in,
+                    col(AttractionSignup.attraction_event_id).in_(
+                        session.query(AttractionEvent.id).filter(*event_filters)
+                    ),
+                    not_(
+                        exists().where(
+                            and_(
+                                col(AttractionNotification.ident) == notice_ident,
+                                col(AttractionNotification.attraction_event_id)
+                                == AttractionSignup.attraction_event_id,
+                                col(AttractionNotification.attendee_id)
+                                == AttractionSignup.attendee_id,
+                            )
+                        )
+                    ),
+                )
+                .with_labels()
+            )
             subqueries.append(subquery)
 
         query = subqueries[0].union(*subqueries[1:])
         if options:
-            query = query.options(*listify(options))
+            query = query.options(*options)
         query.order_by(AttractionSignup.id)
         return groupify(query, lambda x: x[0], lambda x: x[1])
 

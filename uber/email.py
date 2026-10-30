@@ -6,6 +6,7 @@ import pytz
 
 from collections import defaultdict
 from datetime import datetime
+from typing import Any, Iterable
 from sqlalchemy.orm import joinedload
 from sqlalchemy import update, or_
 
@@ -14,11 +15,19 @@ from uber.automated_emails import AutomatedEmailFixture
 from uber.config import c
 from uber.custom_tags import email_only, readable_join
 from uber.decorators import reconcile_fixtures
-from uber.models import AutomatedEmail, Email
+from uber.models import Attendee, AutomatedEmail, Email
 from uber.serializer import serializer
-from uber.utils import listify, localized_now
+from uber.utils import localized_now
 
 log = logging.getLogger(__name__)
+
+
+def _join_recipients(r: Iterable[str | Attendee] | str | None) -> str:
+    if not r:
+        return ''
+    if isinstance(r, str):
+        return r
+    return ','.join(str(x) for x in r if x)
 
 
 class EmailHandler:
@@ -78,9 +87,11 @@ class EmailHandler:
         email_obj.ident = kwargs.get('ident', '')
         email_obj.automated_email = fixture_obj
 
-        email_obj.to, email_obj.cc, email_obj.bcc, email_obj.replyto = map(lambda x: ','.join(listify(x if x else [])),
-                                                                           [email_obj.to, email_obj.cc, email_obj.bcc, email_obj.replyto])
-        
+        email_obj.to, email_obj.cc, email_obj.bcc, email_obj.replyto = map(
+            _join_recipients,
+            [email_obj.to, email_obj.cc, email_obj.bcc, email_obj.replyto],
+        )
+
         return email_obj
 
     def can_queue_email(self, session, limit_one=False, delete_existing=False):
@@ -295,11 +306,16 @@ class EmailService:
         local_now_str = localized_now().strftime('%b %-d %-I:%M%p')
 
         if to_model:
-            def listify_if_exists(x): return ','.join(listify(x if x else []))
-            email.to = listify_if_exists(to_model.email_to_address)
-            email.cc = email.cc or listify_if_exists(to_model.cc_emails_for_ident(email.ident))
-            email.bcc = email.bcc or listify_if_exists(to_model.bcc_emails_for_ident(email.ident))
-            email.replyto = email.replyto or listify_if_exists(to_model.replyto_emails_for_ident(email.ident))
+            email.to = _join_recipients(to_model.email_to_address)
+            email.cc = email.cc or _join_recipients(
+                to_model.cc_emails_for_ident(email.ident)
+            )
+            email.bcc = email.bcc or _join_recipients(
+                to_model.bcc_emails_for_ident(email.ident)
+            )
+            email.replyto = email.replyto or _join_recipients(
+                to_model.replyto_emails_for_ident(email.ident)
+            )
 
         if fixture and to_model:
             # Re-check the email filter to make sure this object still qualifies for this email,

@@ -12,6 +12,8 @@ import wtforms.widgets.core as wtforms_widgets
 from wtforms.validators import ValidationError, StopValidation
 from wtforms.utils import unset_value
 from functools import wraps
+from markupsafe import Markup
+from typing import Any
 
 from uber.config import c
 from uber.files import FileService
@@ -766,9 +768,7 @@ class FileUploadField(Field):
                                                            and_flags=[key for key in file_flags.keys() if file_flags[key]],
                                                            uselist=self.multiple)
 
-    def __call__(self, **kwargs):
-        from uber.utils import listify
-
+    def __call__(self, **kwargs: Any) -> Markup:
         data_attr = 'preview_image_with_filename' if self.show_thumbnail else 'html_link'
 
         input = self.meta.render_field(self, kwargs)
@@ -815,7 +815,12 @@ class FileUploadField(Field):
 
         html = []
 
-        data_list = listify(getattr(self, 'data', []))
+        if self.multiple:
+            data_list = self.data or []
+        elif self.data:
+            data_list = [self.data]
+        else:
+            data_list = []
 
         for file in data_list:
             del_button = "" if not self.show_delete_btn else file.delete_button

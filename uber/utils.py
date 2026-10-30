@@ -17,7 +17,11 @@ import warnings
 import six
 
 from collections import defaultdict, OrderedDict
-from collections.abc import Iterable, Mapping, Sized
+from collections.abc import Iterable, Mapping, Sized, Sequence
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from uber.models import MagModel
 from datetime import date, datetime, timedelta, timezone
 from glob import glob
 from os.path import basename
@@ -321,8 +325,15 @@ def slugify(s):
     
     
 RE_WHITESPACE_GROUP = re.compile(r'(\s+)', re.M | re.U)
-def camel(s, sep='_', lower_initial=False, upper_segments=None,
-          preserve_upper=False):
+
+
+def camel(
+    s: str,
+    sep: str = '_',
+    lower_initial: bool | int | Sequence[int] = False,
+    upper_segments: int | Sequence[int] | None = None,
+    preserve_upper: bool = False,
+) -> str:
     """
     Convert underscore_separated string (aka snake_case) to CamelCase.
 
@@ -394,17 +405,28 @@ def camel(s, sep='_', lower_initial=False, upper_segments=None,
 
     """
     if isinstance(lower_initial, bool):
-        lower_initial = [0] if lower_initial else []
+        lower_segs = {0} if lower_initial else set()
+    elif isinstance(lower_initial, int):
+        lower_segs = {lower_initial}
+    elif lower_initial is not None:
+        lower_segs = set(lower_initial)
     else:
-        lower_initial = listify(lower_initial)
-    upper_segments = listify(upper_segments)
+        lower_segs = set()
+
+    if isinstance(upper_segments, int):
+        upper_segs = {upper_segments}
+    elif upper_segments is not None:
+        upper_segs = set(upper_segments)
+    else:
+        upper_segs = set()
+
     result = []
     for word in RE_WHITESPACE_GROUP.split(s):
         segments = [segment for segment in word.split(sep) if segment]
         count = len(segments)
         for i, segment in enumerate(segments):
-            upper = i in upper_segments or (i - count) in upper_segments
-            lower = i in lower_initial or (i - count) in lower_initial
+            upper = i in upper_segs or (i - count) in upper_segs
+            lower = i in lower_segs or (i - count) in lower_segs
             if upper and lower:
                 if preserve_upper:
                     segment = segment[0] + segment[1:].upper()
@@ -603,7 +625,7 @@ def groupify(items, keys, val_key=None):
     warnings.warn("groupify is deprecated.", stacklevel=2)
     if not keys:
         return items
-    keys = listify(keys)
+    keys = list(keys) if isinstance(keys, (list, tuple)) else [keys]
     last_key = keys[-1]
     is_callable = callable(val_key)
     groupified = dict()
@@ -1049,23 +1071,11 @@ def check(model, *, prereg=False):
     return "ERROR: " + "<br>".join(errors) if errors else None
 
 
-def check_all(models, *, prereg=False):
-    """
-    Runs all default validations against multiple model instances.
-
-    Args:
-        models (list): A single model instance or a list of instances.
-        prereg (bool): True if this is an ephemeral model used in the
-            preregistration workflow.
-
-    Returns:
-        str: None for success, or the first failure message encountered.
-    """
-    models = listify(models) if models else []
+def check_all(models: Iterable['MagModel'], *, prereg: bool = False) -> str | None:
     for model in models:
-        message = check(model, prereg=prereg)
-        if message:
+        if message := check(model, prereg=prereg):
             return message
+    return None
 
 
 def check_pii_consent(params, attendee=None):
@@ -1653,40 +1663,34 @@ def get_static_file_path(filename):
             return cherrypy.tree.apps[c.CHERRYPY_MOUNT_PATH].config[item]['tools.staticfile.filename']
 
 
-def add_opt(opts, other):
-    """
-    Add an option to an integer or list of integers, converting it to a comma-separated string.
+def add_opt(opts: Sequence[int], other: int) -> str:
+    """Add an option to a sequence of integers, converting it to a comma-separated string.
     This is for use with our MultiChoice columns.
 
     Args:
-        opts: An integer or list of integers, such as when using attendee.ribbon_ints
+        opts: A sequence of integers, such as when using attendee.ribbon_ints
         other: An integer to add, such as c.VOLUNTEER_RIBBON
 
     Returns: A comma-separated string representing all options in the list, with the new
     option added.
 
     """
-    other = listify(other) if other else []
-    opts.extend(other)
-    return ','.join(set(map(str, opts)))
+    return ','.join(str(x) for x in set(opts).union([other]))
 
 
-def remove_opt(opts, other):
-    """
-    Remove an option from an _ints property, converting it to a comma-separated string.
+def remove_opt(opts: Sequence[int], other: int) -> str:
+    """Remove an option from an _ints property, converting it to a comma-separated string.
     This is for use with our MultiChoice columns.
 
     Args:
-        opts: An integer or list of integers, such as when using attendee.ribbon_ints
+        opts: A sequence of integers, such as when using attendee.ribbon_ints
         other: An integer to remove, such as c.VOLUNTEER_RIBBON
 
     Returns: A comma-separated string representing all options in the list, with the option
     removed.
 
     """
-    other = listify(other) if other else []
-
-    return ','.join(map(str, set(opts).difference(other)))
+    return ','.join(str(x) for x in set(opts).difference([other]))
 
 
 def _server_to_url(server):

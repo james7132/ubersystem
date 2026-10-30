@@ -13,8 +13,16 @@ from uber.custom_tags import format_image_size, readable_join
 from uber.decorators import ajax, all_renderable, csrf_protected, render, requires_account, get_team_id, file_to_fk_id
 from uber.errors import HTTPRedirect
 from uber.files import FileService
-from uber.models import Email, File, MITSTeam, MITSApplicant, MITSGame, MITSPanelApplication, MITSTimes
-from uber.utils import check, localized_now, GuidebookUtils, listify
+from uber.models import (
+    Email,
+    File,
+    MITSTeam,
+    MITSApplicant,
+    MITSGame,
+    MITSPanelApplication,
+    MITSTimes,
+)
+from uber.utils import check, localized_now, GuidebookUtils
 
 log = logging.getLogger(__name__)
 
@@ -383,10 +391,20 @@ class Root:
         if cherrypy.request.method == 'POST':
             for applicant in team.applicants:
                 applicant.declined_hotel_space = '{}-declined'.format(applicant.id) in params
-                applicant.requested_room_nights = ','.join(listify(params.get('{}-night'.format(applicant.id), [])))
-                if not applicant.declined_hotel_space and not applicant.requested_room_nights:
-                    message = '{} must either declined hotel space or ' \
-                        'indicate which room nights they need'.format(applicant.full_name)
+                nights = params.get(f'{applicant.id}-night', [])
+                applicant.requested_room_nights = (
+                    nights if isinstance(nights, str) else ','.join(nights)
+                )
+                if (
+                    not applicant.declined_hotel_space
+                    and not applicant.requested_room_nights
+                ):
+                    message = (
+                        '{} must either declined hotel space or '
+                        'indicate which room nights they need'.format(
+                            applicant.full_name
+                        )
+                    )
                     break
                 elif applicant.declined_hotel_space and applicant.requested_room_nights:
                     message = '{} cannot both decline hotel space and ' \

@@ -184,7 +184,12 @@ class Root:
 
                     error = ''
                     try:
-                        refund = RefundRequest(session, item.receipt_txn, amount=refund_amount, who='non-admin')
+                        refund = RefundRequest(
+                            session,
+                            [item.receipt_txn],
+                            amount=refund_amount,
+                            who='non-admin',
+                        )
                     except ValueError as e:
                         error = e
 

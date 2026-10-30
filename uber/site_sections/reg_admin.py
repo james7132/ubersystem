@@ -15,8 +15,20 @@ from uber.config import c
 from uber.custom_tags import datetime_local_filter, time_day_local, pluralize, format_currency, readable_join
 from uber.decorators import ajax, all_renderable, csv_file, not_site_mappable, site_mappable
 from uber.errors import HTTPRedirect
-from uber.models import AdminAccount, ApiJob, ArtShowApplication, Attendee, Group, ModelReceipt, ReceiptItem, \
-    ReceiptInfo, ReceiptTransaction, Tracking, WorkstationAssignment, EscalationTicket
+from uber.models import (
+    AdminAccount,
+    ApiJob,
+    ArtShowApplication,
+    Attendee,
+    Group,
+    ModelReceipt,
+    ReceiptItem,
+    ReceiptInfo,
+    ReceiptTransaction,
+    Tracking,
+    WorkstationAssignment,
+    EscalationTicket,
+)
 from uber.site_sections import devtools
 from uber.utils import check, get_api_service_from_server, normalize_email, normalize_email_legacy, valid_email, \
     TaskUtils, Order, groupify
@@ -456,8 +468,13 @@ class Root:
         if item.receipt_txn and item.receipt_txn.amount_left:
             refund_amount = min(item.amount * item.count, item.receipt_txn.amount_left)
             try:
-                refund = RefundRequest(session, item.receipt_txn, amount=refund_amount,
-                                       method=item.receipt_txn.method, who=AdminAccount.admin_name())
+                refund = RefundRequest(
+                    session,
+                    [item.receipt_txn],
+                    amount=refund_amount,
+                    method=item.receipt_txn.method,
+                    who=AdminAccount.admin_name(),
+                )
             except ValueError as e:
                 return {'error': e}
 
@@ -539,8 +556,13 @@ class Root:
                 refund_amount -= processing_fees
 
             try:
-                refund = RefundRequest(session, item.receipt_txn, amount=refund_amount,
-                                       method=item.receipt_txn.method, who=AdminAccount.admin_name())
+                refund = RefundRequest(
+                    session,
+                    [item.receipt_txn],
+                    amount=refund_amount,
+                    method=item.receipt_txn.method,
+                    who=AdminAccount.admin_name(),
+                )
             except ValueError as e:
                 return {'error': e}
 
@@ -715,8 +737,13 @@ class Root:
 
         error = ''
         try:
-            refund = RefundRequest(session, txn, amount=refund_amount,
-                                   method=txn.method, who=AdminAccount.admin_name())
+            refund = RefundRequest(
+                session,
+                [txn],
+                amount=refund_amount,
+                method=txn.method,
+                who=AdminAccount.admin_name(),
+            )
         except ValueError as e:
             error = e
 
@@ -813,7 +840,12 @@ class Root:
 
             error = ''
             try:
-                refund = RefundRequest(session, txn, amount=group_refund_amount, who=AdminAccount.admin_name())
+                refund = RefundRequest(
+                    session,
+                    [txn],
+                    amount=group_refund_amount,
+                    who=AdminAccount.admin_name(),
+                )
             except ValueError as e:
                 error = e
 

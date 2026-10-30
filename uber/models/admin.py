@@ -7,14 +7,13 @@ from sqlalchemy.dialects.postgresql.json import JSONB
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.schema import ForeignKey, Table, UniqueConstraint, Index
 from sqlalchemy.types import Boolean, Date, Integer
-from typing import ClassVar
+from typing import ClassVar, Collection
 
 from uber.config import c
 from uber.decorators import presave_adjustment, classproperty
 from uber.models.types import (default_relationship as relationship, utcnow,
                                DefaultColumn as Column, DefaultField as Field, DefaultRelationship as Relationship)
 from uber.models import MagModel
-from uber.utils import listify
 
 
 __all__ = ['AccessGroup', 'AdminAccount', 'EscalationTicket', 'PasswordReset', 'WatchList', 'WorkstationAssignment']
@@ -193,19 +192,19 @@ class AdminAccount(MagModel, table=True):
         return [d.name for d in self.access_groups]
 
     @property
-    def access_groups_ids(self):
+    def access_groups_ids(self) -> list[str]:
         _, ids = self._get_relation_ids('access_groups')
         return [str(a.id) for a in self.access_groups] if ids is None else ids
 
     @access_groups_ids.setter
-    def access_groups_ids(self, value):
-        values = set(s for s in listify(value) if s)
+    def access_groups_ids(self, ids: Collection[str]) -> None:
+        values = {i for i in ids if i and i != 'None'}
         for group in list(self.access_groups):
             if group.id not in values:
                 # Manually remove the group to ensure the associated
                 # rows in the admin_access_group table are deleted.
                 self.access_groups.remove(group)
-        if set(value) != set(self.access_groups_ids):
+        if values != set(self.access_groups_ids):
             self._set_relation_ids('access_groups', AccessGroup, list(values))
 
     @property

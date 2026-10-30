@@ -9,8 +9,23 @@ from uber.decorators import ajax, all_renderable, csrf_protected, render, site_m
 from uber.errors import HTTPRedirect
 from uber.files import FileService
 from uber.forms import load_forms
-from uber.models import AdminAccount, Attendee, Email, IndieJudge, IndieGameReview, IndieStudio, IndieGame, PageViewTracking, Tracking
-from uber.utils import check, get_api_service_from_server, normalize_email_legacy, validate_model, listify
+from uber.models import (
+    AdminAccount,
+    Attendee,
+    Email,
+    IndieJudge,
+    IndieGameReview,
+    IndieStudio,
+    IndieGame,
+    PageViewTracking,
+    Tracking,
+)
+from uber.utils import (
+    check,
+    get_api_service_from_server,
+    normalize_email_legacy,
+    validate_model,
+)
 
 
 log = logging.getLogger(__name__)
@@ -350,41 +365,59 @@ class Root:
 
     @csrf_protected
     def assign(self, session, return_to, game_id=None, judge_id=None):
+        game_ids = [game_id] if isinstance(game_id, str) else list(game_id or ())
+        judge_ids = [judge_id] if isinstance(judge_id, str) else list(judge_id or ())
+
         if 'edit_game' in return_to:
-            what_assigned = "Judge" + ('s' if len(listify(game_id)) > 1 else '')
+            what_assigned = "Judge" + ('s' if len(judge_ids) > 1 else '')
             return_to = return_to + '&message={}#judges'
         elif 'edit_judge' in return_to:
-            what_assigned = "Game" + ('s' if len(listify(judge_id)) > 1 else '')
+            what_assigned = "Game" + ('s' if len(game_ids) > 1 else '')
             return_to = return_to + '&message={}#games'
+        else:
+            what_assigned = "Item"
 
-        if game_id is None:
+        if not game_ids:
             raise HTTPRedirect(return_to, 'Please select at least one game to assign.')
-        if judge_id is None:
+        if not judge_ids:
             raise HTTPRedirect(return_to, 'Please select at least one judge to assign.')
 
-        for gid in listify(game_id):
-            for jid in listify(judge_id):
-                if not session.query(IndieGameReview).filter_by(game_id=gid, judge_id=jid).first():
+        for gid in game_ids:
+            for jid in judge_ids:
+                if (
+                    not session.query(IndieGameReview)
+                    .filter_by(game_id=gid, judge_id=jid)
+                    .first()
+                ):
                     session.add(IndieGameReview(game_id=gid, judge_id=jid))
         raise HTTPRedirect(return_to, f'{what_assigned} successfully assigned!')
 
     @csrf_protected
     def remove(self, session, return_to, game_id=None, judge_id=None):
+        game_ids = [game_id] if isinstance(game_id, str) else list(game_id or ())
+        judge_ids = [judge_id] if isinstance(judge_id, str) else list(judge_id or ())
+
         if 'edit_game' in return_to:
-            what_removed = "Judge" + ('s' if len(listify(game_id)) > 1 else '')
+            what_removed = "Judge" + ('s' if len(judge_ids) > 1 else '')
             return_to = return_to + '&message={}#judges'
         elif 'edit_judge' in return_to:
-            what_removed = "Game" + ('s' if len(listify(judge_id)) > 1 else '')
+            what_removed = "Game" + ('s' if len(game_ids) > 1 else '')
             return_to = return_to + '&message={}#games'
+        else:
+            what_removed = "Item"
 
-        if game_id is None:
+        if not game_ids:
             raise HTTPRedirect(return_to, 'Please select at least one game to remove.')
-        if judge_id is None:
+        if not judge_ids:
             raise HTTPRedirect(return_to, 'Please select at least one judge to remove.')
 
-        for gid in listify(game_id):
-            for jid in listify(judge_id):
-                review = session.query(IndieGameReview).filter_by(game_id=gid, judge_id=jid).first()
+        for gid in game_ids:
+            for jid in judge_ids:
+                review = (
+                    session.query(IndieGameReview)
+                    .filter_by(game_id=gid, judge_id=jid)
+                    .first()
+                )
                 if review:
                     session.delete(review)
         raise HTTPRedirect(return_to, f'{what_removed} successfully removed.')
@@ -401,30 +434,32 @@ class Root:
         
     @csrf_protected
     def mark_verdicts(self, session, game_ids, status, hotel_included=False, showcase_type='all', show_all=False):
-
         return_to = f"index?showcase_type={showcase_type}"
         if show_all:
             return_to += "&show_all=True"
         if not status:
             raise HTTPRedirect('{}&message={}', return_to, 'You did not mark a status.')
 
-        if isinstance(game_ids, str):
-            game_ids = [game_ids]
-        status = int(status)
+        ids = [game_ids] if isinstance(game_ids, str) else list(game_ids)
+        int_status = int(status)
         hotel_included = bool(hotel_included)
 
-        for id in game_ids:
+        for id in ids:
             game = session.get(IndieGame, id)
-            game.status = status
-            game.hotel_included = hotel_included
-        raise HTTPRedirect(return_to + '&message={}',
-                           f"Selected games have been marked as {c.MIVS_GAME_STATUS[status]}{' with hotel space included' if hotel_included else ''}.")
+            if game:
+                game.status = int_status
+                game.hotel_included = hotel_included
+        raise HTTPRedirect(
+            return_to + '&message={}',
+            f"Selected games have been marked as {c.MIVS_GAME_STATUS[int_status]}{' with hotel space included' if hotel_included else ''}.",
+        )
 
     @csrf_protected
     def send_reviews(self, session, game_id, review_id=None):
         game = session.indie_game(id=game_id)
+        review_ids = {review_id} if isinstance(review_id, str) else set(review_id or ())
         for review in game.reviews:
-            if review.id in listify(review_id):
+            if review.id in review_ids:
                 review.send_to_studio = True
             elif review.send_to_studio:
                 review.send_to_studio = False

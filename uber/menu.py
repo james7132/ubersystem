@@ -2,9 +2,8 @@
 import logging
 log = logging.getLogger(__name__)
 
+from collections.abc import Callable, Iterable
 from urllib.parse import urlparse
-
-from uber.utils import listify
 
 from uber.config import c
 
@@ -14,13 +13,19 @@ class MenuItem:
     submenu = None  # submenu to show
     name = None     # name of Menu item to show
 
-    def __init__(self, href=None, submenu=None, name=None,
-                 access_override=None, visibility_check=None):
+    def __init__(
+        self,
+        href: str | Callable[[], str] | None = None,
+        submenu: Iterable['MenuItem'] | None = None,
+        name: str | None = None,
+        access_override: str | None = None,
+        visibility_check: Callable[[], bool] | None = None,
+    ) -> None:
         assert submenu or href, "menu items must contain ONE nonempty: href or submenu"
         assert not submenu or not href, "menu items must not contain both a href and submenu"
 
         if submenu:
-            self.submenu = listify(submenu)
+            self.submenu = list(submenu)
         else:
             self.href = href
 

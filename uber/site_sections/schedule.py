@@ -8,14 +8,28 @@ from collections import defaultdict
 from datetime import datetime, time, timedelta
 from dateutil import parser as dateparser
 from time import mktime
+from sqlmodel import col
 from sqlalchemy.orm import joinedload, selectinload
 
 from uber.config import c
 from uber.decorators import ajax, ajax_gettable, all_renderable, cached, csrf_protected, csv_file, render, schedule_view, site_mappable
 from uber.errors import HTTPRedirect
 from uber.forms import load_forms
-from uber.models import AssignedPanelist, Attendee, Event, EventLocation, PanelApplication, Department
-from uber.utils import check, localized_now, normalize_newlines, validate_model, load_locations_from_config, listify
+from uber.models import (
+    AssignedPanelist,
+    Attendee,
+    Event,
+    EventLocation,
+    PanelApplication,
+    Department,
+)
+from uber.utils import (
+    check,
+    localized_now,
+    normalize_newlines,
+    validate_model,
+    load_locations_from_config,
+)
 
 log = logging.getLogger(__name__)
 
@@ -226,9 +240,14 @@ class Root:
 
         assigned_panelists = sorted(event.assigned_panelists, reverse=True, key=lambda a: a.attendee.first_name)
 
-        approved_panel_apps = session.query(PanelApplication).filter(
-            PanelApplication.status == c.ACCEPTED,
-            PanelApplication.event_id == None).order_by('applied')  # noqa: E711
+        approved_panel_apps = (
+            session.query(PanelApplication)
+            .filter(
+                PanelApplication.status == c.ACCEPTED,
+                col(PanelApplication.event_id) == None,
+            )
+            .order_by('applied')
+        )  # noqa: E711
 
         if cherrypy.request.method == 'POST':
             for form in forms.values():
@@ -249,7 +268,9 @@ class Root:
                             assigned_panelist = AssignedPanelist(attendee_id=pa.attendee.id, event_id=event.id)
                             session.add(assigned_panelist)
 
-            new_panelist_ids = set(listify(panelists))
+            new_panelist_ids = (
+                {panelists} if isinstance(panelists, str) else set(panelists)
+            )
             old_panelist_ids = {ap.attendee_id for ap in event.assigned_panelists}
             for ap in event.assigned_panelists:
                 if ap.attendee_id not in new_panelist_ids:

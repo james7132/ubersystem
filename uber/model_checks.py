@@ -15,6 +15,7 @@ import re
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
+from typing import Any
 from urllib.request import urlopen
 
 import cherrypy
@@ -857,12 +858,14 @@ def promo_code_not_is_expired(attendee):
 
 
 @validation.Attendee
-def promo_code_has_uses_remaining(attendee):
+def promo_code_has_uses_remaining(attendee: Attendee) -> tuple[str, str] | None:
     if attendee.is_new and attendee.promo_code and not attendee.promo_code.is_unlimited:
         unpaid_uses_count = PreregCart.get_unpaid_promo_code_uses_count(
-            attendee.promo_code.id, attendee.id)
+            attendee.promo_code.id, [attendee.id]
+        )
         if (attendee.promo_code.uses_remaining - unpaid_uses_count) < 0:
             return ('promo_code', 'That promo code has been used too many times.')
+    return None
 
 
 @validation.Attendee

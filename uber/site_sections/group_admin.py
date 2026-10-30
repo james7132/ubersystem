@@ -14,7 +14,16 @@ from uber.email import EmailService
 from uber.errors import HTTPRedirect
 from uber.files import FileService
 from uber.forms import load_forms
-from uber.models import AdminAccount, Attendee, Email, DeptMembership, Group, GuestGroup, PageViewTracking, Tracking
+from uber.models import (
+    AdminAccount,
+    Attendee,
+    Email,
+    DeptMembership,
+    Group,
+    GuestGroup,
+    PageViewTracking,
+    Tracking,
+)
 from uber.utils import check, validate_model, add_opt, SignNowRequest
 from uber.payments import ReceiptManager
 
@@ -230,7 +239,9 @@ class Root:
                     group,
                     group_info_form.badges.data or int(bool(group.leader_first_name)),
                     new_badge_type=group.new_badge_type,
-                    new_ribbon_type=group.new_ribbons,
+                    new_ribbon_type=','.join(str(r) for r in group.new_ribbons)
+                    if group.new_ribbons
+                    else None,
                     badge_status=new_badge_status,
                     )
 

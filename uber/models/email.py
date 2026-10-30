@@ -21,7 +21,7 @@ from uber.decorators import presave_adjustment, renderable_data, cached_property
 from uber.jinja import JinjaEnv
 from uber.models import MagModel
 from uber.models.types import DefaultField as Field, DefaultRelationship as Relationship, Choice, DefaultColumn as Column
-from uber.utils import normalize_newlines, request_cached_context, groupify, listify
+from uber.utils import normalize_newlines, request_cached_context, groupify
 
 log = logging.getLogger(__name__)
 
@@ -308,9 +308,10 @@ class Email(MagModel, BaseEmailMixin, table=True):
         return self.to
     
     @property
-    def readable_fk_email_or_to(self):
-        if self.fk:
-            return readable_join(listify(self.fk.email_to_address))
+    def readable_fk_email_or_to(self) -> str:
+        if self.fk and self.fk.email_to_address:
+            addr = self.fk.email_to_address
+            return readable_join([addr] if isinstance(addr, str) else list(addr))
         return self.to
     
     @property

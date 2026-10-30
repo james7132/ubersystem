@@ -1,11 +1,14 @@
 import checkdigit.verhoeff as verhoeff
 import pytz
-from typing import Iterable
+from typing import Any, Collection, Iterable, Sequence, TYPE_CHECKING
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 from uuid import uuid4
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import Session, selectinload
+
+if TYPE_CHECKING:
+    from uber.models import ReceiptTransaction
 
 import logging
 import cherrypy
@@ -15,7 +18,7 @@ import stripe
 import uber
 from uber.config import c
 from uber.custom_tags import format_currency, email_only
-from uber.utils import report_critical_exception, listify, is_listy
+from uber.utils import report_critical_exception, is_listy
 import uber.spin_rest_utils as spin_rest_utils
 from uber.decorators import cached_property, classproperty
 from uber.serializer import serializer
@@ -54,8 +57,9 @@ class PreregCart:
     During preregistration, attendees and groups are not added to the database until
     the payment process is started. This class helps manage them in the session instead.
     """
-    def __init__(self, targets=()):
-        self._targets = listify(targets)
+
+    def __init__(self, targets: Iterable[Any] = ()) -> None:
+        self._targets = list(targets)
         self._current_cost = 0
 
     @classproperty
@@ -88,11 +92,10 @@ class PreregCart:
         return cherrypy.session.setdefault('universal_promo_codes', {})
 
     @classmethod
-    def get_unpaid_promo_code_uses_count(cls, id, already_counted_attendee_ids=None):
-        attendees_with_promo_code = set()
-        if already_counted_attendee_ids:
-            attendees_with_promo_code.update(listify(already_counted_attendee_ids))
-
+    def get_unpaid_promo_code_uses_count(
+        cls, id: str, already_counted_attendee_ids: Collection[str | None] = ()
+    ) -> int:
+        attendees_with_promo_code = set(already_counted_attendee_ids)
         promo_code_count = 0
 
         targets = [t for t in cls.unpaid_preregs.values() if '_model' in t]
@@ -853,13 +856,19 @@ class TransactionRequest(AuthNetRequestMixin if c.AUTHORIZENET_LOGIN_ID else Str
 
 
 class RefundRequest(TransactionRequest):
-    def __init__(self, session, txns, amount=0, skip_errors=False, who='', **kwargs):
+    def __init__(
+        self,
+        session: Session,
+        txns: Sequence['ReceiptTransaction'],
+        amount: int = 0,
+        skip_errors: bool = False,
+        who: str = '',
+        **kwargs: Any,
+    ) -> None:
         super().__init__(session, **kwargs)
 
-        txns = listify(txns)
-
-        self.txns = []
-        self.items_to_add = set()
+        self.txns: list['ReceiptTransaction'] = []
+        self.items_to_add: set[Any] = set()
         self.total_refundable = 0
         self.all_txns_totals = 0
         self.refund_str = "refunded"  # Set to "voided" when applicable to better inform admins
@@ -887,8 +896,9 @@ class RefundRequest(TransactionRequest):
         self.amount = int(amount) or self.total_refundable
 
         if self.total_refundable < self.amount:
-            raise ValueError(f"Invalid refund request: not enough left on given transaction(s) to refund {format_currency(
-                self.amount / 100)}.")
+            raise ValueError(
+                f"Invalid refund request: not enough left on given transaction(s) to refund {format_currency(self.amount / 100)}."
+            )
 
         if txns[0].method == c.SQUARE and c.SPIN_TERMINAL_AUTH_KEY:
             if not all([txn.receipt_info for txn in self.txns]):

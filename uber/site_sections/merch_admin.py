@@ -1,13 +1,24 @@
 import cherrypy
 import re
+from typing import Any, Sequence
+from sqlmodel import col
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 from uber.config import c
 from uber.decorators import ajax, all_renderable, credit_card, public, kiosk_login, site_mappable
 from uber.errors import HTTPRedirect
-from uber.models import ArbitraryCharge, Attendee, BadgeInfo, MerchDiscount, MerchPickup, \
-    MPointsForCash, NoShirt, OldMPointExchange
-from uber.utils import check, check_csrf, listify
+from uber.models import (
+    ArbitraryCharge,
+    Attendee,
+    BadgeInfo,
+    MerchDiscount,
+    MerchPickup,
+    MPointsForCash,
+    NoShirt,
+    OldMPointExchange,
+)
+from uber.utils import check, check_csrf
 from uber.payments import TransactionRequest
 
 
@@ -143,12 +154,25 @@ class Root:
                     'cancel_url': 'cancel_arbitrary_charge'}
 
     @kiosk_login()
-    def multi_merch_pickup(self, session, message="", csrf_token=None, picker_upper=None, badges=(), **shirt_sizes):
+    def multi_merch_pickup(
+        self,
+        session: Session,
+        message: str = "",
+        csrf_token: str | None = None,
+        picker_upper: str | int | Attendee | None = None,
+        badges: Sequence[str | int] = (),
+        **shirt_sizes: Any,
+    ) -> dict[str, Any]:
         picked_up = []
         if csrf_token:
             check_csrf(csrf_token)
             try:
-                picker_upper = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == int(picker_upper)).one()
+                picker_upper = (
+                    session.query(Attendee)
+                    .join(BadgeInfo)
+                    .filter(col(BadgeInfo.ident) == int(str(picker_upper)))
+                    .one()
+                )
             except Exception:
                 message = 'Please enter a valid badge number for the person picking up the merch: ' \
                     '{} is not in the system'.format(picker_upper)
@@ -156,7 +180,12 @@ class Root:
                 for badge_num in set(badges):
                     if badge_num:
                         try:
-                            attendee = session.query(Attendee).join(BadgeInfo).filter(BadgeInfo.ident == int(badge_num)).one()
+                            attendee = (
+                                session.query(Attendee)
+                                .join(BadgeInfo)
+                                .filter(col(BadgeInfo.ident) == int(badge_num))
+                                .one()
+                            )
                         except Exception:
                             picked_up.append('{!r} is not a valid badge number'.format(badge_num))
                         else:
@@ -167,9 +196,20 @@ class Root:
                                 attendee.got_merch = True
                                 shirt_key = 'shirt_{}'.format(attendee.badge_num)
                                 if shirt_key in shirt_sizes:
-                                    attendee.shirt = int(listify(shirt_sizes.get(shirt_key, c.SIZE_UNKNOWN))[0])
-                                picked_up.append('{a.name_and_badge_info}: {a.merch}'.format(a=attendee))
-                                session.add(MerchPickup(picked_up_by=picker_upper, picked_up_for=attendee))
+                                    shirt_val = shirt_sizes.get(shirt_key)
+                                    if shirt_val is not None and shirt_val != '':
+                                        attendee.shirt = int(shirt_val)
+                                picked_up.append(
+                                    '{a.name_and_badge_info}: {a.merch}'.format(
+                                        a=attendee
+                                    )
+                                )
+                                session.add(
+                                    MerchPickup(
+                                        picked_up_by=picker_upper,
+                                        picked_up_for=attendee,
+                                    )
+                                )
                 session.commit()
 
         return {

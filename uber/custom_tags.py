@@ -17,6 +17,8 @@ import sys
 from datetime import datetime, timedelta
 from urllib.parse import quote_plus
 from pytz import UTC
+from collections.abc import Iterable
+from typing import Any
 
 import cherrypy
 import jinja2
@@ -29,7 +31,13 @@ from uber.serializer import serializer
 from uber.config import c
 from uber.decorators import render
 from uber.jinja import JinjaEnv
-from uber.utils import ensure_csrf_token_exists, hour_day_format, localized_now, normalize_newlines, listify, readable_join
+from uber.utils import (
+    ensure_csrf_token_exists,
+    hour_day_format,
+    localized_now,
+    normalize_newlines,
+    readable_join,
+)
 
 # This used to be available as markupsafe.text_type, but that was removed in version 1.1.0
 text_type = str
@@ -591,7 +599,7 @@ def humanize_timedelta(
 
 
 @JinjaEnv.jinja_export
-def options(options, default='""'):
+def options(options: Iterable[Any], default: Any = '""') -> Markup:
     """
     We do need to accommodate explicitly passing in other options though
     (include None), so make sure to check all the client calls for that info.
@@ -601,8 +609,10 @@ def options(options, default='""'):
 
     results = []
     for opt in options:
-        if len(listify(opt)) == 1:
+        if not isinstance(opt, (list, tuple)):
             opt = [opt, opt]
+        elif len(opt) == 1:
+            opt = [opt[0], opt[0]]
         val, desc = opt
         if isinstance(val, datetime):
             selected = 'selected="selected"' if val == default else ''

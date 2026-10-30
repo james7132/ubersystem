@@ -12,7 +12,7 @@ from itertools import chain
 from pydantic import ConfigDict
 from uuid import uuid4
 from types import MethodType
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Collection
 
 import cherrypy
 import six
@@ -38,10 +38,26 @@ from sqlmodel import SQLModel
 import uber
 from uber.config import c, create_namespace_uuid
 from uber.errors import HTTPRedirect
-from uber.decorators import presave_adjustment, suffix_property, cached_classproperty, classproperty
-from uber.models.types import Choice, MultiChoice, utcnow, UniqueList, DefaultField as Field
-from uber.utils import check_csrf, normalize_email_legacy, create_new_hash, DeptChecklistConf, \
-    RegistrationCode, listify
+from uber.decorators import (
+    presave_adjustment,
+    suffix_property,
+    cached_classproperty,
+    classproperty,
+)
+from uber.models.types import (
+    Choice,
+    MultiChoice,
+    utcnow,
+    UniqueList,
+    DefaultField as Field,
+)
+from uber.utils import (
+    check_csrf,
+    normalize_email_legacy,
+    create_new_hash,
+    DeptChecklistConf,
+    RegistrationCode,
+)
 from uber.payments import ReceiptManager
 
 log = logging.getLogger(__name__)
@@ -879,9 +895,11 @@ class UberSession(sqlalchemy.orm.Session):
 
             return self.column_descriptions[0]['type']
 
-        def order(self, attrs):
+        def order(self, *attrs: str):
             order = []
-            for attr in listify(attrs):
+            for attr in attrs:
+                if not attr:
+                    continue
                 col = getattr(self.model, attr.lstrip('-'))
                 order.append(col.desc() if attr.startswith('-') else col)
             return self.order_by(*order)
@@ -2115,13 +2133,22 @@ class UberSession(sqlalchemy.orm.Session):
             group.attendees.remove(attendee)
 
         def assign_badges(
-                self, group, new_badge_count, new_badge_type=c.ATTENDEE_BADGE,
-                new_ribbon_type=None, paid=c.PAID_BY_GROUP,
-                **extra_create_args):
+            self,
+            group,
+            new_badge_count,
+            new_badge_type=c.ATTENDEE_BADGE,
+            new_ribbon_type: str | None = None,
+            paid=c.PAID_BY_GROUP,
+            **extra_create_args,
+        ):
 
             diff = int(new_badge_count) - group.badges
-            sorted_unassigned = sorted(group.floating, key=lambda a: a.registered, reverse=True)
-            ribbon_to_use = ','.join(map(str, listify(new_ribbon_type))) if new_ribbon_type else group.new_ribbon
+            sorted_unassigned = sorted(
+                group.floating, key=lambda a: a.registered, reverse=True
+            )
+            ribbon_to_use = (
+                new_ribbon_type if new_ribbon_type is not None else group.new_ribbon
+            )
 
             if int(new_badge_type) in c.PREASSIGNED_BADGE_TYPES and c.AFTER_PRINTED_BADGE_DEADLINE and diff > 0:
                 admin = self.current_admin_account()
@@ -2217,9 +2244,13 @@ class UberSession(sqlalchemy.orm.Session):
 
             return True
 
-        def set_relation_ids(self, instance, field, cls, value):
-            values = set(s for s in listify(value) if s and s != 'None')
-            relations = self.query(cls).filter(cls.id.in_(values)).all() if values else []
+        def set_relation_ids(
+            self: Any, instance: Any, field: str, cls: Any, ids: Collection[str]
+        ) -> None:
+            valid_ids = {i for i in ids if i and i != 'None'}
+            relations = (
+                self.query(cls).filter(cls.id.in_(valid_ids)).all() if valid_ids else []
+            )
             setattr(instance, field, relations)
 
         def bulk_insert(self, models):
