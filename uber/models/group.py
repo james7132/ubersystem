@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 from datetime import datetime
 from uuid import uuid4
@@ -15,6 +17,7 @@ from uber.decorators import presave_adjustment
 from uber.models import MagModel
 from uber.models.types import (Choice, default_relationship as relationship, DefaultColumn as Column, MultiChoice, TakesPaymentMixin,
                                DefaultField as Field, DefaultRelationship as Relationship)
+from uber.types import AttendeeId, GroupId
 from uber.utils import add_opt
 
 
@@ -22,15 +25,34 @@ __all__ = ['Group']
 
 
 class Group(MagModel, TakesPaymentMixin, table=True):
-    leader_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='attendee.id', nullable=True)
-    leader: 'Attendee' = Relationship(sa_relationship=relationship('Attendee', foreign_keys='Group.leader_id',
-                                                                   lazy='select', post_update=True))
-    
-    creator_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='attendee.id', nullable=True)
+    id: GroupId | None = Field(
+        sa_type=Uuid(as_uuid=False),
+        default_factory=lambda: GroupId(str(uuid4())),
+        primary_key=True,
+    )
+    leader_id: AttendeeId | None = Field(
+        sa_type=Uuid(as_uuid=False), foreign_key='attendee.id', nullable=True
+    )
+    leader: 'Attendee' = Relationship(
+        sa_relationship=relationship(
+            'Attendee', foreign_keys='Group.leader_id', lazy='select', post_update=True
+        )
+    )
+
+    creator_id: AttendeeId | None = Field(
+        sa_type=Uuid(as_uuid=False), foreign_key='attendee.id', nullable=True
+    )
     creator: 'Attendee' = Relationship(
-        back_populates="created_groups", sa_relationship_kwargs={'foreign_keys': 'Group.creator_id', 'remote_side': 'Attendee.id'})
-    
-    shared_with_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='group.id', nullable=True)
+        back_populates="created_groups",
+        sa_relationship_kwargs={
+            'foreign_keys': 'Group.creator_id',
+            'remote_side': 'Attendee.id',
+        },
+    )
+
+    shared_with_id: GroupId | None = Field(
+        sa_type=Uuid(as_uuid=False), foreign_key='group.id', nullable=True
+    )
     shared_with: 'Group' = Relationship(
         back_populates="table_shares", sa_relationship_kwargs={'foreign_keys': 'Group.shared_with_id', 'remote_side': 'Group.id'})
     table_shares: list['Group'] = Relationship(back_populates="shared_with", sa_relationship_kwargs={'viewonly': True})
@@ -111,7 +133,7 @@ class Group(MagModel, TakesPaymentMixin, table=True):
         return self.cost * 100
     
     @property
-    def purchaser_id(self):
+    def purchaser_id(self) -> AttendeeId | None:
         if self.leader:
             attendee = self.leader
         else:
@@ -120,6 +142,7 @@ class Group(MagModel, TakesPaymentMixin, table=True):
         
         if attendee:
             return attendee.purchaser_id
+        return None
         
     @property
     def signnow_config(self):

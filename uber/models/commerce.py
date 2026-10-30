@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from uuid import uuid4
 import stripe
 import logging
 
@@ -19,6 +22,17 @@ from uber.models.attendee import Attendee
 from uber.models.types import (DefaultColumn as Column, default_relationship as relationship, Choice, MultiChoice,
                                DefaultField as Field, DefaultRelationship as Relationship)
 from uber.payments import ReceiptManager
+from uber.types import (
+    AttendeeId,
+    ChargeId,
+    CustomerId,
+    GroupId,
+    PaymentIntentId,
+    ReceiptId,
+    ReceiptItemId,
+    ReceiptTransactionId,
+    RefundId,
+)
 
 log = logging.getLogger(__name__)
 
@@ -103,8 +117,16 @@ class ModelReceipt(MagModel, table=True):
     as during prereg, there may be multiple receipt transactions created with the same reference ID across multiple
     receipts.
     """
+
+    id: ReceiptId | None = Field(
+        sa_type=Uuid(as_uuid=False),
+        default_factory=lambda: ReceiptId(str(uuid4())),
+        primary_key=True,
+    )
     invoice_num: int = 0
-    owner_id: str = Field(sa_type=Uuid(as_uuid=False), index=True)
+    owner_id: AttendeeId | GroupId | str = Field(
+        sa_type=Uuid(as_uuid=False), index=True
+    )
     owner_model: str = ''
     closed: datetime | None = Field(sa_type=DateTime(timezone=True), nullable=True)
 
@@ -358,13 +380,31 @@ class ReceiptTransaction(MagModel, table=True):
         plus it allows admins to refund Stripe payments per item.
     """
 
-    receipt_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='model_receipt.id', ondelete='CASCADE', index=True)
-    receipt: 'ModelReceipt' = Relationship(back_populates="receipt_txns", sa_relationship_kwargs={'lazy': 'joined'})
-    
-    receipt_info_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='receipt_info.id', nullable=True)
-    receipt_info: 'ReceiptInfo' = Relationship(back_populates="receipt_txns", sa_relationship_kwargs={'lazy': 'select'})
+    id: ReceiptTransactionId | None = Field(
+        sa_type=Uuid(as_uuid=False),
+        default_factory=lambda: ReceiptTransactionId(str(uuid4())),
+        primary_key=True,
+    )
+    receipt_id: ReceiptId | None = Field(
+        sa_type=Uuid(as_uuid=False),
+        foreign_key='model_receipt.id',
+        ondelete='CASCADE',
+        index=True,
+    )
+    receipt: 'ModelReceipt' = Relationship(
+        back_populates="receipt_txns", sa_relationship_kwargs={'lazy': 'joined'}
+    )
 
-    refunded_txn_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='receipt_transaction.id', nullable=True)
+    receipt_info_id: str | None = Field(
+        sa_type=Uuid(as_uuid=False), foreign_key='receipt_info.id', nullable=True
+    )
+    receipt_info: 'ReceiptInfo' = Relationship(
+        back_populates="receipt_txns", sa_relationship_kwargs={'lazy': 'select'}
+    )
+
+    refunded_txn_id: ReceiptTransactionId | None = Field(
+        sa_type=Uuid(as_uuid=False), foreign_key='receipt_transaction.id', nullable=True
+    )
     refunded_txn: 'ReceiptTransaction' = Relationship(
         back_populates="refund_txns",
         sa_relationship_kwargs={'foreign_keys': 'ReceiptTransaction.refunded_txn_id', 'remote_side': 'ReceiptTransaction.id'})
@@ -373,9 +413,9 @@ class ReceiptTransaction(MagModel, table=True):
         sa_relationship_kwargs={'order_by': 'ReceiptTransaction.added'})
     
     refunded: int = 0
-    intent_id: str = Field(default='', index=True)
-    charge_id: str = ''
-    refund_id: str = ''
+    intent_id: PaymentIntentId = Field(default=PaymentIntentId(''), index=True)
+    charge_id: ChargeId = ChargeId('')
+    refund_id: RefundId = RefundId('')
     method: int = Field(sa_column=Column(Choice(c.PAYMENT_METHOD_OPTS)), default=c.STRIPE)
     department: int = Field(sa_column=Column(Choice(c.RECEIPT_ITEM_DEPT_OPTS)), default=c.OTHER_RECEIPT_ITEM)
     amount: int = 0
@@ -451,7 +491,7 @@ class ReceiptTransaction(MagModel, table=True):
         return self.intent_id and not self.charge_id and not self.cancelled
 
     @property
-    def stripe_id(self):
+    def stripe_id(self) -> RefundId | ChargeId | PaymentIntentId | str:
         # Return the most relevant Stripe ID for admins
         return self.refund_id or self.charge_id or self.intent_id
 
@@ -481,19 +521,19 @@ class ReceiptTransaction(MagModel, table=True):
         refund_pct = Decimal(amount) / Decimal(self.txn_total)
         return int(refund_pct * Decimal(self.total_processing_fee))
 
-    def check_stripe_id(self):
+    def check_stripe_id(self) -> str | None:
         # Check all possible Stripe IDs for invalid request errors
         # Stripe IDs become invalid if, for example, the Stripe API keys change
 
         if c.AUTHORIZENET_LOGIN_ID or self.method != c.STRIPE or not self.stripe_id:
-            return
+            return None
 
         refund_intent_id = None
         if self.refund_id:
             try:
                 refund = stripe.Refund.retrieve(self.refund_id)
             except Exception as e:
-                return e.user_message
+                return getattr(e, 'user_message', str(e))
             else:
                 refund_intent_id = refund.payment_intent
 
@@ -501,35 +541,45 @@ class ReceiptTransaction(MagModel, table=True):
             try:
                 stripe.PaymentIntent.retrieve(self.intent_id or refund_intent_id)
             except Exception as e:
-                return e.user_message
+                return getattr(e, 'user_message', str(e))
 
         if self.charge_id:
             try:
                 stripe.Charge.retrieve(self.charge_id)
             except Exception as e:
-                return e.user_message
+                return getattr(e, 'user_message', str(e))
 
-    def get_intent_id_from_refund(self):
+        return None
+
+    def get_intent_id_from_refund(self) -> PaymentIntentId | None:
         if c.AUTHORIZENET_LOGIN_ID or not self.refund_id:
-            return
+            return None
 
         try:
             refund = stripe.Refund.retrieve(self.refund_id)
         except Exception as e:
             log.error(e)
+            return None
         else:
-            return refund.payment_intent
+            return (
+                PaymentIntentId(refund.payment_intent)
+                if refund.payment_intent
+                else None
+            )
 
-    def get_stripe_intent(self, expand=[]):
+    def get_stripe_intent(self, expand: list[str] | None = None) -> Any:
         if not self.stripe_id or c.AUTHORIZENET_LOGIN_ID:
-            return
+            return None
 
         intent_id = self.intent_id or self.get_intent_id_from_refund()
+        if not intent_id:
+            return None
 
         try:
-            return stripe.PaymentIntent.retrieve(intent_id, expand=expand)
+            return stripe.PaymentIntent.retrieve(intent_id, expand=expand or [])
         except Exception as e:
             log.error(e)
+            return None
 
     def check_paid_from_stripe(self, session, intent=None):
         if self.charge_id or c.AUTHORIZENET_LOGIN_ID or self.method not in [c.STRIPE, c.MANUAL]:
@@ -724,13 +774,34 @@ class ReceiptDiscount(MagModel, table=True):
 
 
 class ReceiptItem(MagModel, table=True):
-    receipt_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='model_receipt.id', ondelete='CASCADE', index=True)
-    receipt: 'ModelReceipt' = Relationship(back_populates="receipt_items", sa_relationship_kwargs={'lazy': 'joined'})
+    id: ReceiptItemId | None = Field(
+        sa_type=Uuid(as_uuid=False),
+        default_factory=lambda: ReceiptItemId(str(uuid4())),
+        primary_key=True,
+    )
+    receipt_id: ReceiptId | None = Field(
+        sa_type=Uuid(as_uuid=False),
+        foreign_key='model_receipt.id',
+        ondelete='CASCADE',
+        index=True,
+    )
+    receipt: 'ModelReceipt' = Relationship(
+        back_populates="receipt_items", sa_relationship_kwargs={'lazy': 'joined'}
+    )
 
-    txn_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='receipt_transaction.id', nullable=True, index=True)
-    receipt_txn: 'ReceiptTransaction' = Relationship(back_populates="receipt_items", sa_relationship_kwargs={'lazy': 'joined'})
-    
-    purchaser_id: str | None = Field(sa_type=Uuid(as_uuid=False), index=True, nullable=True)
+    txn_id: ReceiptTransactionId | None = Field(
+        sa_type=Uuid(as_uuid=False),
+        foreign_key='receipt_transaction.id',
+        nullable=True,
+        index=True,
+    )
+    receipt_txn: 'ReceiptTransaction' = Relationship(
+        back_populates="receipt_items", sa_relationship_kwargs={'lazy': 'joined'}
+    )
+
+    purchaser_id: AttendeeId | None = Field(
+        sa_type=Uuid(as_uuid=False), index=True, nullable=True
+    )
     fk_id: str | None = Field(sa_type=Uuid(as_uuid=False), index=True, nullable=True)
     fk_model: str = ''
     department: int = Field(sa_column=Column(Choice(c.RECEIPT_ITEM_DEPT_OPTS)), default=c.OTHER_RECEIPT_ITEM)

@@ -23,6 +23,7 @@ from uber.models import MagModel
 from uber.models.group import Group
 from uber.models.types import default_relationship as relationship, Choice, DefaultColumn as Column, \
     MultiChoice, TakesPaymentMixin, DefaultField as Field, DefaultRelationship as Relationship
+from uber.types import AttendeeId, GroupId, PromoCodeId
 from uber.utils import add_opt, get_age_from_birthday, get_age_conf_from_birthday, hour_day_format, \
     localized_now, mask_string, normalize_email, normalize_email_legacy, remove_opt, RegistrationCode, listify, groupify
 
@@ -206,17 +207,39 @@ Index('ix_badge_info_free_ident', BadgeInfo.ident,
 
 
 class Attendee(MagModel, TakesPaymentMixin, table=True):
-    watchlist_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='watch_list.id', nullable=True)
-    watch_list: "WatchList" = Relationship(back_populates="attendees", sa_relationship_kwargs={'lazy': 'select'})
+    id: AttendeeId | None = Field(
+        sa_type=Uuid(as_uuid=False),
+        default_factory=lambda: AttendeeId(str(uuid4())),
+        primary_key=True,
+    )
+    watchlist_id: str | None = Field(
+        sa_type=Uuid(as_uuid=False), foreign_key='watch_list.id', nullable=True
+    )
+    watch_list: "WatchList" = Relationship(
+        back_populates="attendees", sa_relationship_kwargs={'lazy': 'select'}
+    )
 
-    group_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='group.id', nullable=True)
-    group: 'Group' = Relationship(back_populates="attendees", sa_relationship_kwargs={'foreign_keys': 'Attendee.group_id', 'lazy': 'select'})
-    
-    badge_pickup_group_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='badge_pickup_group.id', nullable=True,
-                                              index=True)
-    badge_pickup_group: 'BadgePickupGroup' = Relationship(back_populates="attendees", sa_relationship_kwargs={'lazy': 'select'})
+    group_id: GroupId | None = Field(
+        sa_type=Uuid(as_uuid=False), foreign_key='group.id', nullable=True
+    )
+    group: 'Group' = Relationship(
+        back_populates="attendees",
+        sa_relationship_kwargs={'foreign_keys': 'Attendee.group_id', 'lazy': 'select'},
+    )
 
-    creator_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='attendee.id', nullable=True)
+    badge_pickup_group_id: str | None = Field(
+        sa_type=Uuid(as_uuid=False),
+        foreign_key='badge_pickup_group.id',
+        nullable=True,
+        index=True,
+    )
+    badge_pickup_group: 'BadgePickupGroup' = Relationship(
+        back_populates="attendees", sa_relationship_kwargs={'lazy': 'select'}
+    )
+
+    creator_id: AttendeeId | None = Field(
+        sa_type=Uuid(as_uuid=False), foreign_key='attendee.id', nullable=True
+    )
     creator: 'Attendee' = Relationship(
         back_populates="created_badges",
         sa_relationship_kwargs={'foreign_keys': 'Attendee.creator_id', 'lazy': 'select', 'remote_side': 'Attendee.id'})
@@ -224,7 +247,9 @@ class Attendee(MagModel, TakesPaymentMixin, table=True):
         back_populates="creator",
         sa_relationship_kwargs={'foreign_keys': 'Attendee.creator_id', 'order_by': 'Attendee.full_name'})
 
-    current_attendee_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='attendee.id', nullable=True)
+    current_attendee_id: AttendeeId | None = Field(
+        sa_type=Uuid(as_uuid=False), foreign_key='attendee.id', nullable=True
+    )
     current_attendee: 'Attendee' = Relationship(
         back_populates="old_badges",
         sa_relationship_kwargs={'foreign_keys': 'Attendee.current_attendee_id', 'lazy': 'select', 'remote_side': 'Attendee.id'})
@@ -250,7 +275,12 @@ class Attendee(MagModel, TakesPaymentMixin, table=True):
     #
     # The practical result of this is that we must manually set promo_code_id
     # in order for the relationship to be persisted.
-    promo_code_id: str | None = Field(sa_type=Uuid(as_uuid=False), foreign_key='promo_code.id', nullable=True, index=True)
+    promo_code_id: PromoCodeId | None = Field(
+        sa_type=Uuid(as_uuid=False),
+        foreign_key='promo_code.id',
+        nullable=True,
+        index=True,
+    )
     promo_code: 'PromoCode' = Relationship(
         back_populates="used_by", sa_relationship_kwargs={'lazy': 'select', 'cascade': 'merge,refresh-expire,expunge'}
     )
@@ -1555,12 +1585,12 @@ class Attendee(MagModel, TakesPaymentMixin, table=True):
             else_=func.lower(cls.first_name + ' ' + cls.last_name))
 
     @property
-    def purchaser_id(self):
+    def purchaser_id(self) -> AttendeeId | None:
         if self.managers:
-            return self.managers[0].id
+            return AttendeeId(self.managers[0].id) if self.managers[0].id else None
         if c.ATTENDEE_ACCOUNTS_ENABLED:
             log.info(f"Tried to find a purchaser ID for {self.id}, but there is no account ID available. Attendee ID used as fallback.")
-        return self.id
+        return AttendeeId(self.id) if self.id else None
 
     @hybrid_property
     def primary_account_email(self):

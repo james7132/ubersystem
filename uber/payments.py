@@ -1,11 +1,26 @@
+from __future__ import annotations
+
 import checkdigit.verhoeff as verhoeff
 import pytz
-from typing import Iterable
+from typing import TYPE_CHECKING, Any, Iterable
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 from uuid import uuid4
 from sqlalchemy.orm import selectinload
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+    from uber.models import MagModel, ModelReceipt, ReceiptItem, ReceiptTransaction
+
+from uber.types import (
+    AttendeeId,
+    ChargeId,
+    CustomerId,
+    PaymentIntentId,
+    ReceiptId,
+    RefundId,
+)
 
 import logging
 import cherrypy
@@ -348,13 +363,27 @@ class PreregCart:
 
 
 class StripeRequestMixin:
-    @property
-    def response_id(self):
-        if not self.response:
-            return
-        return self.response.id
+    receipt_email: str
+    account: Any
+    customer_id: CustomerId | None
+    tracking_id: str
+    amount: int
+    description: str
+    response: Any
 
-    def send_refund_request(self, session, amount, charge_id, intent_id):
+    @property
+    def response_id(self) -> RefundId | str | None:
+        if not self.response:
+            return None
+        return RefundId(self.response.id)
+
+    def send_refund_request(
+        self,
+        session: Session,
+        amount: int,
+        charge_id: ChargeId,
+        intent_id: PaymentIntentId,
+    ) -> str | None:
         try:
             self.response = stripe.Refund.create(payment_intent=intent_id,
                                                  amount=amount,
@@ -366,8 +395,9 @@ class StripeRequestMixin:
                 msg=error_txt,
                 subject='ERROR: MAGFest Stripe invalid request error')
             return 'An unexpected problem occurred: ' + str(e)
+        return None
 
-    def get_or_create_customer(self, customer_id=''):
+    def get_or_create_customer(self, customer_id: CustomerId | str = '') -> None:
         if not self.receipt_email:
             return
 
@@ -381,7 +411,7 @@ class StripeRequestMixin:
                 customer = sso_id_search.data[0]
                 if customer.email != self.receipt_email:
                     stripe.Customer.modify(customer.id, email=self.receipt_email)
-                self.customer_id = customer.id
+                self.customer_id = CustomerId(customer.id)
                 return
 
         customer_list = stripe.Customer.list(
@@ -397,9 +427,9 @@ class StripeRequestMixin:
             )
         if sso_id:
             stripe.Customer.modify(customer.id, metadata={"sso_id": self.account.sso_id})
-        self.customer_id = customer.id if customer else None
+        self.customer_id = CustomerId(customer.id) if customer else None
 
-    def generate_payment_intent(self, intent_id=''):
+    def generate_payment_intent(self, intent_id: PaymentIntentId | str = '') -> Any:
         log.debug(f'Transaction {self.tracking_id}: creating Stripe Intent to charge '
                     f'{self.amount} cents for {self.description}')
 
@@ -413,6 +443,15 @@ class StripeRequestMixin:
         )
 
 class AuthNetRequestMixin:
+    receipt_email: str
+    account: Any
+    customer_id: CustomerId | None
+    tracking_id: str
+    amount: int
+    description: str
+    response: Any
+    refund_str: str
+
     @property
     def merchant_auth(self):
         return apicontractsv1.merchantAuthenticationType(
@@ -421,12 +460,12 @@ class AuthNetRequestMixin:
         )  
 
     @property
-    def response_id(self):
+    def response_id(self) -> str | None:
         if not self.response:
-            return
+            return None
         return self.response.transId
 
-    def generate_payment_intent(self, intent_id=''):
+    def generate_payment_intent(self, intent_id: PaymentIntentId | str = '') -> Any:
         return MockStripeIntent(
             amount=self.amount,
             description=self.description,
@@ -435,7 +474,13 @@ class AuthNetRequestMixin:
             intent_id=intent_id
         )
 
-    def send_refund_request(self, session, amount, charge_id, intent_id):
+    def send_refund_request(
+        self,
+        session: Session,
+        amount: int,
+        charge_id: ChargeId,
+        intent_id: PaymentIntentId,
+    ) -> str | None:
         error = self.get_authorizenet_txn(charge_id)
 
         if error:
@@ -464,8 +509,9 @@ class AuthNetRequestMixin:
                                                 zip=zip, txn_id=charge_id)
         if error:
             return 'An unexpected problem occurred: ' + str(error)
+        return None
 
-    def get_or_create_customer(self, customer_id=''):
+    def get_or_create_customer(self, customer_id: CustomerId | str = '') -> None:
         if not self.receipt_email:
             return
 
@@ -484,7 +530,7 @@ class AuthNetRequestMixin:
         response = getCustomerRequestController.getresponse()
         if response is not None:
             if response.messages.resultCode == "Ok" and hasattr(response, 'profile') is True:
-                self.customer_id = str(response.profile.customerProfileId)
+                self.customer_id = CustomerId(str(response.profile.customerProfileId))
                 log.debug(f"Transaction {self.tracking_id} retrieved customer {self.customer_id}")
                 if hasattr(response.profile, 'paymentProfiles') is True:
                     for paymentProfile in response.profile.paymentProfiles:
@@ -506,7 +552,7 @@ class AuthNetRequestMixin:
                 response = createCustomerRequestController.getresponse()
 
                 if response and (response.messages.resultCode == "Ok"):
-                    self.customer_id = str(response.customerProfileId)
+                    self.customer_id = CustomerId(str(response.customerProfileId))
                 elif not response:
                     log.error(f"Transaction {self.tracking_id} failed to create customer profile. "
                                 "No response received.")
@@ -930,11 +976,16 @@ class RefundRequest(TransactionRequest):
         self.txns.append(txn)
         self.total_refundable += txn.amount - already_refunded
 
-    def process_txn_refund(self, department=None):
+    def process_txn_refund(self, department: int | None = None) -> str | None:
         log.debug('REFUND: attempting to refund card transaction with ID {} {} cents.',
                   self.charge_id, str(self.amount))
 
-        message = self.send_refund_request(self.session, self.amount, self.charge_id, self.txns[0].intent_id)
+        message = self.send_refund_request(
+            self.session,
+            self.amount,
+            ChargeId(self.charge_id),
+            PaymentIntentId(self.txns[0].intent_id),
+        )
         if message:
             return message
 
@@ -942,11 +993,17 @@ class RefundRequest(TransactionRequest):
             receipt_manager = ReceiptManager(txn.receipt, who=self.who)
             txn_refund_amt = self.amount if len(self.txns) == 1 else txn.amount_left
 
-            receipt_manager.create_refund_transaction(txn, "Automatic refund of transaction " + txn.stripe_id,
-                                                      str(self.response_id), txn_refund_amt,
-                                                      method=txn.method, department=department)
+            receipt_manager.create_refund_transaction(
+                txn,
+                "Automatic refund of transaction " + txn.stripe_id,
+                RefundId(str(self.response_id)),
+                txn_refund_amt,
+                method=txn.method,
+                department=department,
+            )
             receipt_manager.update_transaction_refund(txn, txn_refund_amt)
             self.items_to_add.update(receipt_manager.items_to_add)
+        return None
 
     def spin_refund_cleanup(f):
         from functools import wraps
@@ -1393,7 +1450,15 @@ class ReceiptManager:
         self.who = who
         self.error_message = ""
 
-    def create_payment_transaction(self, desc='', intent=None, amount=0, txn_total=0, method=c.STRIPE, department=None):
+    def create_payment_transaction(
+        self,
+        desc: str = '',
+        intent: Any | None = None,
+        amount: int = 0,
+        txn_total: int = 0,
+        method: int = c.STRIPE,
+        department: int | None = None,
+    ) -> str | None:
         from uber.models import AdminAccount, ReceiptTransaction
 
         if intent:
@@ -1406,34 +1471,47 @@ class ReceiptManager:
         if amount <= 0:
             return "There was an issue recording your payment."
 
-        self.items_to_add.add(ReceiptTransaction(receipt_id=self.receipt.id,
-                                                 intent_id=intent.id if intent else '',
-                                                 method=method,
-                                                 department=department or self.receipt.default_department,
-                                                 amount=amount,
-                                                 txn_total=txn_total or amount,
-                                                 receipt_items=self.receipt.open_purchase_items,
-                                                 desc=desc,
-                                                 who=self.who or AdminAccount.admin_name() or 'non-admin'
-                                                 ))
+        self.items_to_add.add(
+            ReceiptTransaction(
+                receipt_id=self.receipt.id,
+                intent_id=PaymentIntentId(intent.id) if intent else PaymentIntentId(''),
+                method=method,
+                department=department or self.receipt.default_department,
+                amount=amount,
+                txn_total=txn_total or amount,
+                receipt_items=self.receipt.open_purchase_items,
+                desc=desc,
+                who=self.who or AdminAccount.admin_name() or 'non-admin',
+            )
+        )
         if not intent:
             for item in self.receipt.open_purchase_items:
                 item.closed = datetime.now()
                 self.items_to_add.add(item)
+        return None
 
-    def create_refund_transaction(self, refunded_txn, desc, refund_id, amount, method=c.STRIPE, department=None):
+    def create_refund_transaction(
+        self,
+        refunded_txn: ReceiptTransaction,
+        desc: str,
+        refund_id: RefundId | str,
+        amount: int,
+        method: int = c.STRIPE,
+        department: int | None = None,
+    ) -> ReceiptTransaction:
         from uber.models import AdminAccount, ReceiptTransaction
 
-        receipt_txn = ReceiptTransaction(receipt_id=refunded_txn.receipt.id,
-                                         refund_id=refund_id,
-                                         refunded_txn_id=refunded_txn.id,
-                                         method=method,
-                                         department=department or refunded_txn.receipt.default_department,
-                                         amount=amount * -1,
-                                         receipt_items=refunded_txn.receipt.open_credit_items,
-                                         desc=desc,
-                                         who=self.who or AdminAccount.admin_name() or 'non-admin'
-                                         )
+        receipt_txn = ReceiptTransaction(
+            receipt_id=refunded_txn.receipt.id,
+            refund_id=RefundId(refund_id),
+            refunded_txn_id=refunded_txn.id,
+            method=method,
+            department=department or refunded_txn.receipt.default_department,
+            amount=amount * -1,
+            receipt_items=refunded_txn.receipt.open_credit_items,
+            desc=desc,
+            who=self.who or AdminAccount.admin_name() or 'non-admin',
+        )
 
         for item in refunded_txn.receipt.open_credit_items:
             self.items_to_add.add(item)
@@ -1442,7 +1520,15 @@ class ReceiptManager:
         self.items_to_add.add(receipt_txn)
         return receipt_txn
 
-    def create_receipt_item(self, receipt, department, category, desc, amount, purchaser_id=None):
+    def create_receipt_item(
+        self,
+        receipt: ModelReceipt,
+        department: int,
+        category: int,
+        desc: str,
+        amount: int,
+        purchaser_id: AttendeeId | None = None,
+    ) -> ReceiptItem:
         from uber.models import AdminAccount, ReceiptItem
 
         receipt_item = ReceiptItem(purchaser_id=purchaser_id,
@@ -1458,27 +1544,31 @@ class ReceiptManager:
         self.items_to_add.add(receipt_item)
         return receipt_item
 
-    def update_transaction_refund(self, txn, refund_amount):
+    def update_transaction_refund(
+        self, txn: ReceiptTransaction, refund_amount: int
+    ) -> None:
         txn.refunded += refund_amount
         self.items_to_add.add(txn)
 
     @classmethod
-    def get_purchaser_id(cls, receipt=None, model=None):
+    def get_purchaser_id(
+        cls, receipt: ModelReceipt | None = None, model: MagModel | None = None
+    ) -> AttendeeId | None:
         from uber.models import Attendee, Group, Session
 
         if not receipt and not model:
             return None
 
-        if hasattr(model, 'session') and model.session:
-            session = model.session
+        if hasattr(model, 'session') and getattr(model, 'session', None):
+            session = getattr(model, 'session')
         else:
             from uber.models import Session
             session = Session()
-        model = model or session.get_model_by_receipt(receipt)
-        if isinstance(model, (Attendee, Group)):
-            return model.purchaser_id
+        resolved_model = model or session.get_model_by_receipt(receipt)
+        if isinstance(resolved_model, (Attendee, Group)):
+            return resolved_model.purchaser_id
         else:
-            purchaser = getattr(model, 'attendee', None)
+            purchaser = getattr(resolved_model, 'attendee', None)
             return purchaser.purchaser_id if purchaser else None
 
     def cancel_and_refund(self, model, exclude_fees=False):
